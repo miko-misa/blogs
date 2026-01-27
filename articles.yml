@@ -1,0 +1,10 @@
+articles:
+  - file: gauge.tmd
+    slug: gauge
+    title: Gauge
+  - file: showcase.tmd
+    slug: showcase
+    title: Showcase
+  - file: test.tmd
+    slug: test
+    title: Test

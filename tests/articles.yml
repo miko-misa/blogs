@@ -1,0 +1,4 @@
+articles:
+  - file: quick-start.tmd
+    slug: quick-start
+    title: Blog Render Smoke Test

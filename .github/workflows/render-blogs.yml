@@ -65,9 +65,7 @@ jobs:
 
           python3 - <<'PY'
           import json
-          import os
           import subprocess
-          import xml.etree.ElementTree as ET
           from pathlib import Path
 
           root = Path(".").resolve()
@@ -76,36 +74,69 @@ jobs:
             parts = set(path.parts)
             return ".git" in parts or ".github" in parts or "site" in parts
 
-          xml_paths = [
+          def parse_articles_yaml(path: Path):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            articles = []
+            current = None
+            in_articles = False
+            for raw in lines:
+              line = raw.rstrip()
+              if not line or line.lstrip().startswith("#"):
+                continue
+              if line.startswith("articles:"):
+                in_articles = True
+                continue
+              if not in_articles:
+                continue
+              stripped = line.lstrip()
+              if stripped.startswith("-"):
+                if current:
+                  articles.append(current)
+                current = {}
+                remainder = stripped[1:].strip()
+                if remainder:
+                  if ":" not in remainder:
+                    raise SystemExit(f"Invalid articles.yml entry: {path}")
+                  key, value = remainder.split(":", 1)
+                  current[key.strip()] = value.strip().strip('"')
+                continue
+              if current is None:
+                raise SystemExit(f"Invalid articles.yml structure: {path}")
+              if ":" not in stripped:
+                raise SystemExit(f"Invalid articles.yml entry: {path}")
+              key, value = stripped.split(":", 1)
+              current[key.strip()] = value.strip().strip('"')
+            if current:
+              articles.append(current)
+            return articles
+
+          yaml_paths = [
             p
-            for p in root.rglob("articles.xml")
+            for p in root.rglob("articles.yml")
             if not is_ignored(p)
           ]
 
-          if not xml_paths:
-            raise SystemExit("No articles.xml found")
+          if not yaml_paths:
+            raise SystemExit("No articles.yml found")
 
           index = {"folders": {}}
           folder_keys = []
 
-          for xml_path in xml_paths:
-            folder = xml_path.parent
+          for yaml_path in yaml_paths:
+            folder = yaml_path.parent
             rel_folder = folder.relative_to(root)
             folder_key = "" if str(rel_folder) == "." else rel_folder.as_posix()
             folder_keys.append(folder_key)
 
-            tree = ET.parse(xml_path)
-            root_el = tree.getroot()
             pages = []
-
-            for node in root_el.findall("article"):
+            for node in parse_articles_yaml(yaml_path):
               file_name = node.get("file")
               slug = node.get("slug")
               title = node.get("title") or slug or file_name
 
               if not file_name or not slug:
                 raise SystemExit(
-                  f"Invalid article entry in {xml_path}: file and slug are required"
+                  f"Invalid article entry in {yaml_path}: file and slug are required"
                 )
 
               tmd_path = folder / file_name

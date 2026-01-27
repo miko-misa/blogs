@@ -9,16 +9,19 @@ when visiting `/blogs/<slug>`.
 
 ## Articles manifest (required)
 
-Each folder that contains `.tmd` files **must** include an `articles.xml` file.
-Only files listed in `articles.xml` are rendered and published.
+Each folder that contains `.tmd` files **must** include an `articles.yml` file.
+Only files listed in `articles.yml` are rendered and published.
 
 Example format:
 
 ```
-<articles>
-  <article file="a.tmd" slug="a" title="My Article" />
-  <article file="b.tmd" slug="b" title="Another One" />
-</articles>
+articles:
+  - file: a.tmd
+    slug: a
+    title: My Article
+  - file: b.tmd
+    slug: b
+    title: Another One
 ```
 
 - `file`: the `.tmd` filename in the same folder
@@ -35,10 +38,10 @@ The path is preserved from the repo root, using each `slug`:
 ## Folder listing
 
 Accessing a folder shows a list of pages in that folder and any child folders
-that also have `articles.xml`.
+that also have `articles.yml`.
 
-- `/blogs/` shows items listed in `/articles.xml`
-- `/blogs/tests` shows items listed in `tests/articles.xml`
+- `/blogs/` shows items listed in `/articles.yml`
+- `/blogs/tests` shows items listed in `tests/articles.yml`
 
 ## Assets
 
