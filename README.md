@@ -2,23 +2,28 @@
 
 This repo stores TypMark `.tmd` sources for the portfolio blog.
 On every push to `main`, GitHub Actions renders `.tmd` files to HTML
-and publishes them into the `portfolio` repo at `public/blogs/`.
+and publishes them into the `portfolio` repo under `public/blogs-content/`.
+
+The portfolio app fetches the rendered HTML and wraps it with React/Tailwind
+when visiting `/blogs/<slug>`.
 
 ## URL mapping
 
 The path is preserved from the repo root:
 
-- `tests/a.tmd` -> `/blogs/tests/a/`
-- `notes/2025/intro.tmd` -> `/blogs/notes/2025/intro/`
+- `tests/a.tmd` -> `/blogs/tests/a`
+- `notes/2025/intro.tmd` -> `/blogs/notes/2025/intro`
 
-Each page is generated as `public/blogs/<path>/index.html`.
+Each page is generated as `public/blogs-content/<path>.html`.
 
 ## Assets
 
 Place shared assets under `assets/`. They are copied to
 `portfolio/public/blogs/assets/`.
 
-Refer to them in HTML via `/blogs/assets/...`.
+Use absolute paths in your Markdown so they work from any blog route:
+
+- `/blogs/assets/your-image.png`
 
 ## Required GitHub secret
 

@@ -61,21 +61,20 @@ jobs:
       - name: Render .tmd to HTML
         run: |
           rm -rf site
-          mkdir -p site/blogs
+          mkdir -p site/blogs-content site/blogs/assets
 
           while IFS= read -r file; do
             rel="${file#./}"
             rel_no_ext="${rel%.tmd}"
-            out_dir="site/blogs/${rel_no_ext}"
-            mkdir -p "$out_dir"
-            ./typmark-cli --render --theme dark "$file" > "$out_dir/index.html"
+            out_file="site/blogs-content/${rel_no_ext}.html"
+            mkdir -p "$(dirname "$out_file")"
+            ./typmark-cli --render --theme dark "$file" > "$out_file"
           done < <(find . -name '*.tmd' -type f \
             -not -path './.git/*' \
             -not -path './.github/*' \
             -not -path './site/*')
 
           if [ -d assets ]; then
-            mkdir -p site/blogs/assets
             rsync -a assets/ site/blogs/assets/
           fi
 
@@ -89,8 +88,12 @@ jobs:
       - name: Publish to portfolio
         run: |
           rm -rf portfolio/public/blogs
-          mkdir -p portfolio/public/blogs
-          rsync -a site/blogs/ portfolio/public/blogs/
+          rm -rf portfolio/public/blogs-content
+          rm -rf portfolio/public/blogs/assets
+
+          mkdir -p portfolio/public/blogs-content portfolio/public/blogs/assets
+          rsync -a site/blogs-content/ portfolio/public/blogs-content/
+          rsync -a site/blogs/assets/ portfolio/public/blogs/assets/
 
           cd portfolio
           if [ -z "$(git status --porcelain)" ]; then
@@ -100,6 +103,6 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/blogs
+          git add public/blogs-content public/blogs/assets
           git commit -m "Update blogs from blogs repo"
           git push
