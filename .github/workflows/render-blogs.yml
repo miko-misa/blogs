@@ -1,0 +1,105 @@
+name: Render blogs to portfolio
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout blogs
+        uses: actions/checkout@v4
+
+      - name: Download typmark-cli
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import shutil
+          import tarfile
+          import urllib.request
+
+          api_url = "https://api.github.com/repos/miko-misa/typmark/releases/latest"
+          with urllib.request.urlopen(api_url) as resp:
+            data = json.load(resp)
+
+          asset = None
+          for item in data.get("assets", []):
+            name = item.get("name", "")
+            if name.endswith("x86_64-unknown-linux-gnu.tar.gz"):
+              asset = item
+              break
+
+          if not asset:
+            raise SystemExit("typmark-cli release asset not found")
+
+          url = asset["browser_download_url"]
+          archive_path = "typmark-cli.tar.gz"
+          urllib.request.urlretrieve(url, archive_path)
+
+          extract_dir = "typmark-cli-bin"
+          os.makedirs(extract_dir, exist_ok=True)
+          with tarfile.open(archive_path, "r:gz") as tar:
+            tar.extractall(extract_dir)
+
+          binary_path = None
+          for root, _, files in os.walk(extract_dir):
+            if "typmark-cli" in files:
+              binary_path = os.path.join(root, "typmark-cli")
+              break
+
+          if not binary_path:
+            raise SystemExit("typmark-cli binary not found in archive")
+
+          shutil.copy2(binary_path, "./typmark-cli")
+          os.chmod("./typmark-cli", 0o755)
+          PY
+
+      - name: Render .tmd to HTML
+        run: |
+          rm -rf site
+          mkdir -p site/blogs
+
+          while IFS= read -r file; do
+            rel="${file#./}"
+            rel_no_ext="${rel%.tmd}"
+            out_dir="site/blogs/${rel_no_ext}"
+            mkdir -p "$out_dir"
+            ./typmark-cli --render --theme dark "$file" > "$out_dir/index.html"
+          done < <(find . -name '*.tmd' -type f \
+            -not -path './.git/*' \
+            -not -path './.github/*' \
+            -not -path './site/*')
+
+          if [ -d assets ]; then
+            mkdir -p site/blogs/assets
+            rsync -a assets/ site/blogs/assets/
+          fi
+
+      - name: Checkout portfolio
+        uses: actions/checkout@v4
+        with:
+          repository: miko-misa/portfolio
+          token: ${{ secrets.PORTFOLIO_PUSH_TOKEN }}
+          path: portfolio
+
+      - name: Publish to portfolio
+        run: |
+          rm -rf portfolio/public/blogs
+          mkdir -p portfolio/public/blogs
+          rsync -a site/blogs/ portfolio/public/blogs/
+
+          cd portfolio
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/blogs
+          git commit -m "Update blogs from blogs repo"
+          git push
