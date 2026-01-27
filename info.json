@@ -1,9 +1,6 @@
 {
   "display": "ブログ一覧",
   "articles": {
-    "gauge": {
-      "title": "原神元素ゲージ理論"
-    },
     "showcase": {
       "title": "TypMarkチートシート"
     }
