@@ -1,0 +1,16 @@
+# Blog Render Smoke Test
+
+This is a test post rendered by GitHub Actions.
+
+- One
+- Two
+- Three
+
+Inline code: `typmark`
+
+A box:
+
+::: box Test Box
+This is inside a box.
+:::
+
