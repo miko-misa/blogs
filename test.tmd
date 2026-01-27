@@ -1,0 +1,9 @@
+## Output
+
+```js {#demo data-demo=enabled}
+console.log("hello");
+```
+
+---
+
+# Code Highlights and Diffs
