@@ -1,8 +1,11 @@
 {
-  "display": "Root",
+  "display": "ブログ一覧",
   "articles": {
-    "gauge": {"title": "Gauge"},
-    "showcase": {"title": "Showcase"},
-    "test": {"title": "Test"}
+    "gauge": {
+      "title": "原神元素ゲージ理論"
+    },
+    "showcase": {
+      "title": "TypMarkチートシート"
+    }
   }
 }
