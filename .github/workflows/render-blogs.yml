@@ -74,72 +74,41 @@ jobs:
             parts = set(path.parts)
             return ".git" in parts or ".github" in parts or "site" in parts
 
-          def parse_articles_yaml(path: Path):
-            lines = path.read_text(encoding="utf-8").splitlines()
-            articles = []
-            current = None
-            in_articles = False
-            for raw in lines:
-              line = raw.rstrip()
-              if not line or line.lstrip().startswith("#"):
-                continue
-              if line.startswith("articles:"):
-                in_articles = True
-                continue
-              if not in_articles:
-                continue
-              stripped = line.lstrip()
-              if stripped.startswith("-"):
-                if current:
-                  articles.append(current)
-                current = {}
-                remainder = stripped[1:].strip()
-                if remainder:
-                  if ":" not in remainder:
-                    raise SystemExit(f"Invalid articles.yml entry: {path}")
-                  key, value = remainder.split(":", 1)
-                  current[key.strip()] = value.strip().strip('"')
-                continue
-              if current is None:
-                raise SystemExit(f"Invalid articles.yml structure: {path}")
-              if ":" not in stripped:
-                raise SystemExit(f"Invalid articles.yml entry: {path}")
-              key, value = stripped.split(":", 1)
-              current[key.strip()] = value.strip().strip('"')
-            if current:
-              articles.append(current)
-            return articles
-
-          yaml_paths = [
+          json_paths = [
             p
-            for p in root.rglob("articles.yml")
+            for p in root.rglob("info.json")
             if not is_ignored(p)
           ]
 
-          if not yaml_paths:
-            raise SystemExit("No articles.yml found")
+          if not json_paths:
+            raise SystemExit("No info.json found")
 
           index = {"folders": {}}
           folder_keys = []
 
-          for yaml_path in yaml_paths:
-            folder = yaml_path.parent
+          for info_path in json_paths:
+            folder = info_path.parent
             rel_folder = folder.relative_to(root)
             folder_key = "" if str(rel_folder) == "." else rel_folder.as_posix()
             folder_keys.append(folder_key)
 
+            info = json.loads(info_path.read_text(encoding="utf-8"))
+            display = info.get("display") or (folder_key or "Blog")
+            articles = info.get("articles")
+
+            if not isinstance(articles, dict):
+              raise SystemExit(f"Invalid info.json: {info_path}")
+
             pages = []
-            for node in parse_articles_yaml(yaml_path):
-              file_name = node.get("file")
-              slug = node.get("slug")
-              title = node.get("title") or slug or file_name
+            for slug, meta in articles.items():
+              if not isinstance(slug, str) or not slug:
+                raise SystemExit(f"Invalid article key in {info_path}")
+              title = None
+              if isinstance(meta, dict):
+                title = meta.get("title")
+              title = title or slug
 
-              if not file_name or not slug:
-                raise SystemExit(
-                  f"Invalid article entry in {yaml_path}: file and slug are required"
-                )
-
-              tmd_path = folder / file_name
+              tmd_path = folder / f"{slug}.tmd"
               if not tmd_path.exists():
                 raise SystemExit(f"Missing tmd file: {tmd_path}")
 
@@ -160,7 +129,11 @@ jobs:
 
               pages.append({"slug": slug, "title": title, "path": out_rel})
 
-            index["folders"][folder_key] = {"pages": pages, "folders": []}
+            index["folders"][folder_key] = {
+              "display": display,
+              "pages": pages,
+              "folders": [],
+            }
 
           folder_keys = sorted(set(folder_keys))
 
@@ -175,10 +148,11 @@ jobs:
               rest = child[len(prefix):]
               if "/" in rest:
                 continue
-              children.append({"name": rest, "path": child})
+              display = index["folders"].get(child, {}).get("display") or rest
+              children.append({"name": rest, "path": child, "display": display})
 
             index["folders"][folder_key]["folders"] = sorted(
-              children, key=lambda item: item["name"]
+              children, key=lambda item: item["display"].lower()
             )
             index["folders"][folder_key]["pages"] = sorted(
               index["folders"][folder_key]["pages"],

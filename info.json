@@ -1,0 +1,8 @@
+{
+  "display": "Root",
+  "articles": {
+    "gauge": {"title": "Gauge"},
+    "showcase": {"title": "Showcase"},
+    "test": {"title": "Test"}
+  }
+}

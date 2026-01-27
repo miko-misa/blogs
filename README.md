@@ -7,41 +7,41 @@ and publishes them into the `portfolio` repo under `public/blogs-content/`.
 The portfolio app fetches the rendered HTML and wraps it with React/Tailwind
 when visiting `/blogs/<slug>`.
 
-## Articles manifest (required)
+## Folder info manifest (required)
 
-Each folder that contains `.tmd` files **must** include an `articles.yml` file.
-Only files listed in `articles.yml` are rendered and published.
+Each folder that contains `.tmd` files **must** include an `info.json` file.
+Only files listed in `info.json` are rendered and published.
 
 Example format:
 
 ```
-articles:
-  - file: a.tmd
-    slug: a
-    title: My Article
-  - file: b.tmd
-    slug: b
-    title: Another One
+{
+  "display": "Folder A",
+  "articles": {
+    "a": {"title": "Math 1"},
+    "b": {"title": "Math 2"}
+  }
+}
 ```
 
-- `file`: the `.tmd` filename in the same folder
-- `slug`: output slug (used in URL)
+- `display`: the folder display name shown in listings
+- `articles`: keys are slugs and must match `<slug>.tmd` in the same folder
 - `title`: title shown in folder listings
 
 ## URL mapping
 
-The path is preserved from the repo root, using each `slug`:
+The path is preserved from the repo root, using each slug:
 
-- `tests/a.tmd` with slug `hello` -> `/blogs/tests/hello`
-- `notes/2025/intro.tmd` with slug `intro` -> `/blogs/notes/2025/intro`
+- `tests/hello.tmd` -> `/blogs/tests/hello`
+- `notes/2025/intro.tmd` -> `/blogs/notes/2025/intro`
 
 ## Folder listing
 
 Accessing a folder shows a list of pages in that folder and any child folders
-that also have `articles.yml`.
+that also have `info.json`.
 
-- `/blogs/` shows items listed in `/articles.yml`
-- `/blogs/tests` shows items listed in `tests/articles.yml`
+- `/blogs/` shows items listed in `/info.json`
+- `/blogs/tests` shows items listed in `tests/info.json`
 
 ## Assets
 
