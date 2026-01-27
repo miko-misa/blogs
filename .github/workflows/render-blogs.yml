@@ -63,16 +63,102 @@ jobs:
           rm -rf site
           mkdir -p site/blogs-content site/blogs/assets
 
-          while IFS= read -r file; do
-            rel="${file#./}"
-            rel_no_ext="${rel%.tmd}"
-            out_file="site/blogs-content/${rel_no_ext}.html"
-            mkdir -p "$(dirname "$out_file")"
-            ./typmark-cli --render --theme dark "$file" > "$out_file"
-          done < <(find . -name '*.tmd' -type f \
-            -not -path './.git/*' \
-            -not -path './.github/*' \
-            -not -path './site/*')
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          root = Path(".").resolve()
+
+          def is_ignored(path: Path) -> bool:
+            parts = set(path.parts)
+            return ".git" in parts or ".github" in parts or "site" in parts
+
+          xml_paths = [
+            p
+            for p in root.rglob("articles.xml")
+            if not is_ignored(p)
+          ]
+
+          if not xml_paths:
+            raise SystemExit("No articles.xml found")
+
+          index = {"folders": {}}
+          folder_keys = []
+
+          for xml_path in xml_paths:
+            folder = xml_path.parent
+            rel_folder = folder.relative_to(root)
+            folder_key = "" if str(rel_folder) == "." else rel_folder.as_posix()
+            folder_keys.append(folder_key)
+
+            tree = ET.parse(xml_path)
+            root_el = tree.getroot()
+            pages = []
+
+            for node in root_el.findall("article"):
+              file_name = node.get("file")
+              slug = node.get("slug")
+              title = node.get("title") or slug or file_name
+
+              if not file_name or not slug:
+                raise SystemExit(
+                  f"Invalid article entry in {xml_path}: file and slug are required"
+                )
+
+              tmd_path = folder / file_name
+              if not tmd_path.exists():
+                raise SystemExit(f"Missing tmd file: {tmd_path}")
+
+              out_rel = f"{folder_key}/{slug}" if folder_key else slug
+              out_path = Path("site/blogs-content") / f"{out_rel}.html"
+              out_path.parent.mkdir(parents=True, exist_ok=True)
+
+              html = subprocess.check_output(
+                [
+                  "./typmark-cli",
+                  "--render",
+                  "--theme",
+                  "dark",
+                  str(tmd_path),
+                ]
+              )
+              out_path.write_bytes(html)
+
+              pages.append({"slug": slug, "title": title, "path": out_rel})
+
+            index["folders"][folder_key] = {"pages": pages, "folders": []}
+
+          folder_keys = sorted(set(folder_keys))
+
+          for folder_key in folder_keys:
+            prefix = f"{folder_key}/" if folder_key else ""
+            children = []
+            for child in folder_keys:
+              if child == folder_key:
+                continue
+              if not child.startswith(prefix):
+                continue
+              rest = child[len(prefix):]
+              if "/" in rest:
+                continue
+              children.append({"name": rest, "path": child})
+
+            index["folders"][folder_key]["folders"] = sorted(
+              children, key=lambda item: item["name"]
+            )
+            index["folders"][folder_key]["pages"] = sorted(
+              index["folders"][folder_key]["pages"],
+              key=lambda item: item["title"].lower(),
+            )
+
+          Path("site/blogs-index.json").write_text(
+            json.dumps(index, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+          )
+          PY
 
           if [ -d assets ]; then
             rsync -a assets/ site/blogs/assets/
@@ -94,6 +180,7 @@ jobs:
           mkdir -p portfolio/public/blogs-content portfolio/public/blogs/assets
           rsync -a site/blogs-content/ portfolio/public/blogs-content/
           rsync -a site/blogs/assets/ portfolio/public/blogs/assets/
+          cp site/blogs-index.json portfolio/public/blogs-index.json
 
           cd portfolio
           if [ -z "$(git status --porcelain)" ]; then
@@ -103,6 +190,6 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/blogs-content public/blogs/assets
+          git add public/blogs-content public/blogs/assets public/blogs-index.json
           git commit -m "Update blogs from blogs repo"
           git push

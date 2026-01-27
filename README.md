@@ -7,14 +7,38 @@ and publishes them into the `portfolio` repo under `public/blogs-content/`.
 The portfolio app fetches the rendered HTML and wraps it with React/Tailwind
 when visiting `/blogs/<slug>`.
 
+## Articles manifest (required)
+
+Each folder that contains `.tmd` files **must** include an `articles.xml` file.
+Only files listed in `articles.xml` are rendered and published.
+
+Example format:
+
+```
+<articles>
+  <article file="a.tmd" slug="a" title="My Article" />
+  <article file="b.tmd" slug="b" title="Another One" />
+</articles>
+```
+
+- `file`: the `.tmd` filename in the same folder
+- `slug`: output slug (used in URL)
+- `title`: title shown in folder listings
+
 ## URL mapping
 
-The path is preserved from the repo root:
+The path is preserved from the repo root, using each `slug`:
 
-- `tests/a.tmd` -> `/blogs/tests/a`
-- `notes/2025/intro.tmd` -> `/blogs/notes/2025/intro`
+- `tests/a.tmd` with slug `hello` -> `/blogs/tests/hello`
+- `notes/2025/intro.tmd` with slug `intro` -> `/blogs/notes/2025/intro`
 
-Each page is generated as `public/blogs-content/<path>.html`.
+## Folder listing
+
+Accessing a folder shows a list of pages in that folder and any child folders
+that also have `articles.xml`.
+
+- `/blogs/` shows items listed in `/articles.xml`
+- `/blogs/tests` shows items listed in `tests/articles.xml`
 
 ## Assets
 
