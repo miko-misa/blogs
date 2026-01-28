@@ -1,0 +1,326 @@
+# 複素関数
+## 複素数
+虚数単位$i$は$i^2=-1$を満たす数である。複素数は実数$x,y$を用いて$x+y i$と表される。複素数全体の集合を$CC$で表す。$CC$にユークリッド空間$RR^2$の位相を入れたものを複素平面と呼ぶ。複素数$z = x + y i$に対して、以下を定義する。
+
+- 実部: $frak(R)z = x$
+- 虚部: $frak(I)z = y$
+- 共役複素数: $overline(z) = x - y i$
+- 絶対値: $|z| = sqrt(x^2 + y^2)$
+- 偏角: $arg z = theta$ (ただし$theta$は$z = |z|(cos theta + i sin theta)$を満たす実数)
+
+これらには以下の基本的な性質がある。
+
+::: box 【定理】複素数の基本的な性質
+
+#### 主張
+
+1. $abs(z z^prime) = abs(z) abs(z^prime)$
+2. $arg(z z^prime) = arg(z) + arg(z^prime)$
+3. $display(arg z/z^prime) = arg(z) - arg(z^prime)$
+
+#### 証明
+1. $z = x + y i, z^prime = x^prime + y^prime i$とおくと、
+
+   $$
+   abs(z z^prime)^2 &= abs(x x^prime - y y^prime + (x y^prime + y x^prime)i)^2\
+   &= (x x^prime - y y^prime)^2 + (x y^prime + y x^prime)^2\
+   &= x^2 (x^prime)^2 + y^2 (y^prime)^2 + x^2 (y^prime)^2 + y^2 (x^prime)^2\
+   &= (x^2 + y^2)((x^prime)^2 + (y^prime)^2)\
+   &= abs(z)^2 abs(z^prime)^2
+   $$
+   となる。よって1が成り立つ。
+2. $z = abs(z)(cos theta + i sin theta), z^prime = abs(z^prime)(cos theta^prime + i sin theta^prime)$とおくと、
+   $$
+   z z^prime &= abs(z) abs(z^prime)(cos theta + i sin theta)(cos theta^prime + i sin theta^prime)\
+   &= abs(z) abs(z^prime)(cos(theta + theta^prime) + i sin(theta + theta^prime))
+   $$
+   となる。よって2が成り立つ。
+3. 2の結果を用いれば3も同様に示される。
+
+:::
+
+::: box 【定理】ド・モアブルの定理
+
+#### 主張
+$n in NN$,$theta in RR$に対して、
+$$
+(cos theta + i sin theta)^n = cos(n theta) + i sin(n theta)
+$$
+が成り立つ。
+
+#### 証明
+数学的帰納法で示す。\
+$n=1$のとき明らか。$n=k$のとき成り立つと仮定する。このとき、
+$$
+(cos theta + i sin theta)^{k+1} &= (cos theta + i sin theta)^k (cos theta + i sin theta)\
+&= (cos(k theta) + i sin(k theta))(cos theta + i sin theta)\
+&= cos((k+1) theta) + i sin((k+1) theta)
+$$
+となる。よって任意の$n in NN$について成り立つ。
+
+:::
+
+## 複素関数
+領域$D subset CC$上の関数$f: D -> CC$を複素関数と呼ぶ。複素関数$f$は実2変数関数$u,v: RR times RR -> RR$を用いて
+$$
+f(z) = f(x + y i) = u(x,y) + v(x,y) i
+$$
+と表される。ここで$u,v$をそれぞれ$f$の実部関数、虚部関数と呼ぶ。
+
+複素数平面$CC$に無限遠点$infinity$加えて、$hat(CC) = CC union {infinity}$を考える。これをリーマン球面と呼ぶ。$x y z$空間を考えてみよう。$(0,0,1)$を中心とした半径$1$の球面を$S$とする。この球面$S$の北極点$(0,0,1)$を通る空間上の直線を考える。このとき,$x y$平面と並行な直線は球面$S$と北極点で接するが、それ以外の直線は球面$S$と北極点以外にもう1点$P$で交わり、$x y$平面とも1点$Q$で交わる。このとき、点$P$と点$Q$を対応させる写像を考える。するとこの写像は球のうち北極点以外の部分と$x y$平面を1対1に対応させることができる。この球こそがリーマン球面であり、$x y$平面こそが複素数平面である。北極点は無限遠点に対応する。つまり、$hat(CC)$は球面$S$と同相である。
+
+$hat(CC)$を考えるとよいことがある。
+- 無限大への発散や無限大を用いた計算を扱うことができる。
+  $$
+  1/0 = infinity, quad 1/infinity = 0
+  $$
+  のような計算が可能になる。
+- 有理型関数の特異点をすべて扱うことができる。
+  例えば$f(z) = 1/z$は$z=0$で特異点を持つが、リーマン球面上では$f(infinity) = 0$と定義できるため、特異点を1点にまとめて扱うことができる。
+- 複素関数の位相的性質を扱うことができる。
+  複素関数$f: hat(CC) -> hat(CC)$は連続写像として扱うことができるため、位相的議論が可能になる。
+
+
+## 級数
+複素数列${a_n}_(n>=0)$に対して、級数$display(sum_(n=0)^infinity a_n)$を考える。部分和$display(S_N = sum_(n=0)^N a_n)$が収束し、極限$display(lim_(N->infinity) S_N)$が存在するとき、級数$display(sum_(n=0)^infinity a_n)$は**収束する**といい、その極限を級数の和と呼ぶ。
+
+級数$display(sum_(n=0)^infinity a_n)$は級数$display(sum_(n=0)^infinity |a_n|)$が収束するとき、**絶対収束**すると呼ぶ。絶対収束する級数は収束する。
+
+
+::: box 【定理】比較判定法
+#### 主張
+非負実数$c_n in RR$による級数$display(sum_(n=0)^infinity c_n)$が収束し、かつ
+$$
+|z_n| <= c_n
+$$
+が成り立つとき、級数$display(sum_(n=0)^infinity z_n)$は絶対収束する。
+
+#### 証明
+級数$display(sum_(n=0)^infinity c_n)$の部分和を$display(C_N = sum_(n=0)^N c_n)$とおく。このとき、$c_n$は非負実数なので部分和$C_N$は単調増加数列となり、収束先を$C$とおくと、
+$$
+sum_(n=0)^N |z_n| <= sum_(n=0)^N c_n = C_N < C
+$$
+
+である。$|z_n|$は非負整数なので、部分和$display(S_N = sum_(n=0)^N |z_n|)$は単調増加数列であり、上に有界である。よって部分和$S_N$は収束し、級数$display(sum_(n=0)^infinity z_n)$は絶対収束する。
+
+:::
+
+## べき級数
+複素数$a in CC$に対して、形式的に級数
+$$
+display(sum_(n=0)^infinity c_n (z - a)^n) quad (c_n in CC)
+$$
+を考える。この級数を**べき級数**と呼ぶ。べき級数は中心$a$を持つ。べき級数の各項$c_n (z - a)^n$は複素関数であるため、べき級数全体も複素関数とみなせる。
+
+ある領域$D subset CC$上の全ての点$z_0 in D$についてべき級数$display(sum_(n=0)^infinity c_n (z_0 - a)^n)$が収束するとき、べき級数は領域$D$上で**各点収束**すると呼ぶ。任意の点$z_0 in D$について、$display(sum_(n=0)^infinity abs(c_n (z - a)^n))$が収束するとき、べき級数は領域$D$上で**絶対収束**すると呼ぶ。
+
+::: box 【定理】比較判定法
+#### 主張
+複素数列${c_n}_(n>=0)$に対して、ある$r > 0$が存在して
+$$
+sum_(n=0)^infinity |c_n| r^n
+$$
+が収束するとき、べき級数
+$$
+sum_(n=0)^infinity c_n (z - a)^n
+$$
+は$D = {z in CC | |z - a| < r}$上で絶対収束する。
+
+#### 証明
+仮定より、ある$r > 0$が存在して
+$$
+sum_(n=0)^infinity |c_n| r^n
+$$
+が収束する。ここで、$z$を$|z - a| < r$を満たす複素数とする。このとき、$rho = |z-a|$とおけば$0 <= rho < r$である。したがって、任意の$n in NN$について
+$$
+|c_n (z - a)^n| = |c_n| |z-a|^n = |c_n| rho^n < |c_n| r^n 
+$$
+が成り立つ。$sum_(n=0)^infinity |c_n| r^n $が収束するとき、実数の比較判定法より、$sum_(n=0)^infinity |c_n (z - a)^n|$は収束し、べき級数
+$$
+sum_(n=0)^infinity c_n (z - a)^n
+$$
+は領域$D = {z in CC | |z - a| < r}$上で絶対収束する。
+
+:::
+
+**収束半径**とは、べき級数
+$$
+sum_(n=0)^infinity c_n (z - a)^n
+$$
+に対して、以下のように定義される実数$R in [0,infinity]$である。
+- $0 < r < R$に対して、べき級数は領域$D = {z in CC | |z - a| < r}$上で絶対収束する。
+- $r > R$に対して、べき級数は領域$D = {z in CC | |z - a| < r}$上で各点収束しない点が存在する。
+
+つまり、収束するような最大の半径が収束半径である。収束半径は以下のように求められる。
+
+::: box 【定理】収束半径の公式
+#### 主張
+べき級数
+$$
+sum_(n=0)^infinity c_n (z - a)^n
+$$
+の収束半径$R$は以下の式で与えられる。
+$$
+1/R = limsup_(n->infinity) root(n, |c_n|)
+$$
+ただし、$display(1/0 = infinity), display(1/infinity = 0)$とする。
+
+#### 証明
+まず、$limsup_(n->infinity) root(n, |c_n|) = L$とおく。
+
+1. $|z-a| < 1/L$のときを考える。このとき$L$は$infinity$でない。すると、ある$epsilon > 0$が存在し,
+   $$
+   &|z-a| < 1/(L + epsilon)\
+   <=> & |z-a|(L + epsilon) < 1
+   $$
+   である。また$limsup_(n->infinity) root(n, |c_n|) = L$であるから、$root(n, |c_n|) > L$となる$n$は有限個しかないため、任意の$epsilon > 0$に対し、十分大きい$N$が存在し
+   $$
+   &root(n, |c_n|) < L + epsilon quad (n >= N)\
+   <=> & |c_n| < (L + epsilon)^n quad (n >= N)
+   $$
+   が成り立つ。これらを用いれば、
+   $$
+   |c_n| |z-a|^n &< (L + epsilon)^n |z-a|^n\
+   &= (|z-a|(L + epsilon))^n quad (n >= N)
+   $$
+   となる。さて、$display(sum_(n=N)^infinity) (|z-a|(L + epsilon))^n$
+   は無限等比数列の和であり、$|z-a|(L + epsilon) < 1$であるから収束する。したがって、それに高々有限個の項を加えた
+   $$
+   sum_(n=0)^infinity (|z-a|(L + epsilon))^n
+   $$
+   も収束する。よって比較判定法より、べき級数$display(sum_(n=0)^infinity) c_n (z - a)^n$は$|z-a| < 1/L$のとき絶対収束する。
+2. $|z-a| > 1/L$のときを考える。このとき、$L$は$0$でない。$L=infinity$の場合をまず考える。このとき、全ての$z$を考えることになる。すると、
+   $$
+   root(n, |c_n|) > 1/(|z-a|)\
+   <=> |c_n| |z-a|^n > 1
+   $$
+   となる$n$は$z$、つまりは$|z-a|$によらず常に無限個存在する。
+   このとき、
+   $$
+   sum_(n=0)^infinity |c_n| |z-a|^n > sum_(n=0)^infinity 1 = infinity
+   $$
+   となるため、べき級数$display(sum_(n=0)^infinity) c_n (z - a)^n$はどんな$z$についても各点収束しない。次に$L in (0,infinity)$の場合を考える。このとき、ある$epsilon > 0$が存在し、
+   $$
+   |z-a| > 1/(L - epsilon)\
+   <=> |z-a|(L - epsilon) > 1
+   $$
+   が成り立つ。また、$limsup_(n->infinity) root(n, |c_n|) = L$であるから、任意の$epsilon > 0$に対し、
+   $$
+   &root(n, |c_n|) > L - epsilon\
+   <=> &|c_n| > (L - epsilon)^n
+   $$
+   となる$n$は無限個存在する。これらを用いれば
+   $$
+   |c_n| |z-a|^n &> (L - epsilon)^n |z-a|^n\
+   &= (|z-a|(L - epsilon))^n
+   $$
+   となる$n$が無限個存在する。したがって、
+   $$
+   sum_(n=0)^infinity |c_n| |z-a|^n > sum_(n=0)^infinity (|z-a|(L - epsilon))^n
+   $$
+   となる。右辺は無限等比数列の和であり、$|z-a|(L - epsilon) > 1$であるから発散する。よってべき級数$display(sum_(n=0)^infinity) c_n (z - a)^n$は各点収束しない。
+
+以上より、収束半径$R$は$1/R = limsup_(n->infinity) root(n, |c_n|)$で与えられることが示された。
+:::
+
+::: box 【定理】
+
+#### 主張
+べき級数
+$$
+sum_(n=0)^infinity c_n (z - a)^n
+$$
+に対し、
+$$
+lim_(n->infinity) abs(c_n/c_(n+1)) = R_0
+$$
+が存在するなら収束半径$R$は$R_0$に等しくなる。
+
+#### 証明
+定義された$R_0$を用いて証明を行う。
+1. $|z-a| < R_0$のときを考える。このとき、ある$q$が存在し$r<q<R_0$である。極限の定義より、十分大きい$N in NN$で
+   $$
+   &abs(c_n/c_(n+1)) > q quad (n >= N)\
+   => &abs(c_(n+1)/c_n) < 1/q quad (n >= N)
+   $$
+   が成り立つ。これを用いれば、任意の$n >= N$について
+   $$
+   (|c_(n+1)||z-a|^(n+1)) / (|c_n||z-a|^n) = abs(c_(n+1)/c_n) |z-a| < (|z-a|)/q
+   $$
+   となる。これを繰り返し用いると,$display((|z-a|)/q)$を$rho$とおけば$n >= N$に対して
+   $$
+   |c_(N+k)||z-a|^(N+k) &< |c_N||z-a|^N rho^k quad (k >= 0)\
+   sum_(n=N)^infinity |c_n||z-a|^n &< |c_N||z-a|^N sum_(k=0)^infinity rho^k
+   $$
+   となる。ここで、$q$の定義から$rho < 1$であるため、右辺の無限等比数列の和は収束する。したがって、比較判定法より、べき級数$display(sum_(n=0)^infinity) c_n (z - a)^n$は$|z-a| < R_0$のとき絶対収束する。
+2. $|z-a| > R_0$のときを考える。このとき、ある$q$が存在し$R_0 < q < r$である。極限の定義より、十分大きい$N in NN$で
+   $$
+   &abs(c_n/c_(n+1)) < q quad (n >= N)\
+   => &abs(c_(n+1)/c_n) > 1/q quad (n >= N)
+   $$
+   が成り立つ。これを用いれば、任意の$n >= N$について
+   $$
+   (|c_(n+1)||z-a|^(n+1)) / (|c_n||z-a|^n) = abs(c_(n+1)/c_n) |z-a| > (|z-a|)/q
+   $$
+   となる。これを繰り返し用いると,$display((|z-a|)/q)$を$rho$とおけば$n >= N$に対して
+   $$
+   |c_(N+k)||z-a|^(N+k) &> |c_N||z-a|^N rho^k quad (k >= 0)
+   $$
+   となる。ここで、$q$の定義から$rho > 1$であるため、右辺の無限等比数列の和は発散する。したがって、べき級数$display(sum_(n=0)^infinity) c_n (z - a)^n$は$|z-a| > R_0$のとき各点収束しない。
+
+以上より、収束半径$R$は$R_0$に等しいことが示された。
+:::
+
+## 代表的な複素関数
+基本的な四則演算に加えて、実関数では指数関数や三角関数、対数関数を考えてきた。これらが、複素関数としてはどのように定義されるかを示す。
+### 指数関数
+複素数$z in CC$に対して、複素指数関数$exp: CC -> CC$を
+$$
+exp(z) = sum_(n=0)^infinity (z^n)/(n!)
+$$
+と定義する。このとき、このべき級数は収束半径$infinity$を持つため、任意の複素数$z in CC$に対して定義される。この定義によって指数関数にあった
+- $exp(z + w) = exp(z) exp(w)$
+- $exp(z) eq.not 1$
+- $exp^prime (z) = exp(z)$
+
+といった性質も持ち、べき級数に実数を代入しても値は実数の指数関数と一致する。それぞれの証明は省略する。より単純に書けば,$z=x + y i$とおくと、
+$$
+exp(z) = exp(x) (cos y + i sin y)
+$$
+と表される。かの有名なオイラーの公式はこの式から導かれる。
+
+### 三角関数
+複素数$z in CC$に対して、複素三角関数$sin, cos: CC -> CC$を
+$$
+sin z &= sum_(n=0)^infinity ((-1)^n z^(2n+1))/((2n+1)!)\
+cos z &= sum_(n=0)^infinity ((-1)^n z^(2n))/((2n)!)
+$$
+と定義する。このとき、これらのべき級数は収束半径$infinity$を持つため、任意の複素数$z in CC$に対して定義される。この定義によって三角関数にあった
+- $sin^2 z + cos^2 z = 1$
+- $sin(z + w) = sin z cos w + cos z sin w$
+- $cos(z + w) = cos z cos w - sin z sin w$
+- $sin^prime z = cos z$
+- $cos^prime z = - sin z$
+
+といった性質も持ち、べき級数に実数を代入しても値は実数の三角関数と一致する。それぞれの証明は省略する。また、三角関数は以下のように指数関数を用いても表される。
+$$
+sin z = (exp(i z) - exp(-i z))/(2 i), quad cos z = (exp(i z) + exp(-i z))/2
+$$
+こちらを三角関数の定義とすることもある。
+
+### 対数関数
+対数関数を指数関数の逆関数として定義しようとすると、虚部について多価性が生じる。
+$$
+exp(z + 2 n pi i) = exp(z) quad (n in ZZ)
+$$
+このため、主値を決める単価な偏角$"Arg"$を用いて、複素対数関数$"Log": CC \\ {0} -> CC$を
+$$
+"Log" z = log|z| + i "Arg" z
+$$
+と定義する。$"Arg" z$は$z = |z|(cos theta + i sin theta)$を満たす$theta$を一意に返すものである。よく、$"Arg" z in (-pi, pi]$と定められる。ここで$log$は実数の対数関数である。すると、
+$$
+exp("Log" z) &= exp(log|z| + i "Arg" z)\
+&= exp(log|z|) (cos "Arg" z + i sin "Arg" z)\
+&= z
+$$
+が成り立ち、指数関数の逆関数となっていることがわかる。ただし、$z=0$では対数関数は定義されないことに注意されたい。
