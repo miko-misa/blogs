@@ -324,3 +324,80 @@ exp("Log" z) &= exp(log|z| + i "Arg" z)\
 &= z
 $$
 が成り立ち、指数関数の逆関数となっていることがわかる。ただし、$z=0$では対数関数は定義されないことに注意されたい。
+
+# 微分
+## 複素微分
+複素関数$f: D -> CC$が点$z_0 in D$で**微分可能**であるとは、極限
+$$
+f^prime (z_0) = lim_(h->0) (f(z_0 + h) - f(z_0))/(h)
+$$
+が存在することをいう。なお、$h in CC$である。このとき、$f^prime (z_0)$を$f$の点$z_0$における**微分係数**と呼ぶ。関数$f$が領域$D$上の任意の点で複素微分可能であるとき、$f$は領域$D$上で**微分可能**であるという。$D$上で微分可能であるならば、$f^prime : D -> CC$を$f$の**導関数**と呼ぶ。複素関数では微分可能に対してとても良い性質がふずいするので特に**正則**と呼ぶことが多い。
+
+::: box 【定理】複素微分の基本的な性質
+#### 主張
+複素関数$f,g: D -> CC$が領域$D$上で微分可能であるとき、以下が成り立つ。
+1. $(f + g)^prime (z) = f^prime (z) + g^prime (z)$
+2. $(f g)^prime (z) = f^prime (z) g(z) + f(z) g^prime (z)$
+3. $(f/g)^prime (z) = display((f^prime (z) g(z) - f(z) g^prime (z))/(g(z))^2)$ (ただし$g(z) eq.not 0$)
+4. $(f circle.small g)^prime (z) = f^prime (g(z)) g^prime (z)$
+#### 証明
+各性質は実関数の場合と同様に示される。
+:::
+
+## コーシー・リーマンの方程式
+複素関数$f: D -> CC$を$f(z) = u(x,y) + v(x,y) i$と表す。ただし、$z = x + y i$である。ここで、$u,v: RR times RR -> RR$はそれぞれ$f$の実部関数、虚部関数である。関数$f$が正則であるための必要十分条件は、以下の2つである。
+1. $u,v$が偏微分可能である。
+2. 偏微分係数がコーシー・リーマンの方程式
+   $$
+   diff/(diff x) u(x,y) = diff/(diff y) v(x,y), quad diff/(diff y) u (x,y) = - diff/(diff x) v (x,y)
+   $$
+   を満たす。
+
+これの証明を示そう。
+::: box 【定理】コーシー・リーマンの方程式
+#### 主張
+複素関数$f: D -> CC$が領域$D$上で正則であるための必要十分条件は、以下の2つである。
+1. $u,v$が偏微分可能である。
+2. 偏微分係数がコーシー・リーマンの方程式
+   $$
+   diff/(diff x) u(x,y) = diff/(diff y) v(x,y), quad diff/(diff y) u (x,y) = - diff/(diff x) v (x,y)
+   $$
+   を満たす。
+#### 証明
+$f$が領域$D$上で正則であるとする。このとき、$f$は$x$について偏微分可能であるので
+$$
+diff/(diff x) f(z) &= diff/(diff x) (u(x,y) + v(x,y) i)\
+&= diff/(diff x) u(x,y) + i diff/(diff x) v(x,y)
+$$
+が成り立つ。これは$x$方向についての偏微分であるが、$z$を虚軸と並行な方向に微小変化させたときにも同じ値になるはずである。すなわち、$h in RR$に対して
+$$
+lim_(h->0) (f(z + i h) - f(z))/(i h) &= lim_(h->0) (u(x,y + h) + v(x,y + h) i - u(x,y) - v(x,y) i)/(i h)\
+&= 1/i lim_(h->0) ((v(x,y + h) - v(x,y))/h - i (u(x,y + h) - u(x,y))/h)\
+&= 1/i (diff/(diff y) v(x,y) - i diff/(diff y) u(x,y))\
+&= diff/(diff y) v(x,y) - i diff/(diff y) u(x,y)
+$$
+が成り立つ。これらが等しいことから、コーシー・リーマンの方程式が導かれる。
+
+逆に、$u,v$が偏微分可能で、コーシー・リーマンの方程式を満たすとする。このとき、十分小さい変分$Delta x, Delta y in RR$に対して、
+$$
+Delta u &= u(x + Delta x, y + Delta y) - u(x,y)\
+&= (diff u)/(diff x) Delta x + (diff u)/(diff y) Delta y + epsilon_u
+$$
+と表せる。ここで、$epsilon_u$は$Delta z = Delta x + i Delta y -> 0$のとき$display(epsilon_u / abs(Delta z) -> 0)$を満たす項である。同様にして、
+$$
+Delta v &= v(x + Delta x, y + Delta y) - v(x,y)\
+&= (diff v)/(diff x) Delta x + (diff v)/(diff y) Delta y + epsilon_v
+$$
+と表せる。ここで、$epsilon_v$は$Delta z = Delta x + i Delta y -> 0$のとき$display(epsilon_v / abs(Delta z) -> 0)$を満たす項である。これらを用いれば、
+$$
+Delta f &:= Delta u + i Delta v\
+&= (diff u)/(diff x) Delta x + (diff u)/(diff y) Delta y + epsilon_u + i ((diff v)/(diff x) Delta x + (diff v)/(diff y) Delta y + epsilon_v)\
+&= (diff u)/(diff x) Delta x - (diff v)/(diff x) Delta y + epsilon_u + i ((diff v)/(diff x) Delta x + (diff u)/(diff x) Delta y + epsilon_v)\
+&= (diff u)/(diff x) (Delta x + i Delta y) + i (diff v)/(diff x) (Delta x + i Delta y) + epsilon_u + i epsilon_v\
+&= ((diff u)/(diff x) + i (diff v)/(diff x)) Delta z + epsilon_u + i epsilon_v\
+(Delta f)/(Delta z) &= (diff u)/(diff x) + i (diff v)/(diff x) + (epsilon_u + i epsilon_v)/(Delta z)\
+&stretch(->)_(Delta z -> 0) (diff u)/(diff x) + i (diff v)/(diff x)
+$$
+が成り立つ。最後の極限は微分の定義そのものの計算であり、極限値が存在したので$f$は点$z$で微分可能であることが示された。よって$f$は領域$D$上で正則であることが示された。
+:::
+
