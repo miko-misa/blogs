@@ -329,3 +329,5 @@ abs(integral_(C_R) e^(i m z) f(z) d z) &<= (2M)/R^(p-1) integral_0^(pi/2) e^(-m 
 &= (2M)/R^(p-1) [- (pi)/(2 m R) e^(-m R (2/pi) theta)]_(0)^(pi/2)\
 &= (pi M)/(m R^p) (1 - e^(-m R)) -> 0 quad (R -> infinity)
 $$
+である。
+:::
