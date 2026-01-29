@@ -1,0 +1,331 @@
+# ローラン展開
+## ローラン級数
+**ローラン展開**とは、テイラー展開を拡張したものである。$f: D -> CC$を$D in CC$上で定義された関数とする。ある$a$について
+$$
+f(z) &= sum_(n=-infinity)^infinity c_n (z - a)^n\
+&= underbracket(sum_(n=-infinity)^(-1) c_n (z - a)^n, I) + underbracket(sum_(n=0)^infinity c_n (z - a)^n, J)
+$$
+が成り立つとき,$f$は$a$でローラン展開可能であるという。$I$を**ローラン級数の主部**, $J$を**ローラン級数の正則部**という。上の式からローラン展開はテイラー展開ができない場合でもできることがあることがわかるだろう。また、$a$で$f$が定義されてなくてもよい。実際、主部がある場合,$f$は$a$で定義されない。
+
+::: box 【定理】ローラン展開の係数
+#### 主張
+$C_1, C_2$を$a$を中心とする半径$r_1, r_2$の円周とし、$r_2 < r_1$とする。$f: D -> CC$を$C_1$と$C_2$の円環領域$D = { z in CC | r_2 < |z - a| < r_1 }$上で正則な関数とする。このとき、$f$は$a$についてローラン展開可能であり、ローラン展開を
+$$
+f(z) = sum_(n=-infinity)^infinity c_n (z - a)^n quad (z in D)
+$$
+と書くと、係数$c_n$は$D$内で反時計回りの単純閉曲線$C$について
+$$
+c_n = 1/(2 pi i) integral_C f(w)/(w - a)^(n+1) d w
+$$
+で与えられる。
+
+#### 証明
+$C_1,C_2$からそれぞれ1点ずつ$z_1, z_2$取り、$z_1$から$z_2$を辿る経路を$C_3$とする。このとき,$z_1$から反時計回りに進み、$C_1$を一周し、$C_3$を辿って$z_2$に行き、時計回りに$C_2$を一周し、再び$C_3$を辿って$z_1$に戻る経路$C$は$D$を囲み反時計回りである。したがって、コーシーの積分公式より$z in D$について
+$$
+f(z) = 1/(2 pi i) integral_C f(w)/(w - z) d w
+$$
+ここで、$C = C_1 - C_2 + C_3 - C_3$であるので,
+$$
+f(z) = 1/(2 pi i) underbracket(integral_(C_1) f(w)/(w - z) d w, I_1) - 1/(2 pi i) underbracket(integral_(C_2) f(w)/(w - z) d w, I_2)
+$$
+と書ける。ここで、$I_1$について考えると
+$$
+f(w)/(w - z) &= f(w)/((w - a) - (z - a))\
+&= f(w)/(w - a) 1/(1 - (z - a)/(w - a))\
+&= f(w)/(w - a) sum_(n=0)^infinity ((z - a)/(w - a))^n quad (because abs((z - a)/(w - a)) < 1)\
+&= sum_(n=0)^infinity f(w)/(w - a)^(n+1) (z - a)^n
+$$
+である。この関数は各点収束するので、積分と和の順序を入れ替えられる。したがって、
+$$
+I_1 &= integral_(C_1) f(w)/(w - z) d w\
+&= sum_(n=0)^infinity (z - a)^n integral_(C_1) f(w)/(w - a)^(n+1) d w
+$$
+となる。同様に$I_2$についても
+$$
+f(w)/(w - z) &= f(w)/((w - a) - (z - a))\
+&= -f(w)/(z - a) 1/(1 - (w - a)/(z - a))\
+&= -f(w)/(z - a) sum_(n=0)^infinity ((w - a)/(z - a))^n quad (because abs((w - a)/(z - a)) < 1)\
+&= -sum_(n=0)^infinity f(w)/(z - a)^(n+1) (w - a)^n
+$$
+であり、同様に積分と和の順序を入れ替えると
+$$
+I_2 &= integral_(C_2) f(w)/(w - z) d w\
+&= -sum_(n=0)^infinity 1/(z - a)^(n+1) integral_(C_2) f(w) (w - a)^n d w
+$$
+となる。これらを$f(z)$の式に代入すると
+$$
+f(z) &= 1/(2 pi i) sum_(n=0)^infinity (z - a)^n integral_(C_1) f(w)/(w - a)^(n+1) d w\
+& quad quad quad quad quad quad + 1/(2 pi i) sum_(n=0)^infinity 1/(z - a)^(n+1) integral_(C_2) f(w) (w - a)^n d w\
+&= 1/(2 pi i) sum_(n=-infinity)^infinity (z - a)^n integral_(C') f(w)/(w - a)^(n+1) d w
+$$
+ここで、$C'$は$n >= 0$のとき$C_1$, $n < 0$のとき$C_2$である。したがって、ローラン展開の係数$c_n$は
+$$
+c_n = 1/(2 pi i) integral_(C') f(w)/(w - a)^(n+1) d w
+$$
+で与えられる。特に、$C'$は$f$が正則である領域内の閉曲線であればどれでもよいので、$D$内で反時計回りの単純閉曲線$C$を取れば
+$$
+c_n = 1/(2 pi i) integral_C f(w)/(w - a)^(n+1) d w
+$$
+が成り立つ。
+
+:::
+
+## 特異点の分類
+**特異点**とは、関数$f: D -> CC$がある点$a in CC$で正則でないまたは定義されていないとき、その点$a$のことである。そのうち、$a$の近傍が存在し$a$以外が正則であるような特異点を**孤立特異点**という。孤立特異点$a$の近傍で$f$がローラン展開可能であり、
+$$
+f(z) = sum_(n=-infinity)^infinity c_n (z - a)^n quad (0 < |z - a| < r)
+$$
+と書けるとき、孤立特異点$a$は以下の3種類に分類される。
+1. **可除特異点**: 主部が存在しない場合、すなわち$c_n = 0 quad (n < 0)$である場合。このとき、$f$は$a$で定義されていなくても、$f(a) = c_0$と定義することで正則関数に拡張できる。
+2. **極**: 主部が有限項である場合、すなわち正の整数$m$が存在して$c_n = 0 quad (n < -m)$である場合。このとき、$c_(-m) eq.not 0$であるなら$f$は$a$で$m$位の極を持つという。$-m$は$c_n$が$0$ではない最小の$n$である。
+3. **真性特異点**: 主部が無限項である場合、$f$は$a$で真性特異点を持つという。
+
+::: box 【定理】孤立特異点の判別
+#### 主張
+$f: D\\{a} -> CC$を$D\\{a} in CC$上で定義された正則な関数とする。ただし、$a$は孤立特異点である。このとき、以下の条件の対はそれぞれ同値である。
+1. 可除特異点
+    - $a$が可除特異点
+    - $display(lim_(z -> a) f(z)) in CC$
+2. 極
+    - $a$が$m$位の極
+    - $display(lim_(z -> a) (z - a)^m f(z)) in CC \\ {0}$
+3. 真性特異点
+    - $a$が真性特異点
+    - $display(lim_(z -> a) (z - a)^n f(z))$
+
+#### 証明
+1. $a$が可除特異点であるとする。このとき、$a$でも正則に拡張できる。正則なら連続であるので、
+    $$
+    lim_(z -> a) f(z) = f(a) = c_0 in CC
+    $$
+    が存在する。逆に、$lim_(z -> a) f(z) = L in CC$が存在するとする。このとき、$f$のローラン展開
+    $$
+    f(z) = sum_(n=-infinity)^infinity c_n (z - a)^n
+    $$
+    において、項ごとの極限を考えると
+    $$
+    lim_(z -> a) c_n (z - a)^n = cases(
+      0 quad &"if" n > 0,
+      c_0 quad &"if" n = 0,
+      infinity quad &"if" n < 0 and c_n eq.not 0,
+      0 quad &"if" n < 0 and c_n = 0
+    )
+    $$
+    である。$L$が有限値であるためには$n < 0 and c_n eq.not 0$である$n$は存在してはならない。したがって、$c_n = 0 quad (n < 0)$であり、主部は存在しない。よって、$a$は可除特異点である。
+2. $a$が$m$位の極であるとする。このとき、
+    $$
+    (z - a)^m f(z) = sum_(n=-infinity)^infinity c_n (z - a)^(n + m) = sum_(n=-m)^infinity c_n (z - a)^(n + m)
+    $$
+    である。なお、$c_(-m) eq.not 0$である。したがって、
+    $$
+    lim_(z -> a) (z - a)^m f(z) = c_(-m) in CC \\ {0}
+    $$
+    が存在する。逆に、$lim_(z -> a) (z - a)^m f(z) = L in CC \\ {0}$が存在するとする。このとき、ローラン展開において
+    $$
+    (z - a)^m f(z) = sum_(n=-infinity)^infinity c_n (z - a)^(n + m)
+    $$
+    の項ごとの極限を考えると
+    $$
+    lim_(z -> a) c_n (z - a)^(n + m) = cases(
+      0 quad &"if" n + m > 0,
+      c_(-m) quad &"if" n + m = 0,
+      infinity quad &"if" n + m < 0 and c_n eq.not 0,
+      0 quad &"if" n + m < 0 and c_n = 0
+    )
+    $$
+    である。$L$が有限値であり$0$でないためには$n + m < 0 and c_n eq.not 0$である$n$は存在してはならない。加えて、$c_(-m) eq.not 0$である。したがって、主部は有限項であり、$a$は$m$位の極である。
+3. $a$が真性特異点であるとする。このとき、主部が無限項であるので、任意の正整数$n$に対して
+    $$
+    (z - a)^n f(z) = sum_(k=-infinity)^infinity c_k (z - a)^(k + n)
+    $$
+    の項ごとの極限を考えると
+    $$
+    lim_(z -> a) c_k (z - a)^(k + n) = cases(
+      0 quad &"if" k + n > 0,
+      c_(-n) quad &"if" k + n = 0,
+      infinity quad &"if" k + n < 0 and c_k eq.not 0,
+      0 quad &"if" k + n < 0 and c_k = 0
+    )
+    $$
+    である。主部が無限項であるので、ある$k < -n$で$c_k eq.not 0$であるものが存在し、極限は発散する。逆に、任意の正整数$n$に対して$lim_(z -> a) (z - a)^n f(z)$が発散するとする。このとき、ローラン展開において
+    $$
+    (z - a)^n f(z) = sum_(k=-infinity)^infinity c_k (z - a)^(k + n)
+    $$
+    の項ごとの極限を考えると
+    $$
+    lim_(z -> a) c_k (z - a)^(k + n) = cases(
+      0 quad &"if" k + n > 0,
+      c_(-n) quad &"if" k + n = 0,
+      infinity quad &"if" k + n < 0 and c_k eq.not 0,
+      0 quad &"if" k + n < 0 and c_k = 0
+    )
+    $$
+    である。極限が発散するためには、ある$k < -n$で$c_k eq.not 0$であるものが存在しなければならない。これは任意の正整数$n$について成り立つので、主部は無限項であり、$a$は真性特異点である。
+:::
+
+# 留数定理
+## 留数
+$f: D\\{a} -> CC$を$D\\{a} in CC$上で定義された正則な関数とする。ただし、$a$は孤立特異点である。$f$の$a$におけるローラン展開を
+$$
+f(z) = sum_(n=-infinity)^infinity c_n (z - a)^n
+$$
+と書くとき,**留数**とは$c_(-1)$のことであり、$"Res"[f, a]$と書く。
+$$
+"Res"[f, a] = c_(-1)
+$$
+
+::: box 【定理】留数の計算方法の基本
+#### 主張
+$f: D\\{a} -> CC$を$D\\{a} in CC$上で定義された正則な関数とする。ただし、$a$は孤立特異点である。このとき、留数は以下の式で与えられる。
+$$
+"Res"[f, a] = 1/(2 pi i) integral_C f(z) d z
+$$
+ただし、$C$は$a$を囲む反時計回りの単純閉曲線である。
+
+#### 証明
+$f$の$a$におけるローラン展開を
+$$
+f(z) = sum_(n=-infinity)^infinity c_n (z - a)^n
+$$
+と書くとき、ローラン展開の係数は定理より
+$$
+c_n = 1/(2 pi i) integral_C f(w)/(w - a)^(n+1) d w
+$$
+である。特に$n = -1$のとき、
+$$
+c_(-1) = 1/(2 pi i) integral_C f(w) d w
+$$
+である。したがって示された。
+:::
+
+::: box 【定理】留数の計算方法（極の場合）
+#### 主張
+$f: D\\{a} -> CC$を$D\\{a} in CC$上で定義された正則な関数とする。このとき、
+1. $a$が$m$位の極である場合、留数は
+    $$
+    "Res"[f, a] = 1/(m - 1)! lim_(z -> a) d^(m-1)/(d z^(m-1)) (z - a)^m f(z)
+    $$
+    で与えられる。
+2. $a$が除去可能な特異点である場合、留数は$0$である。
+
+#### 証明
+1. $a$が$m$位の極であるとする。このとき、
+    $$
+    f(z) = sum_(n=-m)^infinity c_n (z - a)^n
+    $$
+    と書ける。したがって、
+    $$
+    (z - a)^m f(z) = sum_(n=-m)^infinity c_n (z - a)^(n + m) = sum_(n=0)^infinity c_(n - m) (z - a)^n
+    $$
+    である。これは、$(z - a)^m f(z)$テイラー展開であり、テイラー展開の係数は
+    $$
+    c_(n - m) = 1/n! d^n/(d z^n) (z - a)^m f(z) quad (n >= 0)
+    $$
+    で与えられる。特に$n = m - 1$のとき、
+    $$
+    c_(-1) = 1/(m - 1)! lr(d^(m-1)/(d z^(m-1)) (z - a)^m f(z) |)_(z = a)
+    $$
+    である。したがって、留数は
+    $$
+    "Res"[f, a] = 1/(m - 1)! lim_(z -> a) d^(m-1)/(d z^(m-1)) (z - a)^m f(z)
+    $$
+    で与えられる。
+2. $a$が可除特異点であるとする。このとき、主部が存在しないので$c_(-1) = 0$である。したがって、留数は$0$である。
+
+:::
+
+## 留数定理
+::: box 【定理】留数定理
+#### 主張
+$D in CC$を単連結領域とし、$a_1, a_2, ..., a_n in D$を$D$内の有限個の点とする。$f: D\\{a_1, a_2, ..., a_n} -> CC$を$D \\ {a_1, a_2, dots, a_n}$上で定義された正則な関数とする。このとき、$C$を$D$内で各点$a_1, a_2, ..., a_n$を囲む反時計回りの単純閉曲線とすると、
+$$
+integral_C f(z) d z = 2 pi i sum_(k=1)^n "Res"[f, a_k]
+$$
+
+#### 証明
+$D$のなかで$a_1, a_2, ..., a_n$を囲む反時計回りの単純閉曲線$C_k$をそれぞれ取る。このとき、以前示した周回積分の性質より、
+$$
+integral_C f(z) d z = sum_(k=1)^n integral_(C_k) f(z) d z
+$$
+である。各積分について先ほど示した留数の計算方法の基本を用いると、
+$$
+integral_(C_k) f(z) d z = 2 pi i "Res"[f, a_k]
+$$
+である。したがって、
+$$
+integral_C f(z) d z = sum_(k=1)^n 2 pi i "Res"[f, a_k] = 2 pi i sum_(k=1)^n "Res"[f, a_k]
+$$
+が成り立つ。
+:::
+
+ある領域$D$について,$f: D\\{a_1, a_2, ..., a_n} -> CC$が定義域全体で正則であり$a_1, a_2, ..., a_n$が孤立特異点で極であるとき$f$は$D上の**有理型関数**であるという。
+
+さらに、$f$が有理型関数であり、$k > 0$について$c_k eq.not 0$として
+$$
+f(z) = sum_(n=k)^infinity c_n (z - b)^n
+$$
+のように$b$でローラン展開できるとき、$b$を$f$の$k$位の**零点**という。このとき、$z=b$とすると$c_0 = 0$なので$f(b) = 0$であることに注意せよ。
+
+まとめると、有理型関数$f$について、$D$内の点は以下のいずれかである。
+1. 極である。点$a$について
+   $$
+   f(z) = sum_(n=-m)^infinity c_n (z - a)^n quad (c_(-m) eq.not 0)
+   $$
+   とローラン展開でき、位数$m$を持つ。
+2. 零点である。点$b$について
+   $$
+   f(z) = sum_(n=k)^infinity c_n (z - b)^n quad (k > 0,thin c_k eq.not 0)
+   $$
+   とローラン展開でき、位数$k$を持つ。
+3. 正則であり、零点でも極でもない。
+    $$
+    f(z) = sum_(n=0)^infinity c_n (z - c)^n quad (c_0 eq.not 0)
+    $$
+    とローラン展開できる。
+
+::: box 【定理】位数を用いた積分の計算
+#### 主張
+$D in CC$を単連結領域とし、$f:D -> CC$を$D$上の有理型関数とする。$C$を$D$内の単純閉曲線とする。$C$上では特異点も零点もないとする。$a_1, a_2, ..., a_n in D$を$C$内の特異点（極）としそれぞれの位数を$m_1, m_2, ..., m_n$とする。$b_1, b_2, ..., b_l in D$を$C$内の零点としそれぞれの位数を$k_1, k_2, ..., k_l$とする。このとき、
+$$
+1/(2 pi i) integral_C (f^prime (z))/f(z) d z = sum_(j=1)^l k_j - sum_(i=1)^n m_i
+$$
+である。
+:::
+
+## 実積分への応用
+$0$を中心として半径$R$の円周を上半分を反時計回りに辿る経路を$C_R$とする。このとき、$R -> infinity$のとき、$C_R$上の積分が$0$に収束する場合がある。
+
+::: box 【定理】上半円路上の積分の収束
+#### 主張
+ある定数$M in RR$に対して$C_R$上で定義された関数$f$が十分大きな$R$について
+$$
+abs(f(z)) <= M/R^p
+$$
+を満たすとする。このとき、
+$$
+&lim_(R -> infinity) integral_(C_R) f(z) d z = 0 quad (p > 1)\
+&lim_(R -> infinity) integral_(C_R) e^(i m z) f(z) d z = 0 quad (p > 0, thin m > 0)
+$$
+である。
+
+#### 証明
+$z=|R|$なので$p>1$のとき
+$$
+abs(integral_(C_R) f(z) d z) &<= integral_C_R abs(f(z)) abs(d z)\
+&= integral_C_R M/R^p abs(d z)\
+&= M/R^p pi R = pi M/R^(p-1) -> 0 quad (R -> infinity)
+$$
+である。$z=R e^(i theta)$同様に$p > 0$かつ$m > 0$のとき
+$$
+abs(integral_(C_R) e^(i m z) f(z) d z) &<= integral_(C_R) abs(e^(i m z)) abs(f(z)) abs(d z)\
+&= integral_(C_R) e^(-m R sin theta) M/R^p abs(d z)\
+&= integral_0^pi e^(-m R sin theta) M/R^p R d theta\
+&= M/R^(p-1) integral_0^pi e^(-m R sin theta) d theta\
+&= (2M)/R^(p-1) integral_0^(pi/2) e^(-m R sin theta) d theta
+$$
+ここで、$0 < theta < pi/2$に対して$sin theta >= (2/pi) theta$であるので、
+$$
+abs(integral_(C_R) e^(i m z) f(z) d z) &<= (2M)/R^(p-1) integral_0^(pi/2) e^(-m R (2/pi) theta) d theta\
+&= (2M)/R^(p-1) [- (pi)/(2 m R) e^(-m R (2/pi) theta)]_(0)^(pi/2)\
+&= (pi M)/(m R^p) (1 - e^(-m R)) -> 0 quad (R -> infinity)
+$$

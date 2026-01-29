@@ -6,6 +6,9 @@
     },
     "02integral": {
       "title": "2. 複素積分"
+    },
+    "03laurent-expansion": {
+      "title": "3. 特異点と留数定理"
     }
   }
 }
