@@ -1,0 +1,251 @@
+# 複素積分
+## 複素積分の定義
+曲線$C$を$C: [a,b] in RR -> D in CC$というパラメータを用いて表された方向付きの曲線とする。複素関数$f: D -> CC$に対して，$C$に沿った$f$の積分は
+$$
+integral_C f(z) d z = integral_a^b f(C(t)) (d C)/(d t) d t
+$$
+で定義される。ここで、$C(t) = x(t) + i y(t)$と表されるとき、
+$$
+(d C)/(d t) = (d x)/(d t) + i (d y)/(d t)
+$$
+である。
+
+$f(z) = u(x,y) + i v(x,y)$と表されるとき，複素積分は次のように表すことができる。
+$$
+integral_C f(z) d z &= integral_a^b (u + i v)((d x)/(d t) + i (d y)/(d t)) d t\
+&= integral_a^b (u (d x)/(d t) - v (d y)/(d t)) d t + i integral_a^b (v (d x)/(d t) + u (d y)/(d t)) d t\
+&= integral_C (u d x - v d y) + i integral_C (v d x + u d y)
+$$
+
+また、経路についても以下の表記が可能であり、それぞれ以下の性質を持つ
+- $C$が曲線$C_1$と$C_2$の連結であるとき，$C = C_1 + C_2$と表す。このとき，
+  $$
+  integral_C f(z) d z = integral_C_1 f(z) d z + integral_C_2 f(z) d z
+  $$
+- $C$の向きを逆にした曲線を$-C$と表す。このとき，
+  $$
+  integral_(-C) f(z) d z = - integral_C f(z) d z
+  $$
+
+また、積分に関する基本的な性質として線形性がある。
+$$
+integral_C (a f(z) + b g(z)) d z = a integral_C f(z) d z + b integral_C g(z) d z
+$$
+さらに、積分経路が閉じている、つまり始点と終点が一致している場合、積分記号を$display(integral.cont)$という記号を用いて強調して表すことがある。
+
+::: box 【定理】複素積分に関する基本的な不等式
+#### 主張
+経路$C$の長さを$L(C)$とするとき,
+$$
+abs(integral.cont_C f(z) d z) <= L(C) sup_(z in C) |f(z)|
+$$
+
+#### 証明
+$$
+abs(integral_C f(z) d z) <= integral_C |f(z)| |d z| &<= integral_C sup_(z in C) |f(z)| |d z|\ &= sup_(z in C) |f(z)| integral_C |d z|\ &= L(C) sup_(z in C) |f(z)|
+$$
+:::
+
+::: box 【定理】基本的な円周積分
+#### 主張
+$C$を中心$a$，半径$r$の円周を反時計回りに一周する経路とする。このとき,
+$$
+integral.cont_C (z - a)^n d z = cases(
+    0 quad & "if" n eq.not -1,
+    2 pi i quad & "if" n = -1)
+$$
+
+#### 証明
+$C$を$C: z = a + r e^(i theta) quad (theta in [0, 2 pi])$と表す。このとき，
+$$
+(d C)/(d theta) = i r e^(i theta)
+$$
+である。したがって，
+$$
+integral.cont_C (z - a)^n d z &= integral_0^(2 pi) (r e^(i theta))^n (i r e^(i theta)) d theta\ &= i r^(n + 1) integral_0^(2 pi) e^(i (n + 1) theta) d theta
+$$
+
+1. $n = -1$のとき、計算する積分は
+  $$
+  i r^0 integral_0^(2 pi) d theta = 2 pi i
+  $$
+2. $n eq.not -1$のとき、計算する積分は$e^(i(n+1) 2pi) = e^0 = 1$なので
+  $$
+  i r^(n + 1) [ (1)/(i (n + 1)) e^(i (n + 1) theta) ]_0^(2 pi) = 0
+  $$
+
+:::
+
+## コーシーの定理
+まず、**連結**とはある領域$D$内の任意の単純閉曲線が$D$内である1点に収束できることを言う。 例えば、ドーナツ型や領域内に1点の穴がある領域は連結ではない。他にも、領域が2つに分かれている場合なども連結ではない。
+
+次に以下のグリーンの定理を準備する。
+
+::: box 【定理】グリーンの定理
+#### 主張
+$D$を$xy$平面上の単純閉曲線$C$で囲まれた領域とする。$P(x,y)$，$Q(x,y)$を$D$上で連続的に偏微分可能な関数とすると，
+$$
+integral.cont_C (P d x + Q d y) = integral.double_D ((d Q)/(d x) - (d P)/(d y)) d x d y
+$$
+
+#### 証明
+略
+:::
+
+これを用いればコーシーの定理を示すことができる。
+
+::: box 【定理】コーシーの定理
+#### 主張
+$D$を複素平面上の連結な領域とする。$f: D -> CC$を$D$上で正則な関数とする。このとき，$D$内の任意の単純閉曲線$C$に対して，
+$$
+integral.cont_C f(z) d z = 0
+$$
+である。
+
+#### 証明
+$C$内の領域を$D^prime$とする。$f(z) = u(x,y) + i v(x,y)$と表されるとき,グリーンの定理とコーシー・リーマンの方程式より，
+$$
+integral.cont_C f(z) d z &= integral.cont_C (u d x - v d y) + i integral.cont_C (v d x + u d y)\ &= integral.double_(D^prime) (-(d v)/(d x) - (d u)/(d y)) d x d y + i integral.double_(D^prime) ((d u)/(d x) - (d v)/(d y)) d x d y\ &= integral.double_(D^prime) 0 d x d y + i integral.double_(D^prime) 0 d x d y\
+&= 0
+$$
+:::
+
+このコーシーの定理からいくつかの重要な結果が導かれる。
+
+::: box 【系】経路に依らない複素積分
+#### 主張
+$D$を複素平面上の連結な領域とする。$f: D -> CC$を$D$上で正則な関数とする。このとき，$D$内の任意の曲線$C_1$,$C_2$が同じ始点と終点を持つならば，
+$$
+integral_C_1 f(z) d z = integral_C_2 f(z) d z
+$$
+#### 証明
+$C_1$と$C_2$の始点と終点をそれぞれ$z_1$,$z_2$とする。このとき,$z_2$から$z_1$に向かい、$C_1$,$C_2$と連結しても閉曲線を作ることができる新たな曲線$C_3$を考える。このとき、コーシーの定理より、
+$$
+integral.cont_(C_1 + C_3) f(z) d z = integral.cont_C_1 f(z) d z + integral.cont_C_3 f(z) d z = 0\
+integral.cont_(C_2 + C_3) f(z) d z = integral.cont_C_2 f(z) d z + integral.cont_C_3 f(z) d z = 0
+$$
+である。したがって、
+$$
+integral_C_1 f(z) d z = - integral.cont_C_3 f(z) d z = integral_C_2 f(z) d z
+$$
+である。
+:::
+
+::: box 【系】穴があいている領域で正則な場合の積分
+#### 主張
+$C_1$を単純閉曲線，$C_2$を$C_1$の内部にある単純閉曲線とする。ただし、2つは同じ方向をもつ。$f$が$C_1$と$C_2$で囲まれた円環領域$D$を含む$D^prime$上で正則であるとき,
+$$
+integral.cont_C_1 f(z) d z = integral.cont_C_2 f(z) d z
+$$
+が成り立つ。
+
+#### 証明
+$C_1$上にある一点$z_1$と$C_2$上にある一点$z_2$を決める。$z_1$を始点，$z_2$を終点とする曲線$C_3$を$D$内で引く。このとき，$z_1$から$C_1$を一周し,$C_3$を通って$z_2$に至り，$C_2$を逆向きに一周して$z_2$に戻り，最後に$C_3$を逆向きにたどって$z_1$に戻る経路$C = C_1 + C_3 + (-C_2) + (-C_3)$を考える。これは$D^prime$内の単純閉曲線なので、
+$$
+integral.cont_C f(z) d z = 0
+$$
+である。したがって，
+$$
+&integral.cont_C_1 f(z) d z + integral.cont_C_3 f(z) d z - integral.cont_C_2 f(z) d z - integral.cont_C_3 f(z) d z\ =& integral.cont_C_1 f(z) d z - integral.cont_C_2 f(z) d z = 0
+$$
+である。
+:::
+
+::: box 【系】穴が複数ある領域で正則な場合の積分
+#### 主張
+$C$を単純閉曲線とし、その内部を$D$とする。$D$内に単純閉曲線$C_1, C_2, ..., C_n$があり、それぞれの曲線が互いに共有点を持たないとする。各曲線$C_i$の内部を$D_i$とし、$D^prime = D \\ (D_1 union D_2 union ... union D_n)$とする。$f$が$D^prime$上で正則であるとき、
+$$
+integral.cont_C f(z) d z = sum_(i=1)^n integral.cont_C_i f(z) d z
+$$
+なお、各曲線$C_i$の向きは$C$と同じ向きであるとする。
+#### 証明
+各曲線$C_i$上にある点$z^((i))_i$を選び，$C$上にある点$z_i (i = 1, 2, ..., n)$を選ぶ。各$i$について，$z_i$から$z^((i))_i$に至る曲線$C^((i))$を$D^prime$内で引く。このとき$C$のある点を始点とし、順方向に移動し、$z_i$を通ったときに$C^((i))$を通って$z^((i))_i$に至り、$C_i$を逆向きに一周して$z^((i))_i$に戻り、最後に$C^((i))$を逆向きにたどって再び$C$を順方向に辿り始める経路$C^prime$を考える。すると、
+$$
+C^prime = C + sum_(i=1)^n (C^((i)) + (-C_i) + (-C^((i))))
+$$
+である。$C^prime$は$D^prime$内の単純閉曲線なので、コーシーの定理より、
+$$
+integral.cont_(C^prime) f(z) d z = 0
+$$
+である。したがって、
+$$
+&integral.cont_C f(z) d z + sum_(i=1)^n (integral.cont_(C^((i))) f(z) d z - integral.cont_C_i f(z) d z - integral.cont_(C^((i))) f(z) d z)\ =& integral.cont_C f(z) d z - sum_(i=1)^n integral.cont_C_i f(z) d z = 0
+$$
+である。よって、主張が示された。
+:::
+
+## コーシーの積分公式
+
+::: box 【定理】コーシーの積分公式
+#### 主張
+$D$上で正則な関数$f: D -> CC$を考える。$C$を$D$内の点$a$を囲む単純閉曲線とする。このとき、
+$$
+f(a) = (1)/(2 pi i) integral.cont_C (f(z))/(z - a) d z
+$$
+が成り立つ。加えて、$n$が自然数のとき、
+$$
+f^((n))(a) = (n!)/(2 pi i) integral.cont_C (f(z))/(z - a)^(n + 1) d z
+$$
+も成り立つ。
+
+#### 証明
+まず,示したい等式の右辺について被積分関数は$z=a$以外の$D$内で正則であるので経路$C$は$a$を囲んでいれば積分値は経路に依らない。そこで、$C$を中心$a$，半径$r$の円周としても一般性を失わない。このとき、
+$$
+integral.cont_C 1/(z - a) d z = 2 pi i
+$$
+であるので、
+$$
+1/(2 pi i) integral.cont_C (f(z))/(z - a) d z - f(a) &= 1/(2 pi i) integral.cont_C f(z)/(z - a) d z - 1/(2 pi i) integral.cont_C f(a)/(z - a) d z\
+&= 1/(2 pi i) integral.cont_C (f(z) - f(a))/(z - a) d z
+$$
+である。するとこれは
+$$
+abs(1/(2 pi i) integral.cont_C (f(z) - f(a))/(z - a) d z) &<= abs(1/(2 pi i)) L(C) sup_(z in C) abs((f(z) - f(a))/(z - a))\
+&= 1/(2 pi) (2 pi r) sup_(z in C) abs((f(z) - f(a)))/r\
+&= sup_(z in C) abs(f(z) - f(a)) stretch(->)_(r -> 0) 0
+$$
+である。はさみうちの原理より
+$$
+lim_(r->0) underbracket(1/(2 pi i) integral.cont_C (f(z) - f(a))/(z - a) d z, I) = 0
+$$
+が成り立つことがわかったが、$I$は$r$によらないことをはじめに述べたので$r$について定数であり、したがって$I = 0$である。
+$$
+&1/(2 pi i) integral.cont_C (f(z))/(z - a) d z - f(a) = 0\
+<=> &f(a) = 1/(2 pi i) integral.cont_C (f(z))/(z - a) d z
+$$
+が示された。次に、$n$階微分について示す。
+
+まず、$n=1$のときを考える。示したコーシーの積分公式より、十分小さい$h in RR$に対して、
+$$
+f(a + h) = 1/(2 pi i) integral.cont_C (f(z))/(z - (a + h)) d z
+$$
+である。したがって、
+$$
+(f(a + h) - f(a))/h &= 1/(2 pi i h) integral.cont_C (f(z)/(z - (a + h)) - f(z)/(z - a)) d z\ &= 1/(2 pi i) integral.cont_C (f(z))/((z - a)(z - (a + h))) d z
+$$
+となる。$C$はコンパクトなので$h->0$のとき、積分と極限を交換できる。両辺極限を取ると
+$$
+f^((1))(a) = 1/(2 pi i) integral.cont_C (f(z))/(z - a)^2 d z
+$$
+が得られる。次に、$n=k$のとき成り立つと仮定する。
+$$
+f^((k))(a) = (k!)/(2 pi i) integral.cont_C (f(z))/(z - a)^(k + 1) d z
+$$
+このとき、
+$$
+(f^((k))(a + h) - f^((k))(a))/h &= (k!)/(2 pi i h) integral.cont_C (f(z)/(z - (a + h))^(k + 1) - f(z)/(z - a)^(k + 1)) d z\
+&= (k!)/(2 pi i h) integral.cont_C f(z) ((z - a)^(k + 1) - ((z - a) - h)^(k + 1))/((z - a)^(k + 1)(z - (a + h))^(k + 1)) d z\
+&= (k!)/(2 pi i h) integral.cont_C f(z) display(-sum_(j=0)^k attach("C", bl: k+1, br: j) (z-a)^j (-h)^(k+1-j) )/((z - a)^(k + 1)(z - (a + h))^(k + 1)) d z\
+&= (k!)/(2 pi i) integral.cont_C f(z) display(sum_(j=0)^k attach("C", bl: k+1, br: j) (z-a)^j h^(k-j) )/((z - a)^(k + 1)(z - (a + h))^(k + 1)) d z
+$$
+となる。再び積分と極限を交換すると、被積分関数の極限は
+$$
+lim_(h->0) f(z)display(sum_(j=0)^k attach("C", bl: k+1, br: j) (z-a)^j h^(k-j) )/((z - a)^(k + 1)(z - (a + h))^(k + 1)) = f(z)(attach("C", bl: k+1, br: k)(z-a)^k)/(z - a)^(2(k + 1)) = ((k+1) f(z))/(z - a)^(k + 2)
+$$
+である。したがって、先ほどの式の両辺に極限を取ると
+$$
+f^((k + 1))(a) &= (k!)/(2 pi i) integral.cont_C ((k+1) f(z))/(z - a)^(k + 2) d z\
+&= ((k + 1)!)/(2 pi i) integral.cont_C (f(z))/(z - a)^(k + 2) d z
+$$
+が得られる。よって、数学的帰納法により任意の自然数$n$について主張が成り立つことが示された。
+:::

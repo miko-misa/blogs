@@ -2,7 +2,10 @@
   "display": "複素解析",
   "articles": {
     "01function": {
-      "title": "複素関数と正則性"
+      "title": "1. 複素関数と正則性"
+    },
+    "02integral": {
+      "title": "2. 複素積分"
     }
   }
 }

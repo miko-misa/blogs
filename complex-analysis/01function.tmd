@@ -351,7 +351,8 @@ $$
    $$
    diff/(diff x) u(x,y) = diff/(diff y) v(x,y), quad diff/(diff y) u (x,y) = - diff/(diff x) v (x,y)
    $$
-   を満たす。
+
+を満たす。
 
 これの証明を示そう。
 ::: box 【定理】コーシー・リーマンの方程式
@@ -362,7 +363,8 @@ $$
    $$
    diff/(diff x) u(x,y) = diff/(diff y) v(x,y), quad diff/(diff y) u (x,y) = - diff/(diff x) v (x,y)
    $$
-   を満たす。
+
+を満たす。
 #### 証明
 $f$が領域$D$上で正則であるとする。このとき、$f$は$x$について偏微分可能であるので
 $$
