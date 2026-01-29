@@ -378,7 +378,7 @@ $f: D -> CC$を領域$D in CC$上で定義された関数とする。任意の�
 $$
 f(z) = sum_(n=0)^infinity (f^((n)) (a))/(n!) (z - a)^n
 $$
-が成り立つとき，$f$は**解析的である**といい$f$を**解析関数**という。
+が成り立つとき，$f$は**解析的である**といい$f$を**解析関数**という。テイラー展開は広く言えばべき級数展開であり、べき級数に関する議論が成立する。
 
 ::: box 【定理】正則関数は解析関数である
 #### 主張
@@ -407,4 +407,127 @@ f(z) &= (1)/(2 pi i) integral.cont_C f(w) display(sum_(n=0)^infinity (z - a)^n/(
 &= sum_(n=0)^infinity (f^((n)) (a))/(n!) (z - a)^n
 $$
 である。最後の等式はグルサの定理による。したがって，$f$は点$a$の近傍でテイラー展開を持ち、テイラー展開は少なくとも$R$の収束半径を持つ。$a$は任意にとったので，$f$は解析的である。
+:::
+
+::: box 【定理】べき級数展開の割り算
+#### 主張
+べき級数展開$f(z) = display(sum_(n=1)^infinity c_n z^n)$の収束半径が$R$であるとき
+$$
+g(z) = f(z)/z = display(sum_(n=0)^infinity c_(n+1) z^n)
+$$
+の収束半径も$R$である。
+
+#### 証明
+$f$の収束半径が$R$であるとは，
+$$
+limsup_(n->infinity) root(n, |c_n|) = 1/R
+$$
+であることを言う。したがって、$g(z)$のべき級数展開の係数$c^prime_n = c_(n+1)$に対して
+$$
+limsup_(n->infinity) root(n, |c^prime_n|) = limsup_(n->infinity) root(n, |c_(n+1)|)
+$$
+である。ここで、任意の$n in NN$に対して
+$$
+log(root(n, |c_(n+1)|)) &= (1)/(n) log|c_(n+1)|\
+&= ((n+1)/(n)) (1)/(n+1) log(|c_(n+1)|)\
+&= (1 + (1)/(n)) log(root(n+1, |c_(n+1)|))
+$$
+である。任意の$epsilon > 0$に対して、十分大きな$N$が存在し、
+$$
+&1 < (1 + (1)/(n)) < 1 + epsilon quad (n >= N)\
+=> & log(root(n+1, |c_(n+1)|)) < log(root(n, |c_(n+1)|)) < (1 + epsilon) log(root(n+1, |c_(n+1)|)) quad (n >= N)\
+<=> & root(n+1, |c_(n+1)|) < root(n, |c_(n+1)|) < (root(n+1, |c_(n+1)|))^(1 + epsilon) quad (n >= N)\
+<=> & sup_(k >= N) root(k+1, |c_(k+1)|) <= sup_(k >= N) root(k, |c_(k+1)|) <= sup_(k >= N) (root(k+1, |c_(k+1)|))^(1 + epsilon) = (sup_(k >= N) root(k+1, |c_(k+1)|))^(1 + epsilon)
+$$
+である。$N->infinity$極限を取れば、$epsilon -> 0$より
+$$
+&limsup_(n->infinity) root(n+1, |c_(n+1)|) <= limsup_(n->infinity) root(n, |c_(n+1)|) <= lim_(epsilon->0) (limsup_(n->infinity) root(n+1, |c_(n+1)|))^(1 + epsilon)\
+<=> & 1/R <= limsup_(n->infinity) root(n, |c_(n+1)|) <= lim_(epsilon->0)(1/R)^(1 + epsilon) = 1/R
+$$
+である。つまり、
+$$
+limsup_(n->infinity) root(n, |c^prime_n|) = limsup_(n->infinity) root(n, |c_(n+1)|) = 1/R
+$$
+である。よって，$g(z)$の収束半径も$R$である。
+:::
+
+::: box 【定理】収束する零点列があるならば零関数
+
+#### 主張
+$f: D -> CC$を連結な領域$D$上で正則な関数とする。$f(a) = 0 quad (a in D)$であり、$a$に収束し、$f(z_n)=0$を常に満たすような相異なる点列${z_n}$が存在するとき，$z in D$で$f(z)=0$である。ここで、相異なる点列とは,$n eq.not m$ならば$z_n eq.not z_m$であることを言う。
+
+#### 証明
+$f$は正則なので，$D$上で解析的であり$a$中心のテイラー展開は
+$$
+f(z) = sum_(n=0)^infinity c_n (z - a)^n
+$$
+である。$f(a) = 0$なので，この展開の定数項$c_0$は$0$である。ここで、以下の極限を考えてみると
+$$
+lim_(n->infinity) (f(z_n))/(z_n - a) &= lim_(n->infinity) display(sum_(n=0)^infinity c_n (z_n - a)^(n - 1) )\
+&= c_1 + lim_(n->infinity) display(sum_(n=2)^infinity c_n (z_n - a)^(n - 1) )\
+&= c_1 quad quad (because lim_(n->infinity) (z_n - a)^N = 0 quad (N >= 1))
+$$
+であるが、そもそも$f(z_n) = 0$であるので、この極限は$0$に等しい。したがって，$c_1 = 0$である。同様にして，任意の自然数$k$について$display(lim_(n->infinity) (f(z_n))/(z_n - a)^k)$は$0$であり$c_k$に等しいことが完全帰納法により示される。したがって，すべての$c_n = 0$であり，$f$は零関数である。
+:::
+
+::: box 【系】一致の定理
+#### 主張
+$f, g: D -> CC$を連結な領域$D$上で正則な関数とする。ある点$a in D$に収束し，かつ$f(z_n) = g(z_n)$を常に満たすような相異なる点列${z_n}$が存在するとき，任意の$z in D$について
+$$
+f(z) = g(z)
+$$
+である。
+
+#### 証明
+$h(z) = f(z) - g(z)$とおく。すると，$h$は$D$上で正則であり，$h(a) = 0$である。さらに，点列${z_n}$は$h(z_n) = 0$を常に満たす点列。したがって，前の定理より，任意の$z in D$について$h(z) = 0$である。つまり，任意の$z in D$について$f(z) = g(z)$である。
+:::
+
+前に示した内容よりさらに強い定理が成り立つ。
+
+::: box 【定理】最大値の定理
+#### 主張
+関数$f: D -> CC$が領域$D$上で正則であるとする。もし$f$が$D$内の点$a$で局所最大であるならば，$f$はその$a$近傍で定数関数である。
+
+#### 証明
+$f$は正則なので解析的であり、
+$$
+f(z) = sum_(n=0)^infinity c_n (z - a)^n
+$$
+と表せる。$a$の近傍の半径を$r$とすると近傍は$B(a, r) = {z in CC | abs(z - a) < r}$である。$f$が点$a$で局所最大であるので，十分小さい$0 < rho < r$に対して、次のような$I$を考えたい。すると
+$$
+I &:= (1)/(2 pi) integral_0^(2 pi) abs(f(a + rho e^(i theta)))^2 d theta\
+&= (1)/(2 pi) integral_0^(2 pi) f(a + rho e^(i theta)) overline(f(a + rho e^(i theta))) d theta\
+&= (1)/(2 pi) integral_0^(2 pi) (sum_(n=0)^infinity c_n (rho e^(i theta))^n ) overline((sum_(m=0)^infinity c_m (rho e^(i theta))^m )) d theta\
+&= (1)/(2 pi) integral_0^(2 pi) (sum_(n=0)^infinity c_n (rho e^(i theta))^n ) (sum_(m=0)^infinity overline(c_m) (rho e^(-i theta))^m ) d theta\
+&= (1)/(2 pi) integral_0^(2 pi) sum_(n=0)^infinity sum_(m=0)^infinity c_n overline(c_m) rho^(n + m) e^(i (n - m) theta) d theta\
+&= sum_(n=0)^infinity sum_(m=0)^infinity c_n overline(c_m) rho^(n + m) (1)/(2 pi) underbracket(integral_0^(2 pi) e^(i (n - m) theta) d theta, J)\
+$$
+である。ここで$J$について$n=m$ならば
+$$
+J = integral_0^(2 pi) d theta = 2 pi
+$$
+であり，$n eq.not m$ならば
+$$
+J = integral_0^(2 pi) e^(i (n - m) theta) d theta = (1)/(i (n - m)) [e^(i (n - m) theta)]_0^(2 pi) = 0
+$$
+である。したがって，
+$$
+I &= sum_(n=0)^infinity c_n overline(c_n) rho^(2 n)\
+&= sum_(n=0)^infinity |c_n|^2 rho^(2 n)
+$$
+である。テイラー展開において$c_0 = f(a)$であるので，
+$$
+|f(a)|^2 = |c_0|^2 &<= |c_0|^2 + sum_(n=1)^infinity |c_n|^2 rho^(2 n)\
+&= I\
+&= (1)/(2 pi) integral_0^(2 pi) abs(f(a + rho e^(i theta)))^2 d theta\
+&<= 1/(2 pi) integral_0^(2 pi) abs(f(a))^2 d theta quad (because |f(z)| <= |f(a)|)\
+&= |f(a)|^2
+$$
+である。したがって，不等号がすべて等号になる。特に，
+$$
+&|c_0|^2 = |c_0|^2 + sum_(n=1)^infinity |c_n|^2 rho^(2 n)\
+<=> &sum_(n=1)^infinity |c_n|^2 rho^(2 n) = 0\
+<=> &c_n = 0 quad (n >= 1) quad (because rho, |c_n| > 0)
+$$
+つまり、$B(a, r)$でのテイラー展開は常に$f(z) = c_0$である。よって，$f$は点$a$の近傍で定数関数である。
 :::
