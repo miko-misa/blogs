@@ -816,11 +816,11 @@ R(theta) := ||w||_2^2 quad (w in theta)
 $$
 このようにすると重回帰分析における正則化付き平均二乗誤差は以下で与えられる。
 $$
-cal(L)_"MSE, reg" (bold(w)) := ||bold(y) - bold(X) bold(w)||_2^2 + lambda ||bold(w)||_2^2
+cal(L)_"MSE+reg" (bold(w)) := ||bold(y) - bold(X) bold(w)||_2^2 + lambda ||bold(w)||_2^2
 $$
 このとき、正則化付き平均二乗誤差を最小化する重み行列を求めてみたい。$||bold(w)||_2^2 = bold(w)^top bold(w)$であるので、重回帰分析における解析解の導出を用いれば、
 $$
-(diff cal(L)_"MSE, reg" (bold(w)))/(diff bold(w)) = 2( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) ) + 2 lambda bold(w)
+(diff cal(L)_"MSE+reg" (bold(w)))/(diff bold(w)) = 2( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) ) + 2 lambda bold(w)
 $$
 である。これを$bold(0)$と等しくすると、$bold(w)^ast$は
 $$
