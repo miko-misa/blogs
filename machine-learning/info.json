@@ -2,7 +2,7 @@
   "display": "機械学習",
   "articles": {
     "01regression": {
-      "title": "回帰分析"
+      "title": "1. 回帰分析"
     }
   }
 }

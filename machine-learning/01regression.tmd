@@ -296,3 +296,536 @@ $$
 :::
 
 決定係数$R^2$は$0 <= R^2 <= 1$を満たし、$R^2$が大きいほど、予測関数$f$は良いとされる。
+
+# 重回帰分析
+## 導入
+単回帰分析では説明変数は1つのスカラー値であったが、説明変数が複数のスカラー値からなる場合を考える。この手法を**重回帰分析**（multiple regression analysis）と呼ぶ。説明変数が$d$個のスカラー値からなる場合、説明変数はベクトル値$bold(x) in RR^d$として表現される。データ$cal(D)$は以下のように表現できる。
+$$
+cal(D) &:= {(bold(x)_1, y_1), (bold(x)_2, y_2), ..., (bold(x)_n, y_n)}\
+&= {(bold(x)_i, y_i)}_(i=1)^n & in cal(P)(RR^d times RR)
+$$
+
+::: box 【定義】ベクトル
+**ベクトル**（vector）とは、複数のスカラー値を1つにまとめたものである。例えば、$d$次元実ベクトル$bold(x) in RR^d$は以下で定義される。
+$$
+bold(x) := vec(x_1, x_2, dots.v, x_d) = (x_1, x_2, ..., x_d)^top
+$$
+また、これは$d times 1$の行列としても解釈することができ、**縦ベクトル**（column vector）と呼ばれる。
+:::
+
+::: box 【注意】添え字と変数の種別
+ここで、約束事として変数の添え字ではない「本体」の部分がその変数の種別を表していて、$bold(x), bold(x)_1, bold(x)_n$などはすべてベクトルである。ただ、$bold(x)$の各成分はスカラー値であり、$x_1, x_2, ..., x_d$のように表現されることがある。$bold(x)_1$と$x_1$は全く別の変数であることに注意されたい。
+:::
+
+::: box 【注意】添え字の表現方法
+ベクトル、行列のある成分を表現したいとき、特に指定がない場合は変数の小文字を普通文字で書いて添え字で成分座標を示す。また、明示したいときは$[thin]$を用いて表すことにする。
+
+行列$bold(X)$とベクトル$bold(x)$について以下のように表記する。
+
+- 行列$bold(X)$の$i$行$j$列成分: $x_(i j)$または$[bold(X)]_(i j)$
+- ベクトル$bold(x)$の$j$成分: $x_j$または$[bold(x)]_j$
+:::
+
+このとき、予測関数$f: RR^d -> RR$（引数がベクトルになっていることに注意）は以下のように表現される。
+$$
+f(bold(x)) &:= w_1 x_1 + w_2 x_2 + ... + w_d x_d\
+&= sum_(j=1)^d w_j x_j
+$$
+ただし、$bold(x) = (x_1, x_2, ..., x_d)^top$である。このとき、パラメータ$theta$は$(w_1, w_2, ..., w_d)$である。ここで、今まで考えてきた切片$b$が含まれていないように見える。が、実際には説明変数$bold(x)$の最初の成分$x_1$（もしくは最後の成分）を常に1に固定することで、切片$b$を含めることができる。すなわち、$bold(x) = (1, x_2, ..., x_d)^top$とする。このようにして、重回帰分析においても切片$b$を$w_1$として含めることができる。以降は上のような一般化された予測関数$f$を考えることにする。
+
+## 計画行列
+重回帰分析では、説明変数がベクトル値であるため、計算を行う際に行列を用いることで見通しをよくすることができる。まず、パラメータを重み行列$bold(w)$として以下で定義する。
+$$
+bold(w) := (w_1, w_2, ..., w_d)^top in RR^d
+$$
+このとき、予測関数$f$は以下のように表現できる。
+$$
+f(bold(x)) = bold(x)^top bold(w)
+$$
+これはベクトルの標準内積である。
+
+::: box 【定義】標準内積
+ある2つの$d$次元実ベクトル$bold(a), bold(b) in RR^d$に関して、その**標準内積**（standard inner product）$bold(a) dot bold(b)$は以下で定義される。
+$$
+bold(a) dot bold(b) := sum_(j=1)^d [bold(a)]_j [bold(b)]_j = bold(a)^top bold(b)
+$$
+これは、2つのベクトルを$d times 1$の行列として解釈したときの行列積としても解釈できる。また、内積はその順番に関係なく同じ値になる。
+$$
+bold(a)^top bold(b) = bold(b)^top bold(a)
+$$
+:::
+
+このようにすると、複数の事例をまとめて計算することはできる。まず、データ$cal(D) = {(bold(x)_i, y_i)}_(i=1)^n$の説明変数をまとめた**計画行列**（design matrix）$bold(X)$を以下で定義する。
+$$
+bold(X) &:= vec(bold(x)_1^top, bold(x)_2^top, dots.v, bold(x)_n^top)\
+&= mat(
+x_11, x_12, ..., x_(1d);
+x_21, x_22, ..., x_(2d);
+dots.v, dots.v, dots.down, dots.v;
+x_(n 1), x_(n 2), ..., x_(n d)
+) in RR^(n times d)
+$$
+
+なお、$bold(x)_i = (x_(i 1), x_(i 2), ..., x_(i d))^top$である。また、目的変数をまとめたベクトル$bold(y)$を以下で定義する。
+$$
+bold(y) := (y_1, y_2, ..., y_n)^top in RR^n
+$$
+同様に、予測関数$f$によって得られた予測値をまとめたベクトル$hat(bold(y))$を以下で定義する。
+$$
+hat(bold(y)) := (hat(y)_1, hat(y)_2, ..., hat(y)_n)^top in RR^n
+$$
+このとき、
+$$
+hat(bold(y)) = bold(X) bold(w)
+$$
+と表現できる。証明は以下の通りである。
+
+::: box 【定理】計画行列による予測値の表現
+#### 主張
+計画行列$bold(X)$と重み行列$bold(w)$を用いて、予測値ベクトル$hat(bold(y))$は
+$$
+hat(bold(y)) = bold(X) bold(w)
+$$
+で表現される。
+
+#### 証明
+$$
+bold(X) bold(w) &= vec(bold(x)_1^top, bold(x)_2^top, dots.v, bold(x)_n^top) bold(w)\
+&= vec(bold(x)_1^top bold(w), bold(x)_2^top bold(w), dots.v, bold(x)_n^top bold(w))\
+&= vec(f(bold(x)_1), f(bold(x)_2), dots.v, f(bold(x)_n)) quad (because f(bold(x)) = bold(x)^top bold(w))\
+&= vec(hat(y)_1, hat(y)_2, ..., hat(y)_n)\
+&= hat(bold(y))
+$$
+:::
+
+このようにして、重回帰分析では計画行列を用いて予測値を簡潔に表現することができる。
+
+## 解析解
+重回帰分析における平均二乗誤差も同様に定義される。
+$$
+cal(L)_"MSE" (bold(w)) := sum_(i=1)^n (y_i - hat(y)_i)^2
+$$
+ただし、ここでは簡単のため$n$で割って平均を取らないことにする。この関数の最小化は元の平均二乗誤差の最小化と同じ解を与える。上の式はより簡潔に以下のように表現できる。
+$$
+cal(L)_"MSE" (bold(w)) &= ||bold(y) - hat(bold(y))||_2^2\
+&= (bold(y)-hat(bold(y)))^top (bold(y)-hat(bold(y)))\
+&= (bold(y) - bold(X) bold(w))^top (bold(y) - bold(X) bold(w))
+$$
+
+::: box 【定義】2ノルム
+あるベクトル$bold(a) in RR^n$に関して、その**2ノルム**（2-norm）$||bold(a)||_2$は以下で定義される。
+$$
+||bold(a)||_2 := sqrt(sum_(i=1)^n a_i^2)
+$$
+これは$bold(a)$自身との内積でも表現できる。
+$$
+||bold(a)||_2 = sqrt(bold(a)^top bold(a))
+$$
+:::
+
+さて、この平均二乗誤差を最小化する重み行列$bold(w)$を求めることを考える。最適な重み行列を$bold(w)^*$と表現することにする。ここで、あるスカラー値に対してベクトルによる偏微分を以下のように定義する。
+
+::: box 【定義】ベクトルによる偏微分
+ベクトル$bold(a)$による偏微分作用素$(diff)/(diff bold(a))$は以下で定義される。
+$$
+(diff)/(diff bold(a)) := ((diff)/(diff a_1), (diff)/(diff a_2), ..., (diff)/(diff a_n))^top
+$$
+例えば,スカラー関数$f$に対して$(diff f)/(diff bold(a))$は$f$をスカラーとみなし、作用素との積のように解釈される。
+$$
+(diff f)/(diff bold(a)) = (diff)/(diff bold(a)) f &= ((diff)/(diff a_1) f, (diff)/(diff a_2) f, ..., (diff)/(diff a_n) f)^top\
+&= vec((diff f)/(diff a_1), (diff f)/(diff a_2), dots.v, (diff f)/(diff a_n))
+$$
+:::
+
+この偏微分を用いて、平均二乗誤差を最小化するための条件は以下で与えられる。
+$$
+(diff cal(L)_"MSE" (bold(w)^*))/(diff bold(w)) = bold(0)
+$$
+
+ここで、$bold(0)$は全ての成分が$0$であるゼロベクトルである。偏微分を計算してこれらの方程式を解く。
+
+まずは内積に関する微分公式を示す。
+
+::: box 【定理】内積の微分公式
+#### 主張
+ある互いに独立なベクトル$bold(a) in RR^n$と$bold(b) in RR^n$に関して、以下の等式が成り立つ。
+$$
+(diff)/(diff bold(a)) (bold(a)^top bold(b)) = bold(b) quad (diff)/(diff bold(b)) (bold(a)^top bold(b)) = bold(a)
+$$
+
+#### 証明
+$a^top b$を$a_i$で偏微分すると、
+$$
+diff/(diff a_i) (bold(a)^top bold(b)) &= diff/(diff a_i) sum_(j=1)^n a_j b_j\
+&= b_i
+$$
+したがって、
+$$
+[(diff)/(diff bold(a)) (bold(a)^top bold(b))]_i = [b]_i
+$$
+であるので示された。$bold(b)$についても
+$$
+(diff)/(diff bold(b)) (bold(a)^top bold(b)) = (diff)/(diff bold(b)) (bold(b)^top bold(a)) = bold(a)
+$$
+であるので示された。
+:::
+
+::: box 【定理】ノルムの二乗の微分公式
+#### 主張
+あるベクトル$bold(a) in RR^n$に関して、以下の等式が成り立つ。
+$$
+(diff)/(diff bold(a)) (||bold(a)||_2^2) = diff/(diff bold(a)) (bold(a)^top bold(a)) = 2 bold(a)
+$$
+
+#### 証明
+$bold(a)^top bold(a)$を$a_i$で偏微分すると、
+$$
+diff/(diff a_i) (bold(a)^top bold(a)) &= diff/(diff a_i) sum_(j=1)^n a_j^2\
+&= 2 a_i
+$$
+したがって、
+$$
+[(diff)/(diff bold(a)) (bold(a)^top bold(a))]_i = [2 bold(a)]_i
+$$
+であるので示された。
+
+:::
+
+::: box 【定義】ヤコビアン
+あるベクトル値関数$bold(f): RR^m -> RR^n$に関して、下のように$f_1, f_2, ..., f_n: RR^m -> RR$をそれぞれ$bold(f)$の成分関数と表現することにする。
+$$
+bold(f)(bold(x)) := vec(f_1(bold(x)), f_2(bold(x)), dots.v, f_n(bold(x)))
+$$
+このとき、ベクトル値関数$bold(f)$の**ヤコビアン**（Jacobian）$J_(bold(f))(bold(x))$は以下で定義される。
+$$
+J_(bold(f))(bold(x)) := mat(
+(diff f_1)/(diff x_1), (diff f_1)/(diff x_2), ..., (diff f_1)/(diff x_m);
+(diff f_2)/(diff x_1), (diff f_2)/(diff x_2), ..., (diff f_2)/(diff x_m);
+dots.v, dots.v, dots.down, dots.v;
+(diff f_n)/(diff x_1), (diff f_n)/(diff x_2), ..., (diff f_n)/(diff x_m)
+) in RR^(n times m)
+$$
+
+例えば、ベクトルを右に作用させる$bold(X) in RR^(n times m)$は最も基本的な$RR^m -> RR^n$のベクトル値関数とみなせる。
+:::
+
+::: box 【定理】行列のヤコビアンは行列そのもの
+#### 主張
+ある行列$bold(X) in RR^(n times m)$に関して、$bold(a) in RR^m$および$bold(b) in RR^n$が
+$$
+bold(b) = bold(X) bold(a)
+$$
+で定義されるとき、ヤコビアン$J_(bold(b))(bold(a)) = display((diff bold(b))/(diff bold(a)))$は以下で与えられる。
+$$
+J_(bold(b))(bold(a)) = bold(X)
+$$
+
+#### 証明
+$bold(b)$の$i$成分$b_i$を$a_j$で偏微分すると、
+$$
+(diff b_i)/(diff a_j) &= (diff)/(diff a_j) sum_(k=1)^m a_k x_(i k)\
+&= x_(i j)
+$$
+したがって、
+$$
+[(diff bold(b))/(diff bold(a))]_(i j) = (diff b_i)/(diff a_j) = [bold(X)]_(i j)
+$$
+であるので示された。
+:::
+
+::: box 【定理】内積に関する連鎖律
+#### 主張
+ある互いに$bold(a) in RR^n$と$bold(b) in RR^m$と$bold(c)$に関して、以下の等式が成り立つ。
+$$
+(diff)/(diff bold(c)) (bold(a)^top bold(b)) = ((diff bold(a))/(diff bold(c)))^top bold(b) + ((diff bold(b))/(diff bold(c)))^top bold(a)
+$$
+
+#### 証明
+$c_i$で$bold(a)^top bold(b)$を偏微分すると、
+$$
+[(diff)/(diff bold(c)) (bold(a)^top bold(b))]_i = (diff)/(diff c_i) (bold(a)^top bold(b)) &= (diff)/(diff c_i) sum_(j=1)^n a_j b_j\
+&= sum_(j=1)^n ( (diff a_j)/(diff c_i) b_j + a_j (diff b_j)/(diff c_i) )\
+&= sum_(j=1)^n [(diff bold(a))/(diff bold(c))]_(j i) [bold(b)]_j + sum_(j=1)^n [bold(a)]_j [(diff bold(b))/(diff bold(c))]_(j i)\
+&= sum_(j=1)^n [((diff bold(a))/(diff bold(c)))^top]_(i j) [bold(b)]_j + sum_(j=1)^n [((diff bold(b))/(diff bold(c)))^top]_(i j) [bold(a)]_j\
+&= [((diff bold(a))/(diff bold(c)))^top bold(b)]_i + [((diff bold(b))/(diff bold(c)))^top bold(a)]_i\
+&= [((diff bold(a))/(diff bold(c)))^top bold(b) + ((diff bold(b))/(diff bold(c)))^top bold(a)]_i
+$$
+であるので示された。
+
+:::
+
+加えて、転置について下の性質が成り立つ。
+
+- $(bold(X) + bold(Y))^top = bold(X)^top + bold(Y)^top$
+- $(bold(X) bold(Y))^top = bold(Y)^top bold(X)^top$
+
+また、以下も成り立つ。
+
+::: box 【定理】自分自身の転置との行列積は対称行列になる
+#### 主張
+ある行列$bold(X) in RR^(m times n)$に関して、行列積$bold(X)^top bold(X)$は対称行列である。すなわち、
+$$
+(bold(X)^top bold(X))^top = bold(X)^top bold(X)
+$$
+である。
+
+#### 証明
+$$
+(bold(X)^top bold(X))^top &= bold(X)^top (bold(X)^top)^top\
+&= bold(X)^top bold(X)
+$$
+であるので示された。
+:::
+
+
+これを用いて$cal(L)_"MSE"$を展開してみる。
+$$
+cal(L)_"MSE" &= (bold(y) - bold(X) bold(w))^top (bold(y) - bold(X) bold(w))\
+&= (bold(y)^top - (bold(X) bold(w))^top )(bold(y) - bold(X) bold(w))\
+&= (bold(y)^top - bold(w)^top bold(X)^top)(bold(y) - bold(X) bold(w))\
+&= bold(y)^top bold(y) - bold(y)^top bold(X) bold(w) - bold(w)^top bold(X)^top bold(y) + bold(w)^top bold(X)^top bold(X) bold(w)
+$$
+
+ここで、$bold(A) = bold(X)^top bold(X)$とおくと、
+$$
+cal(L)_"MSE" &= bold(y)^top bold(y) - (bold(X)^top bold(y))^top bold(w) - bold(w)^top (bold(X)^top bold(y)) + bold(w)^top (bold(A) bold(w))
+$$
+となる。これを$bold(w)$で偏微分すると、
+$$
+(diff cal(L)_"MSE" (bold(w)))/(diff bold(w)) &= 0 - (diff)/(diff bold(w)) ((bold(X)^top bold(y))^top bold(w)) - (diff)/(diff bold(w)) (bold(w)^top (bold(X)^top bold(y))) + (diff)/(diff bold(w)) (bold(w)^top (bold(A) bold(w)))\
+&= - bold(X)^top bold(y) - bold(X)^top bold(y) + (diff)/(diff bold(w)) (bold(w)^top (bold(A) bold(w)))
+$$
+となる。最終項について、連鎖律とヤコビアンを用いると
+$$
+(diff)/(diff bold(w)) (bold(w)^top (bold(A) bold(w))) &= (diff/(diff bold(w)) w)^top (bold(A) bold(w)) + (diff/(diff bold(w)) (bold(A) bold(w)))^top bold(w)\
+&= bold(A) bold(w) + (A)^top bold(w) quad (because J_(bold(A) bold(w))(bold(w)) = bold(A))\
+&= (A + A^top) bold(w) \
+$$
+である。ここで、$bold(A) = bold(X)^top bold(X)$は対称行列であるので$bold(A) = bold(A)^top$である。したがって、
+$$
+(diff)/(diff bold(w)) (bold(w)^top (bold(A) bold(w))) = 2 bold(A) bold(w)
+$$
+である。これを用いると、
+$$
+(diff cal(L)_"MSE" (bold(w)))/(diff bold(w)) &= - 2 bold(X)^top bold(y) + 2 bold(A) bold(w)\
+&= 2 ( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) )
+$$
+である。これを$bold(0)$と等しくすると、
+$$
+bold(X)^top bold(X) bold(w)^ast - bold(X)^top bold(y) &= bold(0)\
+<=> bold(X)^top bold(X) bold(w)^ast &= bold(X)^top bold(y)\
+<=> bold(w)^ast &= (bold(X)^top bold(X))^(-1) bold(X)^top bold(y)
+$$
+である。したがって、重回帰分析における解析解は以下で与えられる。
+$$
+bold(w)^ast = (bold(X)^top bold(X))^(-1) bold(X)^top bold(y)
+$$
+
+## 解析解の性質
+解析解によって得られた予測関数$f_(theta^ast) (bold(x)) = bold(x)^top bold(w)^ast$は**回帰平面**（regression plane）と呼ばれる。この回帰平面にはいくつかの性質が成り立つ。ここでは、切片を含む場合について考える。切片を含む場合、計画行列$bold(X)$について、各行の最初の成分がすべて1になる。
+$$
+bold(X) = mat(
+1, x_(1 2), ..., x_(1 d);
+1, x_(2 2), ..., x_(2 d);
+dots.v, dots.v, dots.down, dots.v;
+1, x_(n 2), ..., x_(n d)
+)
+$$
+
+::: box 【定義】訓練データの各説明変数と残差は直交である
+#### 主張
+$$
+bold(X)^top bold(epsilon) = bold(0)
+$$
+である。ここで、$bold(epsilon) = bold(y) - hat(bold(y))$は残差ベクトルである。
+
+#### 証明
+改めて、$w^ast$は
+$$
+bold(X)^top bold(X) bold(w)^ast - bold(X)^top bold(y) = bold(0)
+$$
+を満たすものであった。これを変形すると
+$$
+&bold(X)^top (bold(y) - bold(X) bold(w)^ast) = bold(0)\
+<=> &bold(X)^top bold(epsilon) = bold(0) quad (because hat(bold(y)) = bold(X) bold(w)^ast)
+$$
+である。
+:::
+
+この命題を分解してみるとそもそも$bold(X)^top$は
+$$
+bold(X)^top = mat(
+1, 1, ..., 1;
+x_(1 2), x_(2 2), ..., x_(n 2);
+dots.v, dots.v, dots.v;
+x_(1 d), x_(2 d), ..., x_(n d)
+)
+$$
+であるので各行は$j$番目の説明変数の値を並べたベクトルである。これをあえて,$bold(z)_j$とおく。これと$bold(epsilon)$の行列積が$bold(0)$になるということは、
+$$
+bold(X)^top bold(epsilon) &= vec(bold(z)_1^top bold(epsilon), bold(z)_2^top bold(epsilon), dots.v, bold(z)_d^top bold(epsilon)) = vec(0, 0, dots.v, 0) = bold(0)\
+bold(z)_j^top bold(epsilon) &= 0 quad ("for" j = 1, 2, ..., d)
+$$
+であることを意味する。すなわち、訓練データの各説明変数と残差は直交していることを意味する。
+
+::: box 【性質】残差の和は0になる
+#### 主張
+残差ベクトル$bold(epsilon) = bold(y) - hat(bold(y))$について
+$$
+sum_(i=1)^n epsilon_i = 0
+$$
+である。さらに、残差の平均も0である。
+
+#### 証明
+先ほど示した定理より、
+$$
+bold(X)^top bold(epsilon) = bold(0)
+$$
+である。
+計画行列$bold(X)$の最初の列はすべて$1$であるので、$bold(X)^top bold(epsilon)$の第1成分を計算すると、
+$$
+[bold(X)^top bold(epsilon)]_1 &= sum_(i=1)^n [bold(X)^top]_(1 i) epsilon_i\
+&= sum_(i=1)^n [bold(X)^top]_(i 1) times epsilon_i\
+&= sum_(i=1)^n 1 times epsilon_i quad (because [bold(X)]_(i 1) = 1)\
+&= sum_(i=1)^n epsilon_i
+$$
+である。したがって、
+$$
+sum_(i=1)^n epsilon_i = 0
+$$
+である。さらに、残差の平均も0である。
+:::
+
+::: box 【性質】推定値の平均は目的変数の平均に等しい
+#### 主張
+推定値ベクトル$hat(bold(y))$の平均は目的変数ベクトル$bold(y)$の平均に等しい。すなわち、
+$$
+overline(hat(y)) = overline(y)
+$$
+である。
+
+#### 証明
+$$
+sum_(i=1)^n y_i - sum_(i=1)^n hat(y)_i &= sum_(i=1)^n (y_i - hat(y)_i)\
+&= sum_(i=1)^n epsilon_i\
+&= 0
+$$
+であるので、
+$$
+sum_(i=1)^n hat(y)_i = sum_(i=1)^n y_i
+$$
+である。したがって、$overline(hat(y)) = overline(y)$である。
+:::
+
+::: box 【性質】訓練データの重心は回帰平面上にある
+#### 主張
+訓練データの重心$(overline(bold(x)), overline(y))$は回帰平面上にある。すなわち、
+$$
+f_(theta^ast) (overline(bold(x))) = overline(y)
+$$
+である。なお、ベクトルの平均とは、各成分の平均をとったベクトルであり、ベクトルを足し合わせて$n$で割ったものである。
+$$
+overline(bold(x)) := 1/n sum_(i=1)^n bold(x)_i
+$$
+
+#### 証明
+$$
+f_(theta^ast) (overline(bold(x))) &= overline(bold(x))^top bold(w)^ast\
+&= (1/n sum_(i=1)^n bold(x)_i)^top bold(w)^ast\
+&= 1/n sum_(i=1)^n bold(x)_i^top bold(w)^ast\
+&= 1/n sum_(i=1)^n f_(theta^ast) (bold(x)_i)\
+&= 1/n sum_(i=1)^n hat(y)_i\
+&= overline(hat(y))\
+&= overline(y) quad (because overline(hat(y)) = overline(y))
+$$
+である。
+:::
+
+::: box 【性質】各説明変数と残差は無相関である
+#### 主張
+説明変数のうち$j$番目の成分の確率変数$cal(X)_j$と残差$cal(E)$は無相関である。すなわち、
+$$
+r_(cal(X)_j cal(E)) = "Cov"(cal(X)_j, cal(E)) / sqrt("Var"(cal(X)_j) thin "Var"(cal(E))) = 0
+$$
+
+#### 証明
+$$
+"Cov"(cal(X)_j, cal(E)) &= 1/n sum_(i=1)^n (x_(i j) - overline(x_j))(epsilon_i - overline(epsilon))\
+&= 1/n sum_(i=1)^n (x_(i j) - overline(x_j)) epsilon_i quad (because overline(epsilon) = 0)\
+&= 1/n sum_(i=1)^n x_(i j) epsilon_i - overline(x_j) 1/n sum_(i=1)^n epsilon_i\
+&= 1/n sum_(i=1)^n x_(i j) epsilon_i quad (because sum_(i=1)^n epsilon_i = 0)\
+&= 1/n sum_(i=1)^n [bold(X)^top]_(j i) epsilon_i\
+&= 1/n [bold(X)^top bold(epsilon)]_j = 0 quad (because bold(X)^top bold(epsilon) = bold(0))
+$$
+:::
+
+::: box 【性質】推定値と残差は無相関である
+#### 主張
+推定値$hat(cal(Y))$と残差$cal(E)$は無相関である。すなわち、
+$$
+r_(hat(cal(Y)) cal(E)) = "Cov"(hat(cal(Y)), cal(E)) / sqrt("Var"(hat(cal(Y))) thin "Var"(cal(E))) = 0
+$$
+
+#### 証明
+$$
+"Cov"(hat(cal(Y)), cal(E)) &= 1/n sum_(i=1)^n (hat(y)_i - overline(hat(y)))(epsilon_i - overline(epsilon))\
+&= 1/n sum_(i=1)^n (hat(y)_i - overline(hat(y))) epsilon_i quad (because overline(epsilon) = 0)\
+&= 1/n sum_(i=1)^n hat(y)_i epsilon_i - overline(hat(y)) 1/n sum_(i=1)^n epsilon_i\
+&= 1/n sum_(i=1)^n hat(y)_i epsilon_i quad (because sum_(i=1)^n epsilon_i = 0)\
+&= 1/n sum_(i=1)^n [hat(bold(y))]_i epsilon_i\
+&= 1/n hat(bold(y))^top bold(epsilon) \
+&= 1/n (bold(X) bold(w)^ast)^top bold(epsilon) \
+&= 1/n (bold(w)^ast)^top (bold(X)^top bold(epsilon)) = 0 quad (because bold(X)^top bold(epsilon) = bold(0))
+$$
+:::
+
+## 決定係数
+決定係数に関する議論・定義や全変動の分解も単回帰分析と同様に成り立つ。なぜなら、その議論においては上で示した性質のみを用いているからである。
+
+## 多項式回帰分析
+重回帰分析では説明変数が複数のスカラー値からなる場合を考えたが、説明変数が1つのスカラー値であっても、予測関数$f$が線形関数でない場合を考えることができる。この手法を**多項式回帰分析**（polynomial regression analysis）と呼ぶ。つまり、予測関数を以下のように定義する。
+$$
+f(x) := w_0 + w_1 x + w_2 x^2 + ... + w_d x^d = sum_(j=0)^d w_j x^j
+$$
+このとき、パラメータ$theta$は$(w_0, w_1, w_2, ..., w_d)$である。しかしここで、訓練データ$cal(D)_s = {(x_i, y_i)}_(i=1)^n$について次のような計画行列を定義する。
+$$
+bold(X) := mat(
+1, x_1, x_1^2, ..., x_1^d;
+1, x_2, x_2^2, ..., x_2^d;
+dots.v, dots.v, dots.v, dots.down, dots.v;
+1, x_n, x_n^2, ..., x_n^d
+) in RR^(n times (d+1))
+$$
+つまり、$x_i^j$を$j$番目の説明変数$x_(i j)$とみなす。このとき、これは$d+1$次元の説明変数を持つ重回帰分析とみなすことができる。以降の議論は重回帰分析と同様である。
+
+# 正則化
+## 過学習
+**過学習**（overfitting）とは、訓練データに対してあまりにも適合しすぎることで、新しいデータに対する予測性能が低下する現象である。例えば、多項式回帰分析において、非常に高次の多項式を用いると、訓練データを完全に通過するような予測関数$f$を得ることができる。しかし、このような予測関数は新しいデータに対しては大きく外れる可能性が高い。一般のデータに対して良い予測性能を持つ予測関数を得るようにすることを**汎化**（generalization）と呼ぶ。
+
+## 正則化
+過学習を防ぐための手法の1つに**正則化**（regularization）がある。正則化では、パラメータ$theta$に対してペナルティを課すことで、過学習を防ぐ。パラメータ$theta$に関してその複雑さや「悪さ」を測る関数$R(theta)$を用いて新しい損失関数$cal(L)_"reg"$を以下で定義する。
+$$
+hat(cal(L))(theta) := cal(L) (theta) + lambda R(theta)
+$$
+ここで、$lambda > 0$は正則化パラメータであり、$R(theta)$は正則化項（regularization term）と呼ばれる。$lambda$のような、予測関数$f$のパラメータ$theta$を最適化することに用いるパラメータを**ハイパーパラメータ**（hyperparameter）と呼ぶ。
+
+## L2正則化
+**L2正則化**（L2 regularization）は、正則化項$R(theta)$として各パラメータのL2ノルムの二乗を用いる手法である。L2正則化を用いた回帰を**リッジ回帰**（ridge regression）と呼ぶ。具体的には、重回帰分析において、正則化項$R(theta)$を以下で定義する。
+$$
+R(theta) := ||w||_2^2 quad (w in theta)
+$$
+このようにすると重回帰分析における正則化付き平均二乗誤差は以下で与えられる。
+$$
+cal(L)_"MSE, reg" (bold(w)) := ||bold(y) - bold(X) bold(w)||_2^2 + lambda ||bold(w)||_2^2
+$$
+このとき、正則化付き平均二乗誤差を最小化する重み行列を求めてみたい。$||bold(w)||_2^2 = bold(w)^top bold(w)$であるので、重回帰分析における解析解の導出を用いれば、
+$$
+(diff cal(L)_"MSE, reg" (bold(w)))/(diff bold(w)) = 2( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) ) + 2 lambda bold(w)
+$$
+である。これを$bold(0)$と等しくすると、$bold(w)^ast$は
+$$
+bold(X)^top bold(X) bold(w)^ast + lambda bold(w)^ast &= bold(X)^top bold(y)\
+<=> (bold(X)^top bold(X) + lambda bold(I)) bold(w)^ast &= bold(X)^top bold(y)\
+<=> bold(w)^ast &= (bold(X)^top bold(X) + lambda bold(I))^(-1) bold(X)^top bold(y)
+$$
+で与えられる。ここで、$bold(I)$は単位行列である。
