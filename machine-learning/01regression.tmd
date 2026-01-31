@@ -1,0 +1,298 @@
+# 単回帰分析
+## 導入
+あるスカラー値$x$を用いて、別のスカラー値$y$を予測することを考える。この手法を**単回帰分析**（simple regression analysis）と呼ぶ。このとき、$x$を**説明変数**（explanatory variable）、$y$を**目的変数**（objective variable）と呼ぶ。いくつかの$x$と$y$の値の組（順序対）を**データ**（data）と呼び,1つの組を**事例**（instance）と呼ぶ。
+
+データ$cal(D)$は以下のように表現できる。
+$$
+cal(D) &:= {(x_1, y_1), (x_2, y_2), ..., (x_n, y_n)}\
+&= {(x_i, y_i)}_(i=1)^n & in cal(P)(RR times RR)
+$$
+
+::: box 【定義】直積集合
+**直積集合**（cartesian product）$A times B$とは、集合$A$の要素と集合$B$の要素の組み合わせ（順序対）全てからなる集合のことである。
+:::
+
+::: box 【定義】べき集合
+**べき集合**（power set）$cal(P)(A)$とは、集合$A$の部分集合全てからなる集合のことである。
+:::
+
+ここで、$n$は事例の数である。単回帰分析の目的は、予めわかっていて、与えられたデータ$cal(D)_s$（特別に**訓練データ**と呼ぶ）に基づいて、任意の$x$に対して$y$を予測する関数$f(x)$を求めることである。ここで、暗に$y$と$x$の間には
+$$
+y approx f(x)
+$$
+の関係が成り立つと仮定している。（本当の意味で等号が成立することは稀である）関数$f$について$x$以外にも暗に依存する変数が存在する。これらは**パラメータ**（parameter）と呼ばれ、関数$f$を$f(x; theta)$あるいは$f_theta$のように表現することもある。単回帰分析の目的は、パラメータ$theta$を適切に選ぶことである。$f$のパラメータ全体を$Theta$と表現することにする。
+
+## 損失関数
+ある予測関数$f$が与えられたとき、その関数およびパラメータがどれだけ良いかを評価するために、**損失関数**（loss function）を定義する。損失関数は既知のデータ$cal(D)$に対して予測関数$f$とそのパラメータを含んでおり形式的には以下のように定義される。
+$$
+cal(L) : &cal(V) in RR^RR & times &Theta& times &cal(P)(RR times RR)& -> &RR\
+&f,& &theta,& &cal(D)& |-> &cal(L)[f, theta; cal(D)]\
+
+$$
+ここではあえて予測関数$f$を定義域に含んだ汎函数として損失関数を定義している。
+
+::: box 【定義】汎函数
+**汎函数**（functional）とは、関数を入力として受け取り、スカラー値を出力する写像のことである。例えば、$f : RR -> RR$が関数であるとき、以下のような写像$J$は汎函数である。
+$$
+J(f) := integral_a^b f(x)^2 d x
+$$
+:::
+
+::: box 【定義】全関数集合
+**全関数集合**（total function space）とは、ある集合$A$から別の集合$B$への全ての関数の集合のことである。例えば、$RR^RR$は
+$$
+RR^RR := {f | f : RR -> RR}
+$$
+で定義される。これは実数から実数への全ての関数の集合である。
+:::
+しかし実際には予測関数$f$をおおよそ決めてから議論を行うことが多いため、以降は損失関数をほとんど自明な$cal(D)$に対する$theta$の関数として議論を行うことにする。
+$$
+cal(L) = cal(L)_cal(D)(theta) = cal(L)(theta; cal(D)) := cal(L)[f, theta; cal(D)]
+$$
+
+上のような多種多様な表現が行われている。
+
+## 残差と平均二乗誤差
+ある予測関数$f$が与えられたとき、事例$(x_i, y_i) in cal(D)$に対する**残差**（residual）$epsilon_i$は以下で定義される。
+$$
+epsilon_i := y_i - f(x_i) = y_i - hat(y)_i
+$$
+$hat(y)_i$は$f$で予測された予測値である。残差は予測値と実際の値の差を表している。この残差は正と負の両方の値を取りうるため、残差の大きさを評価するために、残差の二乗和を損失関数として用いてみよう。これは**平均二乗誤差**（mean squared error, MSE）と呼ばれ、以下で定義される。
+$$
+cal(L)_"MSE" := 1/n sum_(i=1)^n epsilon_i^2 = 1/n sum_(i=1)^n (y_i - f(x_i))^2
+$$
+
+ただし,$n$はデータ$cal(D)$の事例数で$n = |cal(D)|$である。
+## 単回帰の解析解
+さて、単回帰分析では、予測関数$f$として線形関数を用いることが多い。すなわち、
+$$
+f(x) := b + w x
+$$
+であるとする。この関数におけるパラメータ$theta$は$(b, w)$である。ここで、$b$は**切片**（intercept）、$w$は**回帰係数**（regression coefficient）と呼ばれる。平均二乗誤差を最小化するような$b$と$w$を求めることを考える。平均二乗誤差は以下のように書き換えられる。
+$$
+cal(L)_"MSE" (b, w) &:= 1/n sum_(i=1)^n (y_i - b - w x_i)^2\
+&= 1/n sum_(i=1)^n (y_i^2 + b^2 + w^2 x_i^2 - 2 y_i b + 2 b w x_i - 2 y_i w x_i)\
+&= 1/n sum_(i=1)^n y_i^2 + b^2 + w^2 1/n sum_(i=1)^n x_i^2 - 2 b 1/n sum_(i=1)^n y_i + 2 b w 1/n sum_(i=1)^n x_i - 2 w 1/n sum_(i=1)^n y_i x_i\
+&= overline(y^2) + b^2 + w^2 overline(x^2) - 2 b overline(y) + 2 b w overline(x) - 2 w overline(x y)
+$$
+
+ただし、ある変数$z$について$overline(z)$は考えているデータ$cal(D)$における（標本）**平均**（average）を表す。
+
+::: box 【定義】平均
+ある変数$x$を確率変数を$cal(X)$としたとき、データ$cal(D)$における（標本）**平均**（average）$overline(x), EE[cal(X)]$は以下で定義される。
+$$
+EE[cal(X)] = overline(x) := 1/n sum_(i=1)^n x_i
+$$
+:::
+
+これを最小化する$theta$を$theta^* = (b^*, w^*)$と表現することにする。平均二乗誤差を最小化するためには、以下の条件を満たす必要がある。
+$$
+(diff cal(L)_"MSE" (b^*, w^*))/(diff b) &= 0\
+(diff cal(L)_"MSE" (b^*, w^*))/(diff w) &= 0
+$$
+$cal(L)_"MSE"$は$b,w$についての関数であることは改めて強調しておきたい。偏微分を計算してこれらの方程式を解く。
+$$
+lr((diff cal(L)_"MSE" (b, w))/(diff b)|)_(b=b^*, w=w^*) &= 2 b^* - 2 overline(y) + 2 w^* overline(x) = 0\
+<=> b^* &= overline(y) - w^* overline(x)\
+lr((diff cal(L)_"MSE" (b, w))/(diff w)|)_(b=b^*, w=w^*) &= 2 w^* overline(x^2) + 2 b^* overline(x) - 2 overline(x y) = 0\
+<=> overline(x y) &= w^* overline(x^2) + b^* overline(x)\
+=> overline(x y) &= w^* overline(x^2) + (overline(y) - w^* overline(x)) overline(x)\
+<=> w^* (overline(x^2) - overline(x)^2) &= overline(x y) - overline(x) thin overline(y)\
+<=> w^* &= (overline(x y) - overline(x) thin overline(y))/(overline(x^2) - overline(x)^2)
+$$
+したがって、最適なパラメータ$b^*, w^*$は以下で与えられる。
+$$
+w^* &= (overline(x y) - overline(x) thin overline(y))/(overline(x^2) - overline(x)^2) = "Cov"(cal(X), cal(Y)) / "Var"(cal(X))\
+b^* &= overline(y) - w^* overline(x)
+$$
+
+ここで確率変数に関して、**共分散**（covariance）$"Cov"(cal(X), cal(Y))$と**分散**（variance）$"Var"(cal(X))$を以下で定義する。
+::: box 【定義】分散
+ある確率変数$cal(X)$に関して、その**分散**（variance）$"Var"(cal(X))$は以下で定義される。
+$$
+"Var"(cal(X)) := EE[(cal(X) - EE[cal(X)])^2]
+$$
+
+これは$overline(x^2) - overline(x)^2$に等しいことが知られている。$x$の標本数を$n$としたとき、
+$$
+"Var"(cal(X)) &= 1/n sum_(i=1)^n (x_i - overline(x))^2\
+&= 1/n sum_(i=1)^n (x_i^2 - 2 x_i overline(x) + overline(x)^2)\
+&= 1/n sum_(i=1)^n x_i^2 - 2 overline(x) 1/n sum_(i=1)^n x_i + overline(x)^2\
+&= overline(x^2) - 2 overline(x) thin overline(x) + overline(x)^2\
+&= overline(x^2) - overline(x)^2
+$$
+なので示された。
+:::
+
+::: box 【定義】共分散
+ある2つの確率変数$cal(X), cal(Y)$に関して、その**共分散**（covariance）$"Cov"(cal(X), cal(Y))$は以下で定義される。
+$$
+"Cov"(cal(X), cal(Y)) := EE[(cal(X) - EE[cal(X)])(cal(Y) - EE[cal(Y)])]
+$$
+これは$overline(x y) - overline(x) thin overline(y)$に等しいことが知られている。$x, y$の標本数を$n$としたとき、
+$$
+"Cov"(cal(X), cal(Y)) &= 1/n sum_(i=1)^n (x_i - overline(x))(y_i - overline(y))\
+&= 1/n sum_(i=1)^n (x_i y_i - x_i overline(y) - overline(x) y_i + overline(x) thin overline(y))\
+&= 1/n sum_(i=1)^n x_i y_i - overline(y) 1/n sum_(i=1)^n x_i - overline(x) 1/n sum_(i=1)^n y_i + overline(x) thin overline(y)\
+&= overline(x y) - overline(x) thin overline(y) - overline(x) thin overline(y) + overline(x) thin overline(y)\
+&= overline(x y) - overline(x) thin overline(y)
+$$
+なので示された。
+:::
+
+このようにして損失関数を最小化する解は数学的に導出でき、素直に計算できる。このような解を**解析解**（analytical solution）と呼ぶ。$f$がより複雑な関数である場合、解析解を求めることが困難になることが多い。後述する勾配法などはそのような場合に用いられる数値的手法である。
+
+## 解析解の性質
+解析解によって得られた予測関数$f_(theta^ast)(x) = b^* + w^* x$を**回帰直線**（regression line）と呼ぶ。回帰直線は以下の様々な性質を満たす。
+
+::: box 【性質】予測値の平均は目的変数の平均に等しい
+#### 主張
+予測値$hat(y)$について
+$$
+overline(hat(y)) = overline(y)
+$$
+である。
+
+#### 証明
+$$
+overline(hat(y)) &= 1/n sum_(i=1)^n hat(y)_i\
+&= 1/n sum_(i=1)^n (b^* + w^* x_i)\
+&= b^* + w^* overline(x)\
+&= (overline(y) - w^* overline(x)) + w^* overline(x)\
+&= overline(y)
+$$
+
+:::
+
+::: box 【性質】訓練データの重心は回帰直線上にある
+#### 主張
+訓練データ$cal(D)_s$の重心$(overline(x), overline(y))$は回帰直線上の点である。
+
+#### 証明
+$$
+f_(theta^ast) (overline(x)) &= b^* + w^* overline(x)\
+&= (overline(y) - w^* overline(x)) + w^* overline(x)\
+&= overline(y)
+$$
+
+:::
+
+::: box 【性質】残差の和は0になる
+#### 主張
+残差$epsilon_i = y_i - hat(y)_i = y_i - f_(theta^ast)(x_i)$について
+$$
+sum_(i=1)^n epsilon_i = 0
+$$
+である。さらに、残差の平均も0である。
+
+#### 証明
+$$
+sum_(i=1)^n epsilon_i &= sum_(i=1)^n (y_i - hat(y)_i)\
+&= sum_(i=1)^n y_i - sum_(i=1)^n hat(y)_i\
+&= n overline(y) - n overline(hat(y))\
+&= n (overline(y) - overline(y)) quad (because overline(hat(y)) = overline(y))\
+&= 0
+$$
+
+:::
+
+ここで以下のように定義される**相関係数**（correlation coefficient）$r$を考える。
+
+::: box 【定義】相関係数
+ある2つの確率変数$cal(X), cal(Y)$に関して、その**相関係数**（correlation coefficient）$r_(cal(X)cal(Y))$は以下で定義される。
+$$
+r_(cal(X)cal(Y)) := "Cov"(cal(X), cal(Y)) / sqrt("Var"(cal(X)) thin "Var"(cal(Y)))
+$$
+
+相関係数$r$は$-1 <= r <= 1$を満たし、$r > 0$のとき、2つの確率変数$cal(X), cal(Y)$は**正の相関**（positive correlation）があると言い、$r < 0$のとき、**負の相関**（negative correlation）があると言う。$r = 0$のとき、2つの確率変数は**無相関**（no correlation）であると言う。
+:::
+
+この相関係数について、以下の性質が成り立つ。
+
+::: box 【性質】説明変数と残差は無相関である
+#### 主張
+説明変数$cal(X)$と残差$cal(E)$は無相関である。
+
+#### 証明
+$cal(X)$と$cal(E)$の共分散$"Cov"(cal(X), cal(E))$は
+$$
+"Cov"(cal(X), cal(E)) &= 1/n sum_(i=1)^n (x_i - overline(x))(epsilon_i - overline(epsilon))\
+&= 1/n sum_(i=1)^n (x_i - overline(x)) epsilon_i quad (because overline(epsilon) = 0)\
+&= 1/n sum_(i=1)^n x_i epsilon_i - overline(x) 1/n sum_(i=1)^n epsilon_i\
+&= 1/n sum_(i=1)^n x_i epsilon_i quad (because sum_(i=1)^n epsilon_i = 0)\
+&= 1/n sum_(i=1)^n x_i (y_i - hat(y)_i)\
+&= 1/n sum_(i=1)^n x_i (y_i - w^* x_i - b^*)\
+&= 1/n sum_(i=1)^n (x_i y_i - w^* x_i^2 - b^* x_i)\
+&= overline(x y) - w^* overline(x^2) - b^* overline(x)\
+&= -1/2 times lr((diff cal(L)_"MSE" (b, w))/(diff w)|)_(b=b^*, w=w^*)\
+&= 0
+$$
+であるので
+$$
+r_(cal(X)cal(E)) = "Cov"(cal(X), cal(E)) / sqrt("Var"(cal(X)) thin "Var"(cal(E))) = 0
+$$
+である。したがって、説明変数$cal(X)$と残差$cal(E)$は無相関である。
+:::
+
+::: box 【性質】推定値と残差は無相関である
+#### 主張
+推定値$hat(cal(Y))$と残差$cal(E)$は無相関である。
+
+#### 証明
+推定値$hat(cal(Y))$と残差$cal(E)$の共分散$"Cov"(hat(cal(Y)), cal(E))$は
+$$
+"Cov"(hat(cal(Y)), cal(E)) &= 1/n sum_(i=1)^n (hat(y)_i - overline(hat(y)))(epsilon_i - overline(epsilon))\
+&= 1/n sum_(i=1)^n (hat(y)_i - overline(hat(y))) epsilon_i quad (because overline(epsilon) = 0)\
+&= 1/n sum_(i=1)^n hat(y)_i epsilon_i - overline(hat(y)) 1/n sum_(i=1)^n epsilon_i\
+&= 1/n sum_(i=1)^n hat(y)_i epsilon_i quad (because sum_(i=1)^n epsilon_i = 0)\
+&= 1/n sum_(i=1)^n (b^* + w^* x_i)epsilon_i\
+&= b^* 1/n sum_(i=1)^n epsilon_i + w^* 1/n sum_(i=1)^n x_i epsilon_i\
+&= 0 + w^* times 0 quad (because sum_(i=1)^n epsilon_i = 0 and "Cov"(cal(X), cal(E)) = 0)\
+&= 0
+$$
+であるので
+$$
+r_(hat(cal(Y))cal(E)) = "Cov"(hat(cal(Y)), cal(E)) / sqrt("Var"(hat(cal(Y))) thin "Var"(cal(E))) = 0
+$$
+である。したがって、推定値$hat(cal(Y))$と残差$cal(E)$は無相関である。
+:::
+
+## 決定係数
+まず、目的変数$cal(Y)$について以下の命題が成り立つ。
+
+::: box 【命題】全変動の分解
+#### 主張
+ある目的変数$cal(Y)$について、以下の等式が成り立つ。
+$$
+"Var"(cal(Y)) = "Var"(hat(cal(Y))) + "Var"(cal(E))
+$$
+
+#### 証明
+$$
+"Var"(cal(Y)) &= 1/n sum_(i=1)^n (y_i - overline(y))^2\
+&= 1/n sum_(i=1)^n (hat(y)_i + epsilon_i - overline(y))^2\
+&= 1/n sum_(i=1)^n ((hat(y)_i - overline(hat(y))) + epsilon_i)^2\
+&= 1/n sum_(i=1)^n (hat(y)_i - overline(hat(y)))^2 + 2 1/n sum_(i=1)^n (hat(y)_i - overline(hat(y))) epsilon_i + 1/n sum_(i=1)^n epsilon_i^2\
+&= "Var"(hat(cal(Y))) + 2 1/n sum_(i=1)^n (hat(y)_i - overline(hat(y))) (epsilon_i - overline(epsilon)) + 1/n sum_(i=1)^n (epsilon_i - overline(epsilon))^2 quad (because overline(epsilon) = 0)\
+&= "Var"(hat(cal(Y))) + 2 "Cov"(hat(cal(Y)), cal(E)) + "Var"(cal(E))\
+&= "Var"(hat(cal(Y))) + "Var"(cal(E)) quad (because "Cov"(hat(cal(Y)), cal(E)) = 0)
+$$
+:::
+ここでそれぞれ以下のような用語を定義する。
+- **全変動**（total variation）: $"Var"(cal(Y))$\
+  訓練データにおける目的変数の変動の大きさを表す。
+- **回帰変動**（regression variation）: $"Var"(hat(cal(Y)))$\
+  予測関数$f$によって説明される目的変数の予測値の変動の大きさを表す。
+- **残差変動**（residual variation）: $"Var"(cal(E))$\
+  予測関数$f$によって説明されない目的変数の残差の変動の大きさを表す。
+
+そして、全変動のうち回帰変動で説明できた割合を**決定係数**（coefficient of determination）$R^2$として以下で定義する。
+
+::: box 【定義】決定係数
+ある目的変数$cal(Y)$と回帰によって得られた予測値$hat(cal(Y))$について、その**決定係数**（coefficient of determination）$R^2$は以下で定義される。
+$$
+R^2 := "Var"(hat(cal(Y))) / "Var"(cal(Y)) = 1 - "Var"(cal(E)) / "Var"(cal(Y))
+$$
+:::
+
+決定係数$R^2$は$0 <= R^2 <= 1$を満たし、$R^2$が大きいほど、予測関数$f$は良いとされる。
