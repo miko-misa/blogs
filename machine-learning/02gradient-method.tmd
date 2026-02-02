@@ -1,0 +1,291 @@
+# 凸性
+回帰において、解析解を考えたとき、偏微分係数が$0$であることが必要である。しかし、これが必要十分条件であることは述べていない。しかし、平均二乗誤差関数の凸性から、偏微分係数が$0$であることは最適解の十分条件となる。ここではそれを示していく。
+## 凸関数
+::: box 【定義】凸関数
+$f:RR^d -> RR$が以下の条件を満たすとき、$f$は**凸関数**（convex function）であるという。
+$$
+f(theta bold(x)_1 + (1 - theta) bold(x)_2) <= theta f(bold(x)_1) + (1 - theta) f(bold(x)_2)quad (forall bold(x)_1, bold(x)_2 in RR^d, forall theta in [0, 1])
+$$
+:::
+
+凸関数は任意の二点を結ぶ線分が関数のグラフの上に位置する関数である。凸関数の判定については以下の定理がある。
+
+::: box 【定理】凸関数の一階微分による判定
+#### 主張
+$f:RR^d -> RR$が微分可能な関数であるとき、任意の$bold(x), bold(z) in RR^d$に対して
+$$
+f(bold(z)) >= f(bold(x)) + nabla f(bold(x))^top (bold(z) - bold(x))
+$$
+が成り立つとき、$f$は凸関数である。
+
+
+#### 証明
+任意の$bold(x)_1, bold(x)_2 in RR^d$、$theta in [0, 1]$に対して、
+$$
+bold(x)_theta = theta bold(x)_1 + (1 - theta) bold(x)_2
+$$
+とおく。すると、上記の仮定について$(bold(z), bold(x)) = (bold(x)_1, bold(x)_theta), (bold(x)_2, bold(x)_theta)$を代入すると、
+$$
+f(bold(x)_1) >= f(bold(x)_theta) + nabla f(bold(x)_theta)^top (bold(x)_1 - bold(x)_theta) \
+f(bold(x)_2) >= f(bold(x)_theta) + nabla f(bold(x)_theta)^top (bold(x)_2 - bold(x)_theta)
+$$
+これらをそれぞれ$theta$倍、$(1 - theta)$倍して足し合わせると、
+$$
+theta f(bold(x)_1) + (1 - theta) f(bold(x)_2) &>= (1-theta + theta)f(bold(x)_theta) + nabla f(bold(x)_theta)^top (theta bold(x)_1 + (1 - theta) bold(x)_2 - (1-theta + theta)bold(x)_theta)\
+&= f(bold(x)_theta) + nabla f(bold(x)_theta)^top (theta bold(x)_1 + (1 - theta) bold(x)_2 - bold(x)_theta)\
+&= f(bold(x)_theta) + nabla f(bold(x)_theta)^top (bold(0)) quad (because bold(x)_theta = theta bold(x)_1 + (1 - theta) bold(x)_2)\
+&= f(bold(x)_theta)\
+&= f(theta bold(x)_1 + (1 - theta) bold(x)_2)
+$$
+よって、$f$は凸関数である。
+:::
+
+以下に、凸関数の証明に用いるためのいくつかの定義を示す。
+
+::: box 【定義】ヘッセ行列
+$f:RR^d -> RR$が二階微分可能な関数であるとき、$f$の**ヘッセ行列**（Hessian matrix）$bold(H)(bold(x)) = nabla^2 f(bold(x))$は以下で定義される。
+
+$$
+nabla^2 f(bold(x)) = mat(
+(diff^2 f)/(diff x_1^2), (diff^2 f)/(diff x_1 diff x_2), dots, (diff^2 f)/(diff x_1 diff x_d);
+(diff^2 f)/(diff x_2 diff x_1), (diff^2 f)/(diff x_2^2), dots, (diff^2 f)/(diff x_2 diff x_d);
+dots.v, dots.v, dots.down, dots.v;
+(diff^2 f)/(diff x_d diff x_1), (diff^2 f)/(diff x_d diff x_2), dots, (diff^2 f)/(diff x_d^2)
+) in RR^(d times d)
+$$
+
+ヘッセ行列は$f$が$C^2$級関数であるとき、対称行列となる。（なぜなら、そのとき$(diff^2 f)/(diff x_i diff x_j) = (diff^2 f)/(diff x_j diff x_i)$であるから）
+:::
+
+::: box 【定義】半正定値行列
+対称行列$bold(A) in RR^(d times d)$がある内積空間$(RR^d, chevron.l dot, dot chevron.r)$の全ての$bold(x) in RR^d$に対して
+$$
+chevron.l bold(x), bold(A) bold(x) chevron.r >= 0
+$$
+を満たすとき、$bold(A)$は**半正定値行列**（positive semidefinite matrix）であるという。
+:::
+
+現在考えている標準内積空間においては半正定値行列の定義は
+$$
+bold(x)^top bold(A) bold(x) >= 0
+$$
+であることをいう。
+
+::: box 【定理】テイラーの定理
+#### 主張
+$f:RR -> RR$が$n$階微分可能な関数であるとき、任意の$z, x in RR$に対して、ある$theta in (0, 1)$が存在して、
+$$
+f(z) = sum_(k=0)^n (diff^k/(diff x^k) f(x))/(k!) (z - x)^k + (diff^(n+1)/(diff x^(n+1)) f(x + theta (z - x)))/((n+1)!) (z - x)^(n+1)
+$$
+が成り立つ。
+
+
+#### 証明
+略
+:::
+
+::: box 【定理】凸関数の二階微分による判定
+#### 主張
+$f:RR^d -> RR$が$C^2$級な関数であるとき、$f$のヘッセ行列$nabla^2 f(bold(x))$が半正定値行列であるならば、$f$は凸関数である。
+
+#### 証明
+任意の$bold(x), bold(z) in RR^d$に対して、
+$$
+g(theta) = f( bold(x) + theta (bold(z) - bold(x)) ) quad (forall theta in [0, 1])
+$$
+とおく。すると、$g:RR -> RR$は$C^2$級な関数であり、テイラーの定理より、ある$theta in (0, 1)$が存在して、
+$$
+g(1) &= g(0) + g'(0) (1 - 0) + (g''(theta))/2 (1 - 0)^2\
+&= g(0) + g'(0) + (g''(theta))/2
+$$
+ここで、連鎖律より、
+$$
+g'(theta) &= nabla f( bold(x) + theta (bold(z) - bold(x)) )^top (bold(z) - bold(x))\
+g''(theta) &= (bold(z) - bold(x))^top nabla^2 f( bold(x) + theta (bold(z) - bold(x)) ) (bold(z) - bold(x))
+$$
+である。これらを用いると、
+$$
+f(bold(z)) &= f(bold(x)) + nabla f(bold(x))^top (bold(z) - bold(x)) + 1/2 (bold(z) - bold(x))^top nabla^2 f( bold(x) + theta (bold(z) - bold(x)) ) (bold(z) - bold(x))
+$$
+さて、ヘッセ行列$nabla^2 f( bold(x) + theta (bold(z) - bold(x)) )$は半正定値行列であるから、
+$$
+(bold(z) - bold(x))^top nabla^2 f( bold(x) + theta (bold(z) - bold(x)) ) (bold(z) - bold(x)) >= 0
+$$
+である。よって、
+$$
+f(bold(z)) >= f(bold(x)) + nabla f(bold(x))^top (bold(z) - bold(x))
+$$
+が成り立つ。したがって、凸関数の一階微分による判定より、$f$は凸関数である。
+
+:::
+
+## 平均二乗誤差関数の凸性
+ここまでで凸関数の定義とその判定方法を示した。次に、平均二乗誤差関数が凸関数であることを示すためにヘッセ行列について考えたい。
+
+::: box 【定義】ベクトル値関数の勾配
+$f:RR^d -> RR^m$が各成分$f_i:RR^d -> RR$で表されるベクトル値関数であるとき、つまり、
+$$
+f(bold(x)) = ( f_1(bold(x)), f_2(bold(x)), dots, f_m(bold(x)) )^top
+$$
+であるとき、$f$の**勾配**（gradient）$nabla f(bold(x))$は以下で定義される。
+$$
+nabla f(bold(x)) = mat((diff f_1)/(diff x_1), (diff f_1)/(diff x_2), dots, (diff f_1)/(diff x_d);\
+(diff f_2)/(diff x_1), (diff f_2)/(diff x_2), dots, (diff f_2)/(diff x_d);\
+dots.v, dots.v, dots.down, dots.v;\
+(diff f_m)/(diff x_1), (diff f_m)/(diff x_2), dots, (diff f_m)/(diff x_d)) in RR^(m times d)
+$$
+この定義は自然であり、基本的にスカラー値関数に関する微分規則がそのまま適用できる。
+:::
+
+::: box 【定理】ヘッセ行列の計算
+#### 主張
+$f:RR^d -> RR$が二階微分可能な関数であるとき、$f$のヘッセ行列$nabla^2 f(bold(x))$は勾配$nabla f(bold(x))$の勾配を取ることで計算できる。
+$$
+nabla^2 f(bold(x)) = nabla (nabla f(bold(x)))
+$$
+
+#### 証明
+$f$の勾配$nabla f(bold(x))$は
+$$
+nabla f(bold(x)) = ( (diff f)/(diff x_1), (diff f)/(diff x_2), dots, (diff f)/(diff x_d) )^top
+$$
+であった。導関数$(diff f)/(diff x_i) = g_i $とおくと、$nabla f(bold(x))$はベクトル値関数なので
+$$
+nabla (nabla f(bold(x))) = mat( (diff g_1)/(diff x_1), (diff g_1)/(diff x_2), dots, (diff g_1)/(diff x_d);\
+(diff g_2)/(diff x_1), (diff g_2)/(diff x_2), dots, (diff g_2)/(diff x_d);\
+dots.v, dots.v, dots.down, dots.v;\
+(diff g_d)/(diff x_1), (diff g_d)/(diff x_2), dots, (diff g_d)/(diff x_d) ) 
+$$
+である。ここで、$(diff g_i)/(diff x_j) = (diff^2 f)/(diff x_j diff x_i)$であるから、これはヘッセ行列と一致する。
+
+:::
+
+
+すでに、平均二乗誤差関数の一階微分については
+$$
+nabla cal(L)_"MSE" (bold(w)) = 2 ( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) )
+$$
+であることを示した。これを用いてヘッセ行列を計算すると、
+$$
+nabla^2 cal(L)_"MSE" (bold(w)) &= nabla (nabla cal(L)_"MSE" (bold(w)))\
+&= diff/(diff bold(w)) (2 ( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) ))\
+&= 2 diff/(diff bold(w)) ( bold(X)^top bold(X) bold(w) ) - 2 diff/(diff bold(w)) ( bold(X)^top bold(y) )\
+&= 2 bold(X)^top bold(X) - bold(0) \
+&= 2 bold(X)^top bold(X)
+$$
+である。ここで、任意の$bold(v) in RR^d$に対して、
+$$
+bold(v)^top (2 bold(X)^top bold(X)) bold(v) = 2 (bold(X) bold(v))^top (bold(X) bold(v)) = 2 ||bold(X) bold(v)||_2^2 >= 0
+$$
+であるから、ヘッセ行列$nabla^2 cal(L)_"MSE" (bold(w))$は半正定値行列である。したがって、凸関数の二階微分による判定より、平均二乗誤差関数$cal(L)_"MSE" (bold(w))$は凸関数であることが示された。
+
+
+# 勾配法
+回帰分析では、損失関数（平均二乗誤差）を最小化するパラメータを数学的に求めていたが、より複雑なケースではそれらは通用しないことがある。主に二つの理由がある。
+
+1. 計算が困難である
+   - 計画行列$bold(X)$が大きくなると、行列積の計算が困難である。$bold(X)^top bold(X)$の計算コストは説明変数の数$d$の二乗に比例する。
+   - 逆行列を求めることが困難である。$RR^(d times d)$の正方行列の逆行列の計算量は$cal(O)(d^3)$である。
+2. 数学的に解けない。解析解が存在しない\
+   非線形モデルや正則化項を含む場合、損失関数が凸関数でなくなることがある。この場合、解析的に最適解を求めることができない。
+
+これらの問題を解決するために、**勾配法**（gradient method）が用いられる。勾配法は、損失関数の勾配を用いて、最適解に向かってパラメータを更新していく反復的な手法である。最適なパラメータ（解という）を直接計算するのではなく、何度もパラメータを更新して解に近づいていくのである。ここでは、最も基本的な勾配降下法（gradient descent）について説明する。
+
+## 勾配降下法
+勾配降下法は、損失関数の勾配を用いてパラメータを更新していく手法である。損失関数$cal(L)(bold(w))$を下げることを考えたい。現在のパラメータ$p^((t)) in theta^((t))$について
+$$
+diff/(diff p) cal(L)(p^((t))) > 0
+$$
+であるならこれは$p$が$p^((t))$から増加すると損失関数が増加することを意味する。したがって、損失関数を下げるためには$p$を減少させる必要がある。逆に、
+$$
+diff/(diff p) cal(L)(p^((t))) < 0
+$$
+であるならこれは$p$が$p^((t))$から増加すると損失関数が減少することを意味する。したがって、損失関数を下げるためには$p$を増加させる必要がある。これらをまとめると、損失関数を下げるためには
+$$
+p^((t+1)) = p^((t)) - eta_t (diff)/(diff p) cal(L)(p^((t)))
+$$
+と更新すればよい。ここで、$eta_t > 0$は**更新幅**または**学習率**（learning rate）と呼ばれるパラメータであり、更新の大きさを調整する役割を持つ。また、$p^((t+1))$は次のパラメータである。これをパラメータ全体$bold(w)$に対して行うと、
+$$
+bold(w)^((t+1)) = bold(w)^((t)) - eta nabla cal(L)(bold(w)^((t)))
+$$
+となる。この更新式が正確に動くことを確かめてみよう。すなわち、$cal(L)(bold(w)^((t+1))) < cal(L)(bold(w)^((t)))$が成り立つことを示す。$g: RR->RR$を
+$$
+g(theta) = cal(L)(theta bold(w)^((t+1)) + (1 - theta) bold(w)^((t)))
+$$
+とお。$g$は$C^1$級関数であるから、テイラーの定理より、ある$theta in (0, 1)$が存在して、
+$$
+g(1) &= g(0) + g'(theta)(1 - 0)\
+cal(L)(bold(w)^((t+1))) &= cal(L)(bold(w)^((t))) + nabla cal(L)(theta bold(w)^((t+1)) + (1 - theta) bold(w)^((t)))^top (bold(w)^((t+1)) - bold(w)^((t)))\
+&= cal(L)(bold(w)^((t))) - eta nabla cal(L)(theta bold(w)^((t+1)) + (1 - theta) bold(w)^((t)))^top nabla cal(L)(bold(w)^((t)))
+$$
+
+ここで、$bold(w)^((t+1))$と$bold(w)^((t))$が十分に近いとき、
+$$
+nabla cal(L)(theta bold(w)^((t+1)) + (1 - theta) bold(w)^((t))) approx nabla cal(L)(bold(w)^((t)))
+$$
+なる近似が成り立つ。したがって、
+$$
+cal(L)(bold(w)^((t+1))) &approx cal(L)(bold(w)^((t))) - eta ||nabla cal(L)(bold(w)^((t)))||_2^2\ &< cal(L)(bold(w)^((t))) quad (because eta > 0, ||nabla cal(L)(bold(w)^((t)))||_2^2 >= 0)
+$$
+が成り立つ。よって、勾配降下法の更新式は損失関数を下げることが示された。ただ、これが成り立つのは$bold(w)^((t+1))$と$bold(w)^((t))$が十分に近いときである。したがって、学習率$eta$が大きすぎるとこの近似が成り立たなくなり、損失関数が増加してしまうことがある。また、学習が進むにつれて必要な$eta$の小ささも変化するため、反復していくうちに飛び越えてしまうこともある。これらを防ぐために、学習率を徐々に小さくしていく手法や、モーメンタムを導入する手法などがあるが、ここでは詳述しない。
+
+### 重回帰分析における勾配降下法
+重回帰分析において、勾配降下法の更新式を考えてみると$nabla cal(L)_"MSE" (bold(w)) = 2 bold(X)^top (hat(bold(y)) - bold(y))$であったから、
+$$
+bold(w)^((t+1)) &= bold(w)^((t)) - eta nabla cal(L)_"MSE" (bold(w)^((t)))\
+&= bold(w)^((t)) - 2 eta bold(X)^top (hat(bold(y)) - bold(y))\
+&= bold(w)^((t)) - 2 eta sum_(i=1)^n (hat(y)_i - y_i) bold(x)_i
+$$
+となる。
+
+## 確率的勾配降下法
+勾配降下法は全てのデータ点を用いて勾配を計算するため、データセットが大きい場合、計算コストが高くなる。これを改善するために、**確率的勾配降下法**（stochastic gradient descent, SGD）が用いられる。SGDでは、各反復でランダムに選ばれた一つのデータ点（またはミニバッチ）を用いて勾配を計算し、パラメータを更新する。これにより、各反復の計算コストが大幅に削減される。
+
+訓練データ$cal(D)_s = {(bold(x)_i, y_i)}_(i=1)^n$が与えられたとき、その損失関数は各事例に対する損失$cal(l)_i (bold(w))$の和あるいは平均として表されることが多い。
+$$
+cal(L)(bold(w)) = sum_(i=1)^n cal(l)_i (bold(w))\
+cal(L)(bold(w)) = 1/n sum_(i=1)^n cal(l)_i (bold(w))
+$$
+これを**分解可能目的/損失**（decomposable objective/loss）と呼ぶ。例えば、平均二乗誤差関数は
+現在、考えられている損失関数のうち大部分は分解可能である。なぜなら、事例間にの独立性を仮定する、つまり訓練データは大きな母集団から独立にサンプリングされたと考えることが多いからである。一方で、そうではない損失もありそれらは**非分解可能目的/損失**（non-decomposable objective/loss）と呼ばれる。例えば、ランキング学習における損失関数などがある。
+
+ここでは分解可能な損失関数に対してSGDを適用する方法を示す。各事例に対する損失関数$cal(l)_i (bold(w))$の勾配を$nabla cal(l)_i (bold(w))$とすると、損失関数$cal(L)(bold(w))$の勾配は
+$$
+nabla cal(L)(bold(w)) = sum_(i=1)^n nabla cal(l)_i (bold(w))
+$$
+である。SGDでは、各反復でランダムに選ばれた事例$i_t$に対して、
+$$
+nabla cal(L)(bold(w)) approx nabla cal(l)_(i_t) (bold(w))
+$$
+と近似し、パラメータを更新する。すなわち、
+$$
+bold(w)^((t+1)) = bold(w)^((t)) - eta nabla cal(l)_(i_t) (bold(w)^((t)))
+$$
+と更新する。これにより、各反復の計算コストが大幅に削減される。
+
+### ミニバッチ確率的勾配降下法
+SGDでは各反復で一つの事例を用いて勾配を計算するが、これにより勾配の分散が大きくなり、収束が遅くなることがある。これを改善するために、**ミニバッチ学習**（mini-batch learning）が用いられる。ミニバッチ学習では、各反復でランダムに選ばれた複数の事例（ミニバッチ）を用いて勾配を計算し、パラメータを更新する。ミニバッチ学習も確率的勾配降下法の一種である。これにより、勾配の分散が減少し、収束が速くなることがある。具体的には、ある反復で選ばれたミニバッチ$cal(B)_t subset cal(D)_s$を用いて、
+$$
+bold(w)^((t+1)) = bold(w)^((t)) - eta sum_(i in cal(B)_t) nabla cal(l)_i (bold(w)^((t)))
+$$
+と更新する。ここで、ミニバッチのサイズ$|cal(B)_t|$はハイパーパラメータとして設定される。
+
+### 重回帰分析における確率的勾配降下法
+ミニバッチサイズを$1$の場合、非ミニバッチの確率的勾配降下法であるのでここでは一般的にミニバッチ確率的勾配降下法について述べる。重回帰分析において、平均二乗誤差関数は
+$$
+cal(L)_"MSE" (bold(w)) = sum_(i=1)^n (y_i - hat(y)_i)^2
+$$
+であった。各事例に対する損失関数$cal(l)_i (bold(w))$は
+$$
+cal(l)_i (bold(w)) = (y_i - hat(y)_i)^2
+$$
+のように分解可能である。したがって、その勾配は
+$$
+nabla cal(l)_i (bold(w)) = 2 (hat(y)_i - y_i) bold(x)_i
+$$
+である。ミニバッチ確率的勾配降下法の更新式は
+$$
+bold(w)^((t+1)) &= bold(w)^((t)) - eta sum_(i in cal(B)_t) nabla cal(l)_i (bold(w)^((t)))\
+&= bold(w)^((t)) - 2 eta sum_(i in cal(B)_t) (hat(y)_i - y_i) bold(x)_i
+$$
+となる。

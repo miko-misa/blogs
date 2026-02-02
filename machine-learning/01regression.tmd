@@ -313,6 +313,10 @@ $$
 また、これは$d times 1$の行列としても解釈することができ、**縦ベクトル**（column vector）と呼ばれる。
 :::
 
+::: box 【定義】多変数関数
+**多変数関数**（multivariate function）とは、複数の変数を引数として受け取る関数のことである。変数$x,y$を受け取るような$f(x,y)$以外にも$(x,y)$を$(x,y)^top$のようなベクトルとして受け取る$f(bold(x))$のような関数も多変数関数である。つまり、$d$個の変数を受け取る関数と$RR^d$を受け取る関数は同じものであると考えることができる。
+:::
+
 ::: box 【注意】添え字と変数の種別
 ここで、約束事として変数の添え字ではない「本体」の部分がその変数の種別を表していて、$bold(x), bold(x)_1, bold(x)_n$などはすべてベクトルである。ただ、$bold(x)$の各成分はスカラー値であり、$x_1, x_2, ..., x_d$のように表現されることがある。$bold(x)_1$と$x_1$は全く別の変数であることに注意されたい。
 :::
@@ -437,12 +441,21 @@ $$
 $$
 :::
 
-この偏微分を用いて、平均二乗誤差を最小化するための条件は以下で与えられる。
+::: box 【定義】勾配
+あるスカラー関数$f: RR^n -> RR$に関して、その**勾配**（gradient）$nabla f(bold(a))$は以下で定義される。
 $$
-(diff cal(L)_"MSE" (bold(w)^*))/(diff bold(w)) = bold(0)
+nabla f(bold(a)) := (diff f)/(diff bold(a)) = ((diff f)/(diff a_1), (diff f)/(diff a_2), ..., (diff f)/(diff a_n))^top
 $$
 
-ここで、$bold(0)$は全ての成分が$0$であるゼロベクトルである。偏微分を計算してこれらの方程式を解く。
+ただし、$bold(a)$は$f$の引数全てを並べたベクトルであることに注意されたい。
+:::
+
+この偏微分を用いて、平均二乗誤差を最小化するための条件は以下で与えられる。
+$$
+nabla cal(L)_"MSE" (bold(w)^*) = bold(0)
+$$
+
+この場合、$nabla = display((diff)/(diff bold(w)))$である。偏微分を計算してこれらの方程式を解く。
 
 まずは内積に関する微分公式を示す。
 
@@ -592,7 +605,7 @@ cal(L)_"MSE" &= bold(y)^top bold(y) - (bold(X)^top bold(y))^top bold(w) - bold(w
 $$
 となる。これを$bold(w)$で偏微分すると、
 $$
-(diff cal(L)_"MSE" (bold(w)))/(diff bold(w)) &= 0 - (diff)/(diff bold(w)) ((bold(X)^top bold(y))^top bold(w)) - (diff)/(diff bold(w)) (bold(w)^top (bold(X)^top bold(y))) + (diff)/(diff bold(w)) (bold(w)^top (bold(A) bold(w)))\
+nabla cal(L)_"MSE" (bold(w)) &= 0 - (diff)/(diff bold(w)) ((bold(X)^top bold(y))^top bold(w)) - (diff)/(diff bold(w)) (bold(w)^top (bold(X)^top bold(y))) + (diff)/(diff bold(w)) (bold(w)^top (bold(A) bold(w)))\
 &= - bold(X)^top bold(y) - bold(X)^top bold(y) + (diff)/(diff bold(w)) (bold(w)^top (bold(A) bold(w)))
 $$
 となる。最終項について、連鎖律とヤコビアンを用いると
@@ -607,8 +620,10 @@ $$
 $$
 である。これを用いると、
 $$
-(diff cal(L)_"MSE" (bold(w)))/(diff bold(w)) &= - 2 bold(X)^top bold(y) + 2 bold(A) bold(w)\
-&= 2 ( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) )
+nabla cal(L)_"MSE" (bold(w)) &= - 2 bold(X)^top bold(y) + 2 bold(A) bold(w)\
+&= 2 ( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) )\
+(&= 2 bold(X)^top (bold(X) bold(w) - bold(y)) )\
+(&= 2 bold(X)^top (hat(bold(y)) - bold(y)) )
 $$
 である。これを$bold(0)$と等しくすると、
 $$
@@ -810,17 +825,20 @@ $$
 ここで、$lambda > 0$は正則化パラメータであり、$R(theta)$は正則化項（regularization term）と呼ばれる。$lambda$のような、予測関数$f$のパラメータ$theta$を最適化することに用いるパラメータを**ハイパーパラメータ**（hyperparameter）と呼ぶ。
 
 ## L2正則化
-**L2正則化**（L2 regularization）は、正則化項$R(theta)$として各パラメータのL2ノルムの二乗を用いる手法である。L2正則化を用いた回帰を**リッジ回帰**（ridge regression）と呼ぶ。具体的には、重回帰分析において、正則化項$R(theta)$を以下で定義する。
+**L2正則化**（L2 regularization）は、正則化項 $R(theta)$ として、パラメータをベクトルとして解釈した時のL2ノルムの二乗を用いる手法である。L2正則化を用いた回帰を **リッジ回帰**（ridge regression）と呼ぶ。具体的には、重回帰分析において、正則化項 $R(theta)$ を以下で定義する。
+
 $$
-R(theta) := ||w||_2^2 quad (w in theta)
+R(theta) := ||theta||_2^2 =  sum_(p in theta) p^2
 $$
+
 このようにすると重回帰分析における正則化付き平均二乗誤差は以下で与えられる。
+
 $$
 cal(L)_"MSE+reg" (bold(w)) := ||bold(y) - bold(X) bold(w)||_2^2 + lambda ||bold(w)||_2^2
 $$
 このとき、正則化付き平均二乗誤差を最小化する重み行列を求めてみたい。$||bold(w)||_2^2 = bold(w)^top bold(w)$であるので、重回帰分析における解析解の導出を用いれば、
 $$
-(diff cal(L)_"MSE+reg" (bold(w)))/(diff bold(w)) = 2( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) ) + 2 lambda bold(w)
+nabla cal(L)_"MSE+reg" (bold(w)) = 2( bold(X)^top bold(X) bold(w) - bold(X)^top bold(y) ) + 2 lambda bold(w)
 $$
 である。これを$bold(0)$と等しくすると、$bold(w)^ast$は
 $$
