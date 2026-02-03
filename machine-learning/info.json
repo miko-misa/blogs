@@ -6,6 +6,9 @@
     },
     "02gradient-method": {
       "title": "2. 勾配法"
+    },
+    "03linear-classification": {
+      "title": "3. 線形分類"
     }
   }
 }
