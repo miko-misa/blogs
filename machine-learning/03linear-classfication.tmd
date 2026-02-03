@@ -66,6 +66,33 @@ $$
 
 この定理より、$c = - max_(k=1, 2, ..., K) z_k$とすることで、ソフトマックス関数の数値的安定化が可能となる。
 
+また、のちにソフトマックス関数の微分を用いるのでここで導出しておくことにする。ソフトマックス関数$sigma$は$RR^K 	-> RR^K$の関数であるのでヤコビアンを計算する。定義より$sum_(k=1)^K exp(z_k) = S$とおくと、
+
+$$
+[(diff sigma)/(diff bold(z))]_(i j) &= diff/(diff z_j) [sigma(bold(z))]_i \
+&= diff/(diff z_j) ( frac(exp(z_i), sum_(k=1)^K exp(z_k)) ) \
+&= cases(
+(S diff/(diff z_j) exp(z_i) - exp(z_i) diff/(diff z_j) S) / S^2 quad & (i = j),
+(- exp(z_i) diff/(diff z_j) S) / S^2 quad & (i eq.not j)
+)\
+&= cases(
+(exp(z_i) S - exp(z_i) exp(z_i)) / S^2 quad & (i = j),
+(- exp(z_i) exp(z_j)) / S^2 quad & (i eq.not j)
+)\
+$$
+ここで、
+$$
+[sigma(bold(z))]_k &= frac(exp(z_k), S)
+$$
+であることを思い出すと、
+$$
+[(diff sigma)/(diff bold(z))]_(i j) &= cases(
+[sigma(bold(z))]_i (1 - [sigma(bold(z))]_i) quad & (i = j),
+- [sigma(bold(z))]_i [sigma(bold(z))]_j quad & (i eq.not j)
+)\
+&= delta_(i j) [sigma(bold(z))]_i - [sigma(bold(z))]_i [sigma(bold(z))]_j
+$$
+となる。ここで、$delta_(i j)$はクロネッカーのデルタであり、$i = j$のときに1、そうでないときに0となる。
 ## one-hot表現
 クラス分類問題では、目的変数$y$を**one-hot表現**（one-hot representation）で表すことが多い。今ままで$y$はクラス集合$cal(C)$の要素として表されていたが、one-hot表現では$y$を$K$次元のベクトル$bold(y) in RR^K$で表す。具体的には、目的変数$y$がクラス$c_k$に属する場合、one-hot表現では以下のように表される。
 $$
@@ -125,10 +152,112 @@ cal(L)_"CE" (bold(W)) &= - log L(bold(W)) \
 $$
 ここで、$cal(L)_"CE" (bold(W))$は**交差エントロピー損失関数**（cross-entropy loss function）と呼ばれ、「エントロピー」という情報理論の概念からも導出できる。交差エントロピー損失関数は、モデルの予測分布$sigma(bold(W) bold(x)_(i))$と実際の分布$bold(y)_(i)$との間の差異を測る指標であり、これを最小化することはモデルの予測が実際のデータに近づくことを意味する。交差エントロピーは以下のように分解可能である。
 $$
-cal(L)^("CE")_i (bold(W)) :&= - sum_(k=1)^K [bold(y)_(i)]_k log [sigma(bold(W) bold(x)_(i))]_k\
-cal(L)_"CE" (bold(W)) &= sum_(i=1)^n cal(L)^("CE")_i (bold(W))
+cal(l)^("CE")_i (bold(W)) :&= - sum_(k=1)^K [bold(y)_(i)]_k log [sigma(bold(W) bold(x)_(i))]_k\
+cal(L)_"CE" (bold(W)) &= sum_(i=1)^n cal(l)^("CE")_i (bold(W))
 $$
 ここで、$cal(L)^("CE")_i (bold(W))$は$i$番目のデータ点に対する交差エントロピー損失を表す。したがって、交差エントロピーは分解可能目的である。
 
 ## 勾配降下法による最適化
-交差エントロピー損失関数$cal(L)_"CE" (bold(W))$を最小化するパラメータ$bold(W)^ast$を求めるために、勾配降下法を用いる。まず、交差エントロピー損失関数の勾配を計算する必要がある。
+交差エントロピー損失関数$cal(L)_"CE" (bold(W))$を最小化するパラメータ$bold(W)^ast$を求めるために、勾配降下法を用いる。まず、交差エントロピー損失関数の勾配を計算する必要がある。$bold(W)$で微分してもよいが、ここでは$bold(w)_k$で微分することにする。また、確率的勾配降下法を念頭に置いて、$i$番目のデータ点に対する交差エントロピー損失$cal(l)^("CE")_i (bold(W))$の勾配を計算する。
+$$
+diff/(diff bold(w)_k) cal(l)^("CE")_i (bold(W)) &= diff/(diff bold(w)_k) ( - sum_(j=1)^K [bold(y)_(i)]_j log [sigma(bold(W) bold(x)_(i))]_j ) \
+&= - sum_(j=1)^K [bold(y)_(i)]_j diff/(diff bold(w)_k) ( log [sigma(bold(W) bold(x)_(i))]_j ) \
+&= - sum_(j=1)^K [bold(y)_(i)]_j frac(1, [sigma(bold(W) bold(x)_(i))]_j) diff/(diff bold(w)_k) ( [sigma(bold(W) bold(x)_(i))]_j ) \
+$$
+ここで、$bold(z) = bold(W) bold(x)_(i)$とおくと、
+$$
+bold(z) = vec(bold(w)_1^top bold(x)_(i), bold(w)_2^top bold(x)_(i), dots.v, bold(w)_K^top bold(x)_(i))
+$$
+であるから、$bold(w)_k$は$z_k$にのみ影響を与える。ここで、ソフトマックス関数の微分より
+$$
+(diff sigma_j)/(diff z_k) = [(diff sigma)/(diff bold(z))]_(j k) = delta_(j k) [sigma(bold(z))]_j - [sigma(bold(z))]_j [sigma(bold(z))]_k
+$$
+であるから、
+$$
+diff/(diff bold(w)_k) ( [sigma(bold(W) bold(x)_(i))]_j ) &= diff/(diff bold(w)_k) ( [sigma(bold(z))]_j ) \
+&= (diff sigma_j)/(diff z_k) diff/(diff bold(w)_k) z_k \
+&= ( delta_(j k) [sigma(bold(z))]_j - [sigma(bold(z))]_j [sigma(bold(z))]_k ) diff/(diff bold(w)_k) ( bold(w)_k^top bold(x)_(i) ) \
+&= ( delta_(j k) [sigma(bold(z))]_j - [sigma(bold(z))]_j [sigma(bold(z))]_k ) bold(x)_(i)
+$$
+である。また、$hat(bold(y))_(i) = sigma(bold(W) bold(x)_(i))$なので
+$$
+diff/(diff bold(w)_k) cal(l)^("CE")_i (bold(W)) &= - sum_(j=1)^K [bold(y)_(i)]_j frac(1, [hat(bold(y))_(i)]_j) ( delta_(j k) [hat(bold(y))_(i)]_j - [hat(bold(y))_(i)]_j [hat(bold(y))_(i)]_k ) bold(x)_(i) \
+&= - sum_(j=1)^K [bold(y)_(i)]_j ( delta_(j k) - [hat(bold(y))_(i)]_k ) bold(x)_(i) \
+&= - [bold(y)_i]_k (1 - [hat(bold(y))_(i)]_k ) bold(x)_(i) + sum_(j=1, j eq.not k)^K [bold(y)_(i)]_j [hat(bold(y))_(i)]_k bold(x)_(i) \
+&= - [bold(y)_(i)]_k bold(x)_(i) + [hat(bold(y))_(i)]_k bold(x)_(i) sum_(j=1)^K [bold(y)_(i)]_j  \
+&= ( [hat(bold(y))_(i)]_k - [bold(y)_(i)]_k ) bold(x)_(i) quad (because sum_(j=1)^K [bold(y)_(i)]_j = 1)
+$$
+行列の微分は以下のように定義される。
+::: box 【定義】行列の微分
+行列$bold(W) in RR^(K times d)$で定義された関数$cal(F): RR^(K times d) 	-> RR$の微分$(diff cal(F))/(diff bold(W))$は、各行$bold(w)_k$で微分したベクトルを行に持つ$K times d$行列として定義される。
+$$
+(diff cal(F))/(diff bold(W)) = vec( ((diff cal(F))/(diff bold(w)_1) )^top, ((diff cal(F))/(diff bold(w)_2) )^top, dots.v, ((diff cal(F))/(diff bold(w)_K) )^top ) in RR^(K times d)
+$$
+:::
+したがって、交差エントロピー損失関数$cal(l)^("CE")_i (bold(W))$の勾配は以下のように表される。
+$$
+nabla cal(l)^("CE")_i (bold(W)) = (diff cal(l)^("CE")_i)/(diff bold(W)) &= vec( ((diff cal(l)^("CE")_i)/(diff bold(w)_1) )^top, ((diff cal(l)^("CE")_i)/(diff bold(w)_2) )^top, dots.v, ((diff cal(l)^("CE")_i)/(diff bold(w)_K) )^top ) in RR^(K times d)\
+&= vec( (( [hat(bold(y))_(i)]_1 - [bold(y)_(i)]_1 ) bold(x)_(i))^top, (( [hat(bold(y))_(i)]_2 - [bold(y)_(i)]_2 ) bold(x)_(i))^top, dots.v, (( [hat(bold(y))_(i)]_K - [bold(y)_(i)]_K ) bold(x)_(i))^top ) \
+&= vec( ( [hat(bold(y))_(i)]_1 - [bold(y)_(i)]_1 ) bold(x)_(i)^top, ( [hat(bold(y))_(i)]_2 - [bold(y)_(i)]_2 ) bold(x)_(i)^top, dots.v, ( [hat(bold(y))_(i)]_K - [bold(y)_(i)]_K ) bold(x)_(i)^top )\
+&= vec( [hat(bold(y))_(i)]_1 - [bold(y)_(i)]_1, [hat(bold(y))_(i)]_1 - [bold(y)_(i)]_1, dots.v, [hat(bold(y))_(i)]_K - [bold(y)_(i)]_K) bold(x)_(i)^top \
+&= ( hat(bold(y))_(i) - bold(y)_(i) ) bold(x)_(i)^top
+$$
+確率的勾配降下法の更新式は以下のようになる。
+$$
+bold(w)^((t+1))_k &= bold(w)^((t))_k - eta diff/(diff bold(w)_k) cal(l)^("CE")_i (bold(W^((t))))
+$$
+これをそれぞれを列ベクトルに転置して並べて行列を作ると
+$$
+vec( (bold(w)^((t+1))_1)^top, (bold(w)^((t+1))_2)^top, dots.v, (bold(w)^((t+1))_K)^top ) &= vec( (bold(w)^((t))_1)^top, (bold(w)^((t))_2)^top, dots.v, (bold(w)^((t))_K)^top ) - eta vec( ((diff cal(l)^("CE")_i)/(diff bold(w)_1) )^top, ((diff cal(l)^("CE")_i)/(diff bold(w)_2) )^top, dots.v, ((diff cal(l)^("CE")_i)/(diff bold(w)_K) )^top ) \
+<=> bold(W^((t+1))) &= bold(W^((t))) - eta ( hat(bold(y))_(i) - bold(y)_(i) ) bold(x)_(i)^top
+$$
+
+## 評価
+モデルの評価には、正解率（accuracy）や適合率（precision）、再現率（recall）、F1スコアなどの指標が用いられる。これらの指標は、モデルの予測結果と実際のクラスラベルを比較することで計算される。$C_(i j)$を正解クラスが$c_i$で予測クラスが$c_j$であるデータ点の数とすると、**混同行列**（confusion matrix）$C$は以下のように表される。
+$$
+[C]_(i j) = C_(i j) quad (i, j = 1, 2, ..., K)
+$$
+この表あるいは値を使って以下の3つの値を定義できる。
+
+- $"TP"_k = C_(k k)$：クラス$k$に正しく分類されたデータ点の数（True Positive）
+- $"FP"_k = sum_(i=1, i eq.not k)^K C_(i k)$：クラス$k$に誤って分類されたデータ点の数（False Positive）
+- $"FN"_k = sum_(j=1, j eq.not k)^K C_(k j)$：クラス$k$に分類されるべきであったが誤って他のクラスに分類されたデータ点の数（False Negative）
+
+これらを用いて、以下の指標を定義できる。
+
+::: box 【定義】クラス分類の評価指標
+- **正解率**（accuracy）：全データ点に対する正しく分類されたデータ点の割合
+$$
+text("Accuracy") := frac(sum_(k=1)^K "TP"_k, sum_(i=1)^K sum_(j=1)^K C_(i j))
+$$
+- **適合率**（precision）：クラス$k$に分類されたデータ点のうち、実際にクラス$k$であったデータ点の割合
+$$
+text("Precision")_k := frac("TP"_k, "TP"_k + "FP"_k)
+$$
+- **再現率**（recall）：実際にクラス$k$であったデータ点のうち、正しくクラス$k$に分類されたデータ点の割合
+$$
+text("Recall")_k := frac("TP"_k, "TP"_k + "FN"_k)
+$$
+- **F1スコア**（F1 score）：適合率と再現率の調和平均
+$$
+text("F1 Score")_k :=& frac(2 text("Precision")_k text("Recall")_k, text("Precision")_k + text("Recall")_k)\
+=& frac(2 "TP"_k, 2 "TP"_k + "FP"_k + "FN"_k)
+$$
+:::
+
+これらの指標を用いて、モデルの性能を評価し、必要に応じてモデルの改善を行うことができる。ただ、これらは各クラスごとに計算されるため、全体の評価を行う場合はマクロ平均やマイクロ平均などの手法を用いることがある。
+
+::: box 【定義】マクロ平均とマイクロ平均
+- **マクロ平均**（macro average）：各クラスの指標を単純に平均したもの
+$$
+text("Macro Precision") &:= frac(1, K) sum_(k=1)^K text("Precision")_k \
+text("Macro Recall") &:= frac(1, K) sum_(k=1)^K text("Recall")_k \
+text("Macro F1 Score") &:= frac(1, K) sum_(k=1)^K text("F1 Score")_k
+$$
+- **マイクロ平均**（micro average）：全クラスのTP、FP、FNを合計してから指標を計算したもの
+$$
+text("Micro Precision") &:= frac(sum_(k=1)^K "TP"_k, sum_(k=1)^K ("TP"_k + "FP"_k)) \
+text("Micro Recall") &:= frac(sum_(k=1)^K "TP"_k, sum_(k=1)^K ("TP"_k + "FN"_k)) \
+text("Micro F1 Score") &:= frac(2 sum_(k=1)^K "TP"_k, 2 sum_(k=1)^K "TP"_k + sum_(k=1)^K "FP"_k + sum_(k=1)^K "FN"_k)
+$$
+:::
