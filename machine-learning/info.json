@@ -9,6 +9,9 @@
     },
     "03linear-classification": {
       "title": "3. 線形分類"
+    },
+    "04support-vector-machine": {
+      "title": "4. サポートベクトルマシン"
     }
   }
 }

@@ -1,0 +1,136 @@
+# サポートベクトルマシーン
+## 導入
+これまで、分類問題として線形ロジスティック回帰モデルに取り組んできたが、ここでは**サポートベクトルマシーン**（Support Vector Machine; SVM）について説明する。SVMは、線形分類モデルの一つであり、特にマージン最大化の観点から分類境界を定める方法である。
+
+ここで考えるのは、二値分類問題であり、入力データ$bold(x) in RR^d$に対してクラスラベル$y in {+1, -1}$を予測するモデルを構築することである。
+
+## 線形モデル
+線形分類モデルでは、分類境界を線形関数で表現する。まず、以下のような関数$g(bold(x))$を考える。
+$$
+g(bold(x)) = sum_(i=1)^d w_i x_i + b
+$$
+ここで、$bold(w) = (w_1, w_2, ..., w_d)^top$は重みベクトル、$b$はバイアス項である。分類は、$g(bold(x))$の符号に基づいて行われ、具体的には以下のように定義される。
+$$
+hat(y) = f(bold(x)) = cases(
++1 quad & "if " g(bold(x)) > 0,
+-1 quad & "if " g(bold(x)) <= 0
+)
+$$
+ここで、$hat(y)$は予測されたクラスラベルである。標準内積と以下のように定義されたスカラー値の符号を取り出す関数$"sgn"$
+$$
+"sgn"(z) = cases(
++1 quad & "if " z > 0,
+-1 quad & "if " z <= 0
+)
+$$
+を用いると、分類関数$f(bold(x))$は以下のように表現できる。
+$$
+f(bold(x)) = "sgn"(bold(w)^top bold(x) + b)
+$$
+
+$RR^d$の内積空間を分類境界$bold(w)^top bold(x) + b$で分割するという問題に帰着される。この境界は**超平面**（hyperplane）と呼ばれ、$bold(w)$は超平面の法線ベクトルを表す。なぜなら超平面上の2つの異なるベクトルを$bold(x)_1$、$bold(x)_2$とすると、
+$$
+bold(w)^top (bold(x)_1 - bold(x)_2) = bold(w)^top bold(x)_1 - bold(w)^top bold(x)_2 = -b - (-b) = 0
+$$
+が成り立ち、$bold(w)$と超平面上の任意のベクトル$bold(x)_1 - bold(x)_2$が直交することが分かるからである。
+
+## マージン最大化
+SVMの基本的な考え方は、分類境界から最も近いデータ点までの距離（マージン）を最大化することである。既知のデータセット$cal(D)_s = {(bold(x)_i, y_i)}_(i=1)^n$に対して、超平面$bold(w)^top bold(x) + b = 0$から各データ点$bold(x)_i$までの距離$h$を計算してみたい。ある点$bold(x)_0$から超平面に垂直に下ろした足の点を$bold(x)_p$とすると、ある$t in RR$が存在して
+$$
+&bold(x)_0 - bold(x)_p = t bold(w)\
+<=> &bold(x)_p = bold(x)_0 - t bold(w)
+$$
+である。$bold(x)_p$は超平面上の点であるから、超平面の方程式に代入すると、
+$$
+bold(w)^top (bold(x)_0 - t bold(w)) + b &= 0\
+=> bold(w)^top bold(x)_0 - t bold(w)^top bold(w) + b &= 0\
+=> t &= frac(bold(w)^top bold(x)_0 + b, bold(w)^top bold(w)) = frac(bold(w)^top bold(x)_0 + b, ||bold(w)||_2^2)
+$$
+となる。$bold(x)_0$から超平面までの距離$ds$は$bold(x)_0$から$bold(x)_p$までの距離であり、
+$$
+d = ||bold(x)_0 - bold(x)_p||_2 = ||t bold(w)||_2 = |t| ||bold(w)||_2
+$$
+である。したがって、点$bold(x)_0$から超平面までの距離$d$は
+$$
+d = frac(|bold(w)^top bold(x)_0 + b|, ||bold(w)||_2)
+$$
+である。さて、加えてこの距離に対し、超平面のどっち側にいるのかという情報を正負で加えると下の符号付き距離$s$が得られる。
+$$
+s &= "sgn"(bold(w)^top bold(x)_0 + b) (|bold(w)^top bold(x)_0 + b|)/(||bold(w)||_2)\
+&= (bold(w)^top bold(x)_0 + b)/(||bold(w)||_2)
+$$
+この$s$は超平面に対して正の側（$bold(w)^top bold(x)_0 + b > 0$）にある場合は正、負の側（$bold(w)^top bold(x)_0 + b < 0$）にある場合は負の値を取る。だが、今の目的は各データ点が超平面から離れることである。
+
+一方で、絶対値を取ってしまうのは悪手である。なぜなら、絶対値を取ると距離の情報のみが残り、$y > 0$なら正の側に、$y < 0$なら負の側にあることを保証できないからである。そこで、目的変数をかけてみることを考える。すると、各データ点$bold(x)_i$に対して
+$$
+h(bold(x)_i) = (y_i (bold(w)^top bold(x)_i + b))/(||bold(w)||_2)
+$$
+という量が定義できる。$bold(w)^top bold(x)_i + b = g(bold(x))$について正解ラベル$y_i$が$+1$ならば$h$の増加は$g(x)$に対応し、$0$から正の方向に離れたがる。一方で$y_i$が$-1$ならば、$h$の増加は$g(x)$の減少に対応し、$0$から負の方向に離れたがる。したがって、各データ点に対してこの量を最大化することは、各データ点が各々のラベルに応じた方向に超平面からできるだけ離れるようにすることと同値である。
+
+SVMでは、この量$h(bold(x)_i)$のうち、最小値となるものを最大化することを目的とする。最小値となるものに注目する。
+$$
+gamma(bold(w), b) = min_i h(bold(x)_i) = min_i (y_i (bold(w)^top bold(x)_i + b))/(||bold(w)||_2)
+$$
+この量$gamma(bold(w), b)$を**マージン**（margin）と呼ぶ。しかし、$h$は$bold(w)$を定数倍しても変化しない。$c>0$とすれば
+$$
+(y_i ((c bold(w))^top bold(x)_i + b))/(||c bold(w)||_2) = (y_i (c bold(w)^top bold(x)_i + b))/(|c| ||bold(w)||_2) = (y_i (bold(w)^top bold(x)_i + b))/(||bold(w)||_2)
+$$
+である。つまり、これを最小化する$bold(w)$は無数に存在する。したがって、最適化問題としては適していない。そこで、
+$$
+min_i y_i (bold(w)^top bold(x)_i + b) &= 1\
+=> y_i (bold(w)^top bold(x)_i + b) &>= 1 quad (forall i=1,2,...,n)
+$$
+という制約を課すことにする。これにより、$bold(w)$のスケールが固定されることになる。すると、マージンは
+$$
+gamma(bold(w), b) = frac(1, ||bold(w)||_2)
+$$
+となる。したがって、マージンを最大化することは$||bold(w)||_2$を最小化することと同値である。以上より、SVMの最適化問題は以下のように定式化される。
+$$
+w^ast, b^ast = min_(bold(w), b) 1/2||bold(w)||_2^2\
+"subject to" y_i (bold(w)^top bold(x)_i + b) >= 1 quad (forall i=1,2,...,n)
+$$
+
+::: box 【定義】subject to
+"subject to"は「〜を条件の元で」という意味であり、最適化問題においては制約条件を示すために用いられる。
+:::
+
+## ラグランジュ未定乗数法による解法
+この最適化問題は制約付き最適化問題であるため、ラグランジュ未定乗数法を用いて解くことができる。ラグランジュ関数$cal(L)(bold(w), b, bold(alpha))$を以下のように定義する。
+$$
+cal(L)(bold(w), b, bold(alpha)) = 1/2||bold(w)||_2^2 - sum_(i=1)^n alpha_i (y_i (bold(w)^top bold(x)_i + b) - 1)
+$$
+ここで、$bold(alpha) = (alpha_1, alpha_2, ..., alpha_n)^top$はラグランジュ未定乗数であり、各$alpha_i >= 0$である。まずラグランジュ関数を$bold(w)$と$b$で偏微分し、それらを0に等しく設定する。
+$$
+&diff/(diff bold(w)) cal(L)(bold(w), b, bold(alpha)) = bold(w) - sum_(i=1)^n alpha_i y_i bold(x)_i = bold(0)\
+& quad quad => bold(w) = sum_(i=1)^n alpha_i y_i bold(x)_i\
+&diff/(diff b) cal(L)(bold(w), b, bold(alpha)) = - sum_(i=1)^n alpha_i y_i = 0\
+& quad quad => sum_(i=1)^n alpha_i y_i = 0
+$$
+これらの式をラグランジュ関数に代入すると、
+$$
+L(bold(alpha)) &= 1/2 abs(abs(sum_(i=1)^n alpha_i y_i bold(x)_i))_2^2 - sum_(i=1)^n alpha_i (y_i ((sum_(j=1)^n alpha_j y_j bold(x)_j)^top bold(x)_i + b) - 1)\
+&= 1/2 abs(abs(sum_(i=1)^n alpha_i y_i bold(x)_i))_2^2 - sum_(i=1)^n (alpha_i y_i (sum_(j=1)^n alpha_j y_j bold(x)_j^top bold(x)_i) + alpha_i y_i b - alpha_i)\
+&= 1/2 (sum_(i=1)^n alpha_i y_i bold(x)_i^top) (sum_(j=1)^n alpha_j y_j bold(x)_j) - sum_(i=1)^n alpha_i y_i (sum_(j=1)^n alpha_j y_j bold(x)_j^top bold(x)_i) - b underbracket(sum_(i=1)^n alpha_i y_i, =0) + sum_(i=1)^n alpha_i\
+&= 1/2 sum_(i=1)^n sum_(j=1)^n alpha_i alpha_j y_i y_j bold(x)_i^top bold(x)_j - sum_(i=1)^n sum_(j=1)^n alpha_i alpha_j y_i y_j bold(x)_j^top bold(x)_i + sum_(i=1)^n alpha_i\
+&= sum_(i=1)^n alpha_i -1/2 sum_(i=1)^n sum_(j=1)^n alpha_i alpha_j y_i y_j bold(x)_i^top bold(x)_j
+$$
+ここで、$L(bold(alpha))$はラグランジュ関数における双対関数である。したがって、元の最適化問題は以下の双対問題に帰着される。
+$$
+bold(alpha)^ast = op("argmax", limits: #true)_(bold(alpha)) sum_(i=1)^n alpha_i -1/2 sum_(i=1)^n sum_(j=1)^n alpha_i alpha_j y_i y_j bold(x)_i^top bold(x)_j\
+"subject to" alpha_i >= 0 quad (forall i=1,2,...,n), sum_(i=1)^n alpha_i y_i = 0
+$$
+この双対問題は凸二次計画問題であり、様々な数値最適化手法を用いて解くことができる。例えば、逐次最小問題最適化法（Sequential Minimal Optimization; SMO）などがある。最適な$bold(alpha)^ast$が得られたら、対応する$bold(w)^ast$は以下のように計算される。
+$$
+bold(w)^ast = sum_(i=1)^n alpha_i^ast y_i bold(x)_i
+$$
+バイアス項$b^ast$は、サポートベクトル（$alpha_i^ast > 0$となる事例$(bold(x)_k, y_k)$）を用いて以下のように計算される。
+$$
+b^ast = y_k - bold(w)^ast^top bold(x)_k
+$$
+ここで、$k$は任意のサポートベクトルのインデックスである。また、Karush-Kuhn-Tucker (KKT) 条件により、以下の関係が成り立つ。
+$$
+alpha_i^ast (y_i (bold(w)^ast^top bold(x)_i + b^ast) - 1) &= 0 quad (forall i=1,2,...,n)\
+y_i (bold(w)^ast^top bold(x)_i + b^ast) - 1 &>= 0 quad (forall i=1,2,...,n)\
+alpha_i^ast &>= 0 quad (forall i=1,2,...,n)
+$$
+後半二つは制約条件そのものとなっている。これらの条件により、サポートベクトルは分類境界に最も近いデータ点であることが保証される。
