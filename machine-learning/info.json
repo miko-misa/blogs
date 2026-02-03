@@ -1,8 +1,8 @@
 {
   "display": "機械学習",
   "articles": {
-    "01regression": {
-      "title": "1. 回帰分析"
+    "01linear-regression": {
+      "title": "1. 線形回帰分析"
     },
     "02gradient-method": {
       "title": "2. 勾配法"
