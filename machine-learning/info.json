@@ -5,13 +5,19 @@
       "title": "1. 線形回帰分析"
     },
     "02gradient-method": {
-      "title": "2. 勾配法"
+      "title": "2. 凸性と勾配法"
     },
     "03linear-classification": {
       "title": "3. 線形分類"
     },
     "04support-vector-machine": {
       "title": "4. サポートベクトルマシン"
+    },
+    "05non-hierarchical-clustering": {
+      "title": "5. 非階層的クラスタリング"
+    },
+    "06hierarchical-clustering": {
+      "title": "6. 階層的クラスタリング"
     }
   }
 }
