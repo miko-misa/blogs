@@ -18,6 +18,9 @@
     },
     "06hierarchical-clustering": {
       "title": "6. 階層的クラスタリング"
+    },
+    "07principal-component-analysis": {
+      "title": "7. 主成分分析"
     }
   }
 }
