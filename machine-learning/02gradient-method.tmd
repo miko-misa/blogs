@@ -206,7 +206,7 @@ p^((t+1)) = p^((t)) - eta_t (diff)/(diff p) cal(L)(p^((t)))
 $$
 と更新すればよい。ここで、$eta_t > 0$は**更新幅**または**学習率**（learning rate）と呼ばれるパラメータであり、更新の大きさを調整する役割を持つ。また、$p^((t+1))$は次のパラメータである。これをパラメータ全体$bold(w)$に対して行うと、
 $$
-bold(w)^((t+1)) = bold(w)^((t)) - eta nabla cal(L)(bold(w)^((t)))
+bold(w)^((t+1)) = bold(w)^((t)) - eta_t nabla cal(L)(bold(w)^((t)))
 $$
 となる。この更新式が正確に動くことを確かめてみよう。すなわち、$cal(L)(bold(w)^((t+1))) < cal(L)(bold(w)^((t)))$が成り立つことを示す。$g: RR->RR$を
 $$
@@ -216,7 +216,7 @@ $$
 $$
 g(1) &= g(0) + g'(theta)(1 - 0)\
 cal(L)(bold(w)^((t+1))) &= cal(L)(bold(w)^((t))) + nabla cal(L)(theta bold(w)^((t+1)) + (1 - theta) bold(w)^((t)))^top (bold(w)^((t+1)) - bold(w)^((t)))\
-&= cal(L)(bold(w)^((t))) - eta nabla cal(L)(theta bold(w)^((t+1)) + (1 - theta) bold(w)^((t)))^top nabla cal(L)(bold(w)^((t)))
+&= cal(L)(bold(w)^((t))) - eta_t nabla cal(L)(theta bold(w)^((t+1)) + (1 - theta) bold(w)^((t)))^top nabla cal(L)(bold(w)^((t)))
 $$
 
 ここで、$bold(w)^((t+1))$と$bold(w)^((t))$が十分に近いとき、
@@ -225,16 +225,16 @@ nabla cal(L)(theta bold(w)^((t+1)) + (1 - theta) bold(w)^((t))) approx nabla cal
 $$
 なる近似が成り立つ。したがって、
 $$
-cal(L)(bold(w)^((t+1))) &approx cal(L)(bold(w)^((t))) - eta ||nabla cal(L)(bold(w)^((t)))||_2^2\ &< cal(L)(bold(w)^((t))) quad (because eta > 0, ||nabla cal(L)(bold(w)^((t)))||_2^2 >= 0)
+cal(L)(bold(w)^((t+1))) &approx cal(L)(bold(w)^((t))) - eta_t ||nabla cal(L)(bold(w)^((t)))||_2^2\ &< cal(L)(bold(w)^((t))) quad (because eta_t > 0, ||nabla cal(L)(bold(w)^((t)))||_2^2 >= 0)
 $$
-が成り立つ。よって、勾配降下法の更新式は損失関数を下げることが示された。ただ、これが成り立つのは$bold(w)^((t+1))$と$bold(w)^((t))$が十分に近いときである。したがって、学習率$eta$が大きすぎるとこの近似が成り立たなくなり、損失関数が増加してしまうことがある。また、学習が進むにつれて必要な$eta$の小ささも変化するため、反復していくうちに飛び越えてしまうこともある。これらを防ぐために、学習率を徐々に小さくしていく手法や、モーメンタムを導入する手法などがあるが、ここでは詳述しない。
+が成り立つ。よって、勾配降下法の更新式は損失関数を下げることが示された。ただ、これが成り立つのは$bold(w)^((t+1))$と$bold(w)^((t))$が十分に近いときである。したがって、学習率$eta_t$が大きすぎるとこの近似が成り立たなくなり、損失関数が増加してしまうことがある。また、学習が進むにつれて必要な$eta_t$の小ささも変化するため、反復していくうちに飛び越えてしまうこともある。これらを防ぐために、学習率を徐々に小さくしていく手法や、モーメンタムを導入する手法などがあるが、ここでは詳述しない。
 
 ### 重回帰分析における勾配降下法
 重回帰分析において、勾配降下法の更新式を考えてみると$nabla cal(L)_"MSE" (bold(w)) = 2 bold(X)^top (hat(bold(y)) - bold(y))$であったから、
 $$
-bold(w)^((t+1)) &= bold(w)^((t)) - eta nabla cal(L)_"MSE" (bold(w)^((t)))\
-&= bold(w)^((t)) - 2 eta bold(X)^top (hat(bold(y)) - bold(y))\
-&= bold(w)^((t)) - 2 eta sum_(i=1)^n (hat(y)_i - y_i) bold(x)_i
+bold(w)^((t+1)) &= bold(w)^((t)) - eta_t nabla cal(L)_"MSE" (bold(w)^((t)))\
+&= bold(w)^((t)) - 2 eta_t bold(X)^top (hat(bold(y)) - bold(y))\
+&= bold(w)^((t)) - 2 eta_t sum_(i=1)^n (hat(y)_i - y_i) bold(x)_i
 $$
 となる。
 
@@ -259,14 +259,14 @@ nabla cal(L)(bold(w)) approx nabla cal(l)_(i_t) (bold(w))
 $$
 と近似し、パラメータを更新する。すなわち、
 $$
-bold(w)^((t+1)) = bold(w)^((t)) - eta nabla cal(l)_(i_t) (bold(w)^((t)))
+bold(w)^((t+1)) = bold(w)^((t)) - eta_t nabla cal(l)_(i_t) (bold(w)^((t)))
 $$
 と更新する。これにより、各反復の計算コストが大幅に削減される。
 
 ### ミニバッチ確率的勾配降下法
 SGDでは各反復で一つの事例を用いて勾配を計算するが、これにより勾配の分散が大きくなり、収束が遅くなることがある。これを改善するために、**ミニバッチ学習**（mini-batch learning）が用いられる。ミニバッチ学習では、各反復でランダムに選ばれた複数の事例（ミニバッチ）を用いて勾配を計算し、パラメータを更新する。ミニバッチ学習も確率的勾配降下法の一種である。これにより、勾配の分散が減少し、収束が速くなることがある。具体的には、ある反復で選ばれたミニバッチ$cal(B)_t subset {i}_(i=1)^n$を用いて、
 $$
-bold(w)^((t+1)) = bold(w)^((t)) - eta sum_(i in cal(B)_t) nabla cal(l)_i (bold(w)^((t)))
+bold(w)^((t+1)) = bold(w)^((t)) - eta_t sum_(i in cal(B)_t) nabla cal(l)_i (bold(w)^((t)))
 $$
 と更新する。ここで、ミニバッチのサイズ$|cal(B)_t|$はハイパーパラメータとして設定される。
 
@@ -285,9 +285,9 @@ nabla cal(l)_i (bold(w)) = 2 (hat(y)_i - y_i) bold(x)_i
 $$
 である。ミニバッチ確率的勾配降下法の更新式は
 $$
-bold(w)^((t+1)) &= bold(w)^((t)) - eta sum_(i in cal(B)_t) nabla cal(l)_i (bold(w)^((t)))\
-&= bold(w)^((t)) - 2 eta sum_(i in cal(B)_t) (hat(y)_i - y_i) bold(x)_i\
-&= bold(w)^((t)) - 2 eta bold(X)_(cal(B)_t)^top (bold(X)_(cal(B)_t) bold(w)^((t)) - bold(y)_"B_t")
+bold(w)^((t+1)) &= bold(w)^((t)) - eta_t sum_(i in cal(B)_t) nabla cal(l)_i (bold(w)^((t)))\
+&= bold(w)^((t)) - 2 eta_t sum_(i in cal(B)_t) (hat(y)_i - y_i) bold(x)_i\
+&= bold(w)^((t)) - 2 eta_t bold(X)_(cal(B)_t)^top (bold(X)_(cal(B)_t) bold(w)^((t)) - bold(y)_"B_t")
 $$
 となる。ただし、$bold(X)_(cal(B)_t)$はミニバッチ$cal(B)_t$に対応する計画行列、$bold(y)_"B_t"$はミニバッチ$cal(B)_t$に対応する目的変数ベクトルである。$m=|cal(B)_t|$とし、$cal(B)_t$に選ばれた事例のインデックスを$i_1, i_2, dots, i_m$とすると、
 $$
@@ -298,3 +298,8 @@ bold(x)_(i_m)^top) in RR^(m times d)\
 bold(y)_"B_t" = (y_(i_1), y_(i_2), dots, y_(i_m))^top in RR^m
 $$
 である。
+
+## 勾配法の収束性
+勾配法の収束性については様々な研究がなされている。一般に、損失関数が凸関数であり、学習率が適切に選ばれている場合、勾配降下法は全体で最も良い解に収束することが知られている。この解を**大域的最適解**（global optimum）と呼ぶ。一方で、損失関数が非凸関数である場合、勾配降下法は局所的に最も良い解に収束することがある。この解を**局所的最適解**（local optimum）と呼ぶ。局所的最適解は大域的最適解とは異なる場合があるため、注意が必要である。
+
+深層学習では、損失関数が非凸関数であることが多いが、勾配法は実際には良好な性能を示すことが多い。これは、深層学習における損失関数の特性や、勾配法のランダム性などが影響していると考えられている。

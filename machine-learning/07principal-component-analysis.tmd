@@ -24,82 +24,92 @@ $$
 
 「違い」の基準として分散が考えられるので、射影されたベクトルの分散を計算してみよう。データセット$cal(D)_s$の各データ点を方向ベクトル$bold(u)$に射影したベクトルの集合を
 $$
-hat(cal(D))_s = { hat(bold(x))_1, hat(bold(x))_2, ..., hat(bold(x))_n }
+hat(cal(D))_s = { hat(bold(x))_1, hat(bold(x))_2, dots.c, hat(bold(x))_n }
 $$
 とする。ここで、各射影ベクトル$hat(bold(x))_i$は
 $$
 hat(bold(x))_i = (bold(x)_i^top bold(u)) bold(u)
 $$
-であった。さて、射影ベクトルの集合$hat(cal(D))_s$の分散$cal(S)$は以下で計算できるだろう。
+であった。この平均を$overline(hat(bold(x)))$とすると、
 $$
-cal(S) = 1/n sum_(i=1)^n abs(abs(hat(bold(x))_i - 1/n sum_(j=1)^n hat(bold(x))_j))_2^2
+overline(hat(bold(x))) &= 1/n sum_(i=1)^n hat(bold(x))_i\
+&= 1/n sum_(i=1)^n (bold(x)_i^top bold(u)) bold(u)\
+&= (1/n sum_(i=1)^n bold(x)_i^top bold(u)) bold(u)\
+&= ((1/n sum_(i=1)^n bold(x)_i)^top bold(u)) bold(u)\
+&= (bold(u)^top overline(bold(x))) bold(u) = (overline(bold(x))^top bold(u) )bold(u)
+$$
+で計算できる。ここで、$overline(bold(x)) = 1/n sum_(i=1)^n bold(x)_i$は元のデータセット$cal(D)_s$の平均ベクトルである。さて、射影ベクトルの集合$hat(cal(D))_s$の分散$cal(S)$は以下で計算できるだろう。
+$$
+cal(S) = 1/n sum_(i=1)^n ||hat(bold(x))_i - overline(hat(bold(x)))||_2^2
 $$
 ここで、各射影ベクトル$hat(bold(x))_i$を代入すると、
 $$
-cal(S) &= 1/n sum_(i=1)^n abs(abs((bold(x)_i^top bold(u)) bold(u) - 1/n sum_(j=1)^n (bold(x)_j^top bold(u)) bold(u)))_2^2\
-&= 1/n sum_(i=1)^n abs(abs(bold(u) (bold(x)_i^top bold(u) - 1/n sum_(j=1)^n bold(x)_j^top bold(u))))_2^2\
-&= 1/n sum_(i=1)^n (bold(x)_i^top bold(u) - 1/n sum_(j=1)^n bold(x)_j^top bold(u))^2 ||bold(u)||_2^2\
-&= 1/n sum_(i=1)^n (bold(x)_i^top bold(u) - 1/n sum_(j=1)^n bold(x)_j^top bold(u))^2  quad (because  ||bold(u)||_2 = 1)
+cal(S) &= 1/n sum_(i=1)^n ||(bold(x)_i^top bold(u)) bold(u) - (bold(u)^top overline(bold(x))) bold(u)||_2^2\
+&= 1/n sum_(i=1)^n ||bold(u)||_2^2 (bold(x)_i^top bold(u) - overline(bold(x))^top bold(u))^2\
+&= 1/n sum_(i=1)^n (bold(x)_i^top bold(u) - overline(bold(x))^top bold(u))^2  quad (because  ||bold(u)||_2 = 1)
 $$
-ここで、$a_i = bold(x)_i^top bold(u)$とおくと、
+ここで、各データ点$bold(x)_i$を行ベクトルとする行列$bold(X) in RR^(n times d)$を考える。つまり、
 $$
-cal(S) &= 1/n sum_(i=1)^n (a_i - 1/n sum_(j=1)^n a_j)^2\
-&= 1/n sum_(i=1)^n (a_i - overline(a))^2
+bold(X) = vec(bold(x)_1^top, bold(x)_2^top, dots.c, bold(x)_n^top)
 $$
-となる。ここで、以下の大きな制約を追加する。
+である。すると、分散$cal(S)$は以下のように書き換えられる。
+$$
+cal(S) &= 1/n sum_(i=1)^n (bold(u)^top (bold(x)_i - overline(bold(x))))^2\
+&= 1/n sum_(i=1)^n (bold(u)^top bold(x)_i - bold(u)^top overline(bold(x)))^2\
+&= 1/n sum_(i=1)^n (bold(u)^top (bold(x)_i - overline(bold(x))))^2
+$$
 
-::: box 主成分分析における制約
-データ点の重心は原点$bold(0)$である。
+ここで、以下のような行列$bold(X) in RR^(n times d)$を定義する。
+$$
+bold(X) = vec(bold(x)_1^top - overline(bold(x))^top, bold(x)_2^top - overline(bold(x))^top, dots.c, bold(x)_n^top - overline(bold(x))^top)
+$$
+すると、
+$$
+bold(u)^top bold(X)^top = vec(bold(u)^top (bold(x)_1 - overline(bold(x))), bold(u)^top (bold(x)_2 - overline(bold(x))), dots.c, bold(u)^top (bold(x)_n - overline(bold(x))))
+$$
+これを縦ベクトルと見なすと、分散$cal(S)$は以下のように書き換えられる。
+$$
+cal(S) &= 1/n ||bold(X) bold(u)||_2^2\
+&= 1/n (bold(u)^top bold(X)^top bold(X) bold(u))
+$$
+ここで、$bold(S) = 1/n bold(X)^top bold(X)$はデータセット$cal(D)_s$の**分散共分散行列**（variance-covariance matrix）である。
+
+::: box 【定義】分散共分散行列
+データセット$cal(D)_s = {bold(x)_i}_(i=1)^n$の分散共分散行列$bold(S) in RR^(d times d)$は以下で定義される。
+$$
+bold(S) = 1/n sum_(i=1)^n (bold(x)_i - overline(bold(x))) (bold(x)_i - overline(bold(x)))^top
+$$
 :::
 
-この制約は一見すると、大変な制約のように見えるかもしれない。しかし、今回議論したいのは"方向"である。なので任意のデータに対してその重心が原点になるように、データセット全体を並行移動することでこの制約を満たすことができる。ここでは一時的にこの制約を用いる。
+したがって、分散$cal(S)$は以下のように最終的に表される。
 
-すると、$sum_(j=1)^n bold(x)_j = bold(0)$が成り立つから、
 $$
-overline(a) = 1/n sum_(j=1)^n a_j = 1/n sum_(j=1)^n bold(x)_j^top bold(u) = 1/n bold(u)^top sum_(j=1)^n bold(x)_j = 1/n bold(u)^top bold(0) = 0
+cal(S) = bold(u)^top bold(S) bold(u)
 $$
-となる。したがって、分散$cal(S)$は以下のように簡略化される。
+そして、この最適化問題は以下のようにまとめられる。
 $$
-cal(S) &= 1/n sum_(i=1)^n (a_i - overline(a))^2\
-&= 1/n sum_(i=1)^n (a_i - 0)^2\
-&= 1/n sum_(i=1)^n a_i^2 = EE[a^2]
+bold(u)^ast = op("argmax", limits: #true)_(bold(u)) bold(u)^top bold(S) bold(u) quad "subject to" ||bold(u)||_2^2 = 1
 $$
-ここで、$bold(a) = (a_1, a_2, ..., a_n)^top$とおくと、
-$$
-bold(a) = vec(bold(x)_1^top bold(u), bold(x)_2^top bold(u), ..., bold(x)_n^top bold(u)) = vec(bold(x)_1^top, bold(x)_2^top, ..., bold(x)_n^top) bold(u) = bold(X) bold(u)
-$$
-で計算できる。$bold(X)$は重回帰分析における計画行列と同じ形をしており、今回はデータセットそのものを表現している。また、$cal(S)$の最大化は
-$$
-cal(L) := sum_(i=1)^n a_i^2 = ||bold(a)||_2^2
-$$
-の最大化と同値である。これは$bold(X)$を用いると
-$$
-cal(L) &= ||bold(X) bold(u)||_2^2\
-&= (bold(X) bold(u))^top (bold(X) bold(u))\
-&= bold(u)^top bold(X)^top bold(X) bold(u)
-$$
-で計算できる。よって、主成分分析における最適化問題は以下のように定式化される。
-$$
-bold(u)^ast = op("argmax", limits: #true)_(bold(u)) bold(u)^top bold(X)^top bold(X) bold(u) quad "subject to" ||bold(u)||_2^2 = 1
-$$
+
 
 ## 第1主成分
 この最適化問題はラグランジュ未定乗数法を用いて解くことができる。ラグランジュ関数$cal(L)_1(bold(u), lambda)$を以下のように定義する。
 $$
-cal(L)_1(bold(u), lambda) = bold(u)^top bold(X)^top bold(X) bold(u) - lambda (bold(u)^top bold(u) - 1)
+cal(L)_1(bold(u), lambda) = bold(u)^top bold(S) bold(u) - lambda (bold(u)^top bold(u) - 1)
 $$
 ここで、$lambda in RR$はラグランジュ未定乗数である。このラグランジュ関数$cal(L)_1(bold(u), lambda)$を最大化する$bold(u)$と$lambda$を求める。まずラグランジュ関数を$bold(u)$で偏微分し、それを0に等しく設定する。
 $$
-diff/(diff bold(u)) cal(L)_1(bold(u), lambda) = diff/(diff bold(u)) (bold(u)^top (bold(X)^top bold(X) bold(u))) - 2 lambda bold(u) &= bold(0)\
-<=> (diff/(diff bold(u)) bold(u) )^top (bold(X)^top bold(X) bold(u)) + (diff/(diff bold(u)) bold(X)^top bold(X) bold(u) )^top bold(u) - 2 lambda bold(u) &= bold(0)\
-<=> 2 bold(X)^top bold(X) bold(u) - 2 lambda bold(u) &= bold(0)\
+diff/(diff bold(u)) cal(L)_1(bold(u), lambda) = diff/(diff bold(u)) (bold(u)^top bold(S) bold(u)) - 2 lambda bold(u) &= bold(0)\
+<=> (diff/(diff bold(u)) bold(u) )^top bold(S) bold(u) + (diff/(diff bold(u)) bold(S) bold(u) )^top bold(u) - 2 lambda bold(u) &= bold(0)\
+<=> 2 bold(S) bold(u) - 2 lambda bold(u) &= bold(0)\
 <=> bold(S) bold(u) &= lambda bold(u)
 $$
-ここで、$bold(S) = bold(X)^top bold(X)$はデータセットの**共分散行列**（covariance matrix）であり、$bold(I)$は単位行列である。最後の式は$bold(S)$と$bold(u)$の行列積が$bold(u)$のスカラー倍になることを示している。つまり、$bold(u)$は共分散行列$bold(S)$の **固有ベクトル**（eigenvector）であり、$lambda$は対応する**固有値**（eigenvalue）である。したがって、主成分分析における最適化問題の解は固有値問題の解として得られる。
 
-共分散行列$bold(S)$の固有値を$lambda_1, lambda_2, ..., lambda_d$とし、対応する固有ベクトルを$bold(u)_1, bold(u)_2, ..., bold(u)_d$とする。ここで、固有値は大きい順に並べておく。すなわち、
+最後の式は$bold(S)$と$bold(u)$の行列積が$bold(u)$のスカラー倍になることを示している。つまり、$bold(u)$は共分散行列$bold(S)$の **固有ベクトル**（eigenvector）であり、$lambda$は対応する**固有値**（eigenvalue）である。したがって、主成分分析における最適化問題の解は固有値問題の解として得られる。
+
+共分散行列$bold(S)$の固有値を$lambda_1, lambda_2, dots.c, lambda_d$とし、対応する固有ベクトルを$bold(u)_1, bold(u)_2, dots.c, bold(u)_d$とする。ここで、固有値は大きい順に並べておく。すなわち、
 $$
-lambda_1 >= lambda_2 >= ... >= lambda_d >= 0
+lambda_1 >= lambda_2 >= dots.c >= lambda_d >= 0
 $$
 である。ここで、$cal(L)$に、$bold(S) bold(u)_i = lambda_i bold(u)_i$を代入すると、
 $$
@@ -110,36 +120,38 @@ $$
 ## 第2主成分以降
 第1主成分$bold(u)^ast$が求まった後、次に第2主成分$bold(v)^ast$を求めることができる。第2主成分は、第1主成分と直交する方向で、かつ分散が最大になるような方向ベクトルである。つまり、以下の最適化問題を解くことで求められる。
 $$
-bold(v)^ast = op("argmax", limits: #true)_(bold(v)) bold(v)^top bold(X)^top bold(X) bold(v) quad "subject to" ||bold(v)||_2^2 = 1, quad bold(v)^top bold(u)^ast = 0
+bold(v)^ast = op("argmax", limits: #true)_(bold(v)) bold(v)^top bold(S) bold(v) quad "subject to" ||bold(v)||_2^2 = 1, quad bold(v)^top bold(u)^ast = 0
 $$
 同様にラグランジュ未定乗数法を用いる。ラグランジュ関数$cal(L)_2(bold(v), lambda, mu)$を以下のように定義する。
 $$
-cal(L)_2(bold(v), lambda, mu) = bold(v)^top bold(X)^top bold(X) bold(v) - lambda (bold(v)^top bold(v) - 1) - mu (bold(v)^top bold(u)^ast)
+cal(L)_2(bold(v), lambda, mu) = bold(v)^top bold(S) bold(v) - lambda (bold(v)^top bold(v) - 1) - mu (bold(v)^top bold(u)^ast)
 $$
 ここで、$lambda, mu in RR$はラグランジュ未定乗数である。このラグランジュ関数$cal(L)_2(bold(v), lambda, mu)$を最大化する$bold(v)$、$lambda$、$mu$を求める。まずラグランジュ関数を$bold(v)$で偏微分し、それを0に等しく設定する。
 $$
-diff/(diff bold(v)) cal(L)_2(bold(v), lambda, mu) = 2 bold(X)^top bold(X) bold(v) - 2 lambda bold(v) - mu bold(u)^ast &= bold(0)
+diff/(diff bold(v)) cal(L)_2(bold(v), lambda, mu) = 2 bold(S) bold(v) - 2 lambda bold(v) - mu bold(u)^ast &= bold(0)
 $$
 これに対し、両辺を$bold(u)^ast^top$で左から掛けると、
 $$
-2 bold(u)^ast^top bold(X)^top bold(X) bold(v) - 2 lambda bold(u)^ast^top bold(v) - mu bold(u)^ast^top bold(u)^ast &= 0\
-<=> 2 bold(u)^ast^top bold(X)^top bold(X) bold(v) - mu &= 0  quad (because  bold(u)^ast^top bold(v) = 0,  ||bold(u)^ast||_2^2 = 1)\
+2 bold(u)^ast^top bold(S) bold(v) - 2 lambda bold(u)^ast^top bold(v) - mu bold(u)^ast^top bold(u)^ast &= 0\
+<=> 2 bold(u)^ast^top bold(S) bold(v) - mu &= 0  quad (because  bold(u)^ast^top bold(v) = 0,  ||bold(u)^ast||_2^2 = 1)\
 <=> mu &= 2 bold(u)^ast^top bold(S) bold(v)
 $$
 となる。$mu$はスカラーなので転置しても変わらない。したがって、
+
 $$
 mu &= 2 (bold(u)^ast^top (bold(S) bold(v)))^top = 2 (bold(S) bold(v))^top bold(u)^ast = 2 bold(v)^top (bold(S) bold(u)^ast)
 $$
+
 である。ここで、$bold(S) bold(u)^ast = lambda_1 bold(u)^ast$を代入すると、
 $$
 mu &= 2 lambda_1 (bold(v)^top bold(u)^ast) = 0  quad (because  bold(v)^top bold(u)^ast = 0)
 $$
 となる。これを最初の式に代入すると、
 $$
-2 bold(X)^top bold(X) bold(v) - 2 lambda bold(v) &= bold(0)\
+2 bold(S) bold(v) - 2 lambda bold(v) &= bold(0)\
 <=> bold(S) bold(v) &= lambda bold(v)
 $$
-となる。つまり、第2主成分$bold(v)^ast$も共分散行列$bold(S)$の固有ベクトルであり、対応する固有値$lambda$である。つまり、第2主成分は共分散行列$bold(S)$の第2固有値$lambda_2$に対応する固有ベクトル$bold(u)_2$である。$bold(u)_1$を選んでしまうと、制約$bold(v)^top bold(u)^ast = 0$を満たせないからである。これを**第2主成分**（second principal component）と呼ぶ。同様にして、第3主成分、第4主成分、...、第$d$主成分まで求めることができる。
+となる。つまり、第2主成分$bold(v)^ast$も$bold(S)$の固有ベクトルであり、対応する固有値$lambda$である。つまり、第2主成分は$bold(S)$の第2固有値$lambda_2$に対応する固有ベクトル$bold(u)_2$である。$bold(u)_1$を選んでしまうと、制約$bold(v)^top bold(u)^ast = 0$を満たせないからである。これを**第2主成分**（second principal component）と呼ぶ。同様にして、第3主成分、第4主成分、dots.c、第$d$主成分まで求めることができる。
 
 ここで疑問なのは$bold(S)$の固有ベクトルが本当に直交するかどうかである。これは以下の命題で説明できる。
 
@@ -172,6 +184,240 @@ $$
 が成り立つ。$lambda_i eq.not lambda_j$であるから、$bold(u)_i^top bold(u)_j = 0$が成り立つ。つまり、異なる固有値に対応する固有ベクトルは直交することが示された。
 :::
 
-$bold(S) = bold(X)^top bold(X)$は実対称行列であるから、$bold(S)$の固有ベクトル$bold(u)_1, bold(u)_2, ..., bold(u)_d$は互いに直交する。
+$bold(S) = bold(X)^top bold(X)$は実対称行列であるから、$bold(S)$の固有ベクトル$bold(u)_1, bold(u)_2, dots.c, bold(u)_d$は互いに直交する。
 
 まとめると、主成分分析における第$k$主成分は共分散行列$bold(S)$の第$k$固有値$lambda_k$に対応する固有ベクトル$bold(u)_k$である。これらの主成分は互いに直交し、第1主成分から順にデータの分散を最大化する方向を示している。
+
+## スペクトル分解
+共分散行列$bold(S)$は実対称行列であるから、直行系固有ベクトル$bold(u)_1, bold(u)_2, dots.c, bold(u)_d$を正規直行系になるように正規化できる。
+
+::: box 【定義】直行系・正規直行系
+ベクトル$bold(v)_1, bold(v)_2, dots.c, bold(v)_k in RR^d$が以下の条件を満たすとき、これらのベクトルは**直行系**（orthogonal system）であると言う。
+$$
+bold(v)_i^top bold(v)_j = 0 quad ("for"  i eq.not j, quad i, j = 1, 2, dots.c, k)
+$$
+さらに、各ベクトルのノルムが1であるとき、これらのベクトルは**正規直行系**（orthonormal system）であると言う。このとき、
+$$
+bold(v)_i^top bold(v)_j = delta_(i j) = cases( 1 quad & (i = j), 0 & (i eq.not j) )
+$$
+である。
+:::
+
+このとき、固有ベクトル$bold(u)_1, bold(u)_2, dots.c, bold(u)_d$とそれに対応する固有値$lambda_1, lambda_2, dots.c, lambda_d$を以下のように並べる。ただし、ベクトルは縦ベクトルであることを改めて強調しておく。
+$$
+(lambda_1 bold(u)_1, lambda_2 bold(u)_2, dots.c, lambda_d bold(u)_d) = (bold(S) bold(u)_1, bold(S) bold(u)_2, dots.c, bold(S) bold(u)_d) = bold(S) (bold(u)_1, bold(u)_2, dots.c, bold(u)_d)\
+$$
+また、
+$$
+(lambda_1 bold(u)_1, lambda_2 bold(u)_2, dots.c, lambda_d bold(u)_d) = (bold(u)_1, bold(u)_2, dots.c, bold(u)_d) underbracket(mat(
+lambda_1, 0, dots.c, 0;
+0, lambda_2, dots.c, 0;
+dots.v, dots.v, dots.down, dots.v;
+0, 0, dots.c, lambda_d), bold(Lambda))
+$$
+である。$bold(Lambda) in RR^(d times d)$は対角行列であり、対角成分に固有値$lambda_1, lambda_2, dots.c, lambda_d$が並んでいる。これはよく以下のような形で書かれる。
+$$
+bold(Lambda) = "diag"(lambda_1, lambda_2, dots.c, lambda_d)
+$$
+上二つの等式から、$bold(U) = (bold(u)_1, bold(u)_2, dots.c, bold(u)_d)$とおくと、
+$$
+bold(S) bold(U) = bold(U) bold(Lambda)
+$$
+が成り立つ。ここで、$bold(U)$は直行行列である。
+
+::: box 【定義】直行行列
+行列$bold(Q) in RR^(d times d)$が以下の条件を満たすとき、**直行行列**（orthogonal matrix）であると言う。
+$$
+bold(Q)^top bold(Q) = bold(Q) bold(Q)^top = bold(I)
+$$
+ここで、$bold(I)$は単位行列である。
+:::
+
+なぜなら、
+$$
+bold(U)^top bold(U) &= mat(
+bold(u)_1^top; bold(u)_2^top; dots.c; bold(u)_d^top) (bold(u)_1, bold(u)_2, dots.c, bold(u)_d)\
+&= mat(
+bold(u)_1^top bold(u)_1, bold(u)_1^top bold(u)_2, dots.c, bold(u)_1^top bold(u)_d;
+bold(u)_2^top bold(u)_1, bold(u)_2^top bold(u)_2, dots.c, bold(u)_2^top bold(u)_d;
+dots.v, dots.v, dots.down, dots.v;
+bold(u)_d^top bold(u)_1, bold(u)_d^top bold(u)_2, dots.c, bold(u)_d^top bold(u)_d)\
+&= mat(
+1, 0, dots.c, 0;
+0, 1, dots.c, 0;
+dots.v, dots.v, dots.down, dots.v;
+0, 0, dots.c, 1) = bold(I)
+$$
+であるからである。したがって、両辺に$bold(U)$を右から掛けると、
+$$
+bold(S) = bold(U) bold(Lambda) bold(U)^top
+$$
+が成り立つ。これを**スペクトル分解**（spectral decomposition）と言う。
+
+::: box 【定義】スペクトル分解
+実対称行列$bold(A) in RR^(d times d)$は直行行列$bold(Q) in RR^(d times d)$と対角行列$bold(D) in RR^(d times d)$を用いて以下のように分解できる。
+$$
+bold(A) = bold(Q) bold(D) bold(Q)^top
+$$
+これを**スペクトル分解**（spectral decomposition）と言う。
+:::
+
+次に以下の2つの性質を確認しておこう。
+
+::: box 【性質】分散共分散行列は半正定値行列
+#### 主張
+データセット$cal(D)_s = {bold(x)_i}_(i=1)^n$の分散共分散行列$bold(S)$は半正定値行列である。つまり、任意の$bold(v) in RR^d$に対して、
+$$
+bold(v)^top bold(S) bold(v) >= 0
+$$
+が成り立つ。
+
+#### 証明
+データセット$cal(D)_s$の分散共分散行列$bold(S)$は以下で定義される。
+$$
+bold(S) = 1/n sum_(i=1)^n (bold(x)_i - overline(bold(x))) (bold(x)_i - overline(bold(x)))^top
+$$
+ここで、任意の$bold(v) in RR^d$に対して、
+$$
+bold(v)^top bold(S) bold(v) &= bold(v)^top (1/n sum_(i=1)^n (bold(x)_i - overline(bold(x))) (bold(x)_i - overline(bold(x)))^top) bold(v)\
+&= 1/n sum_(i=1)^n bold(v)^top (bold(x)_i - overline(bold(x))) (bold(x)_i - overline(bold(x)))^top bold(v)\
+&= 1/n sum_(i=1)^n (bold(v)^top (bold(x)_i - overline(bold(x))))^2\
+&>= 0
+$$
+が成り立つ。したがって、分散共分散行列$bold(S)$は半正定値行列であることが示された。
+:::
+
+::: box 【性質】半正定値行列の固有値は非負
+#### 主張
+実対称行列$bold(A) in RR^(d times d)$が半正定値行列であるとき、その固有値は全て非負である。
+
+#### 証明
+実対称行列$bold(A)$の固有値を$lambda$、対応する固有ベクトルを$bold(u)$とする。すなわち、
+$$
+bold(A) bold(u) = lambda bold(u)
+$$
+が成り立つ。ここで、両辺を$bold(u)^top$で左から掛けると、
+$$
+bold(u)^top bold(A) bold(u) = lambda bold(u)^top bold(u)
+$$
+が成り立つ。左辺は半正定値行列の定義より非負であるから、
+$$
+lambda ||bold(u)||_2^2 >= 0
+$$
+が成り立つ。ここで、$bold(u)$は固有ベクトルであるから、$bold(u) eq.not bold(0)$であり、$||bold(u)||_2^2 > 0$である。したがって、$lambda >= 0$が成り立つ。つまり、実対称行列$bold(A)$の固有値は全て非負であることが示された。
+:::
+
+これらの性質から、共分散行列$bold(S)$の固有値$lambda_1, lambda_2, dots.c, lambda_d$は全て非負であることがわかる。また、スペクトル分解を使って第1主成分が、$bold(u)_1$であることも確認できる。元の最適化問題を再掲し、少し手を加える。
+$$
+bold(u)^ast &= op("argmax", limits: #true)_(bold(u)) bold(u)^top bold(S) bold(u) quad "subject to" ||bold(u)||_2^2 = 1\
+&= op("argmax", limits: #true)_(bold(u)) (bold(u)^top bold(S) bold(u) ) / (bold(u)^top bold(u)) quad "subject to" bold(u) eq.not bold(0)
+$$
+ここで$display((bold(u)^top bold(S) bold(u) ) / (bold(u)^top bold(u)))$は**レイリー商**（Rayleigh quotient）と呼ばれる。スペクトル分解$bold(S) = bold(U) bold(Lambda) bold(U)^top$を代入すると、
+$$
+(bold(u)^top bold(S) bold(u) ) / (bold(u)^top bold(u)) &= (bold(u)^top (bold(U) bold(Lambda) bold(U)^top) bold(u) ) / (bold(u)^top bold(u))\
+&= (bold(u)^top (bold(U) bold(Lambda) bold(U)^top) bold(u) ) / (bold(u)^top bold(U) bold(U)^top bold(u)) quad (because  bold(U) bold(U)^top = bold(I))\
+$$
+となる。ここで、$bold(z) = bold(U)^top bold(u)$とおくと、
+$$
+(bold(u)^top bold(S) bold(u) ) / (bold(u)^top bold(u)) &= (bold(z)^top bold(Lambda) bold(z)) / (bold(z)^top bold(z))\
+&= (lambda_1 z_1^2 + lambda_2 z_2^2 + dots.c + lambda_d z_d^2) / (z_1^2 + z_2^2 + dots.c + z_d^2)\
+&= ((bold(U)^top bold(u))^top bold(Lambda) (bold(U)^top bold(u))) / ((bold(U)^top bold(u))^top (bold(U)^top bold(u)))
+$$
+ここで、$bold(z) := bold(U)^top bold(u) = (z_1, z_2, dots.c, z_d)$とすると、
+$$
+(bold(u)^top bold(S) bold(u) ) / (bold(u)^top bold(u)) = (lambda_1 z_1^2 + lambda_2 z_2^2 + dots.c + lambda_d z_d^2) / (z_1^2 + z_2^2 + dots.c + z_d^2)
+$$
+である。これは、$lambda_1, lambda_2, dots.c, lambda_d$の重み付き平均である。したがって、最大値は最大の固有値$lambda_1$であり、そのとき$z_1 = 1$かつ$z_2 = z_3 = dots.c = z_d = 0$である。つまり、$bold(z) = (1, 0, dots.c, 0)$である。このとき、
+$$
+bold(z) = bold(U)^top bold(u) = (1, 0, dots.c, 0)
+$$
+であるから、両辺に$bold(U)$を左から掛けると、
+$$
+bold(u)^ast = bold(U) bold(z) = (bold(u)_1, bold(u)_2, dots.c, bold(u)_d) vec(1, 0, dots.v, 0) = bold(u)_1
+$$
+
+## 次元圧縮
+
+::: box 【定理】スペクトル分解の別表現
+##### 主張
+実対称行列$bold(A) in RR^(d times d)$のスペクトル分解は以下のように表される。
+$$
+bold(A) = sum_(i=1)^d lambda_i bold(u)_i bold(u)_i^top
+$$
+ここで、$lambda_i$は$bold(A)$の固有値、$bold(u)_i$は対応する正規化された固有ベクトルである。
+
+##### 証明
+実対称行列$bold(A)$のスペクトル分解は以下で表される。
+$$
+bold(A) = bold(Q) bold(D) bold(Q)^top
+$$
+ここで、$bold(Q) = (bold(u)_1, bold(u)_2, dots.c, bold(u)_d)$は直行行列、$bold(D) = "diag"(lambda_1, lambda_2, dots.c, lambda_d)$は対角行列である。これを展開すると、
+$$
+bold(A) &= (bold(u)_1, bold(u)_2, dots.c, bold(u)_d) mat(
+lambda_1, 0, dots.c, 0;
+0, lambda_2, dots.c, 0;
+dots.v, dots.v, dots.down, dots.v;
+0, 0, dots.c, lambda_d) mat(
+bold(u)_1^top;
+bold(u)_2^top;
+dots.c;
+bold(u)_d^top)\
+&= lambda_1 bold(u)_1 bold(u)_1^top + lambda_2 bold(u)_2 bold(u)_2^top + dots.c + lambda_d bold(u)_d bold(u)_d^top\
+&= sum_(i=1)^d lambda_i bold(u)_i bold(u)_i^top
+$$
+が成り立つ。
+:::
+
+::: box 【定義】対角成分の和（トレース）
+行列$bold(A) in RR^(d times d)$の対角成分の和は**トレース**（trace）と呼ばれ、以下で定義される。
+$$
+tr(bold(A)) = sum_(i=1)^d a_(i i)
+$$
+:::
+
+::: box 【定理】トレースの性質
+##### 主張
+行列$bold(a), bold(b) in RR^d$に対して、以下の等式が成り立つ。
+$$
+tr(bold(a) bold(b)^top) = bold(b)^top bold(a)
+$$
+
+##### 証明
+行列$bold(a) bold(b)^top in RR^(d times d)$の対角成分の和は以下で計算できる。
+$$
+tr(bold(a) bold(b)^top) &= sum_(i=1)^d (bold(a) bold(b)^top)_(i i)\
+&= sum_(i=1)^d a_i b_i\
+&= bold(b)^top bold(a)
+$$
+:::
+
+
+この定理を用いると、分散共分散行列$bold(S)$の対角成分の和$tr(bold(S))$は以下のように表される。
+
+$$
+tr(bold(S)) &= tr(sum_(i=1)^d lambda_i bold(u)_i bold(u)_i^top )\
+&= sum_(i=1)^d lambda_i tr(bold(u)_i bold(u)_i^top )\
+&= sum_(i=1)^d lambda_i (bold(u)_i^top bold(u)_i)  quad (because  tr(bold(a) bold(b)^top) = bold(b)^top bold(a))\
+&= sum_(i=1)^d lambda_i  quad (because  ||bold(u)_i||_2^2 = 1)
+$$
+
+したがって、分散共分散行列$bold(S)$の対角成分の和は意味的には、データセット$cal(D)_s$の全ての次元にわたる分散の総和を表していることがわかる。なぜなら、定義より
+$$
+tr(bold(S)) &= sum_(j=1)^d bold(S)_(j j) = sum_(j=1)^d (1/n sum_(i=1)^n (x_(i j) - overline(x)_j)^2)\
+&= sum_(i=1)^n "Var"[bold(x)_j]
+$$
+であるからである。つまり、全ての次元にわたる分散の総和は共分散行列$bold(S)$の固有値の総和と等しい。$lambda_k$は第$k$主成分に対応する固有値であり、それは第$k$主成分が表現する分散の大きさを示していた。（最大化の対象であった）これらを用いて以下の2つの指標が定義される。
+
+::: box 【定義】寄与率と累積寄与率
+データセット$cal(D)_s$の第$k$主成分に対応する**寄与率**（contribution ratio）$"cr"_k$は以下で定義される。
+$$
+"cr"_k = lambda_k / (sum_(i=1)^d lambda_i) = lambda_k / (lambda_1 + lambda_2 + dots.c + lambda_d)
+$$
+また、**累積寄与率**（cumulative contribution ratio）$"ccr"_k$は以下で定義される。
+$$
+"ccr"_k = (sum_(i=1)^k lambda_i) / (sum_(i=1)^d lambda_i) = (lambda_1 + lambda_2 + dots.c + lambda_k) / (lambda_1 + lambda_2 + dots.c + lambda_d)
+$$
+:::
+
+この二つの指標は主成分分析における次元圧縮の際に重要な役割を果たす。寄与率$"cr"_k$は第$k$主成分がデータの全体の分散に対してどれだけ寄与しているかを示し、累積寄与率$"ccr"_k$は最初の$k$主成分がデータの全体の分散のうちどれだけを説明しているかを示す。例えば、累積寄与率$"ccr"_k$が高い場合、最初の$k$主成分だけでデータの大部分の情報を保持できることを意味する。
+

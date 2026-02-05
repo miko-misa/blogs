@@ -2,9 +2,9 @@
 ## クラスタ分析
 **クラスタ分析**（clustering analysis; クラスタリング）とは、データをいくつかのグループ（**クラスタ**）に分ける手法の総称である。クラスタ分析は教師なし学習の一種であり、データにラベルが付与されていない場合でもデータを分類できる。つまり、分類問題とは違い、あらかじめデータがどのグループに属するかが分かっていなくても、データをグループに分けることができる。
 
-各事例を$RR^d$のベクトルとしたデータセット$cal(D) = {bold(x)_1, bold(x)_2, ..., bold(x)_n}$を考えられる。このデータセットをクラス$C_1, C_2, ..., C_k$に分割することを考える。ここで、$K$はクラス数で各$C_i$は事例の添え字（インデックス）の集合であり以下の条件を満たす。
+各事例を$RR^d$のベクトルとしたデータセット$cal(D) = {bold(x)_1, bold(x)_2, dots.c, bold(x)_n}$を考えられる。このデータセットをクラス$C_1, C_2, dots.c, C_k$に分割することを考える。ここで、$K$はクラス数で各$C_i$は事例の添え字（インデックス）の集合であり以下の条件を満たす。
 
-- $union.big_(i=1)^K C_i = {1, 2, ..., n}$ （すべての事例がいずれかのクラスに属する）
+- $union.big_(i=1)^K C_i = {1, 2, dots.c, n}$ （すべての事例がいずれかのクラスに属する）
 - $i eq.not j => C_i union C_j = emptyset$ （異なるクラスは共通の事例を持たない）
 
 ## k-means法
@@ -20,13 +20,13 @@ $$
 $$
 cal(J) = sum_(i=1)^K sum_(j in C_i) ||bold(x)_j - bold(mu)_i||_2^2
 $$
-この$cal(J)$を**歪み尺度**（distortion measure）や**クラスタ内平方和**（within-cluster sum of squares; WCSS）と呼ぶ。k-means法では、この$cal(J)$を最小化するようにクラス$C_1, C_2, ..., C_K$を決定する。
+この$cal(J)$を**歪み尺度**（distortion measure）や**クラスタ内平方和**（within-cluster sum of squares; WCSS）と呼ぶ。k-means法では、この$cal(J)$を最小化するようにクラス$C_1, C_2, dots.c, C_K$を決定する。
 
 ## Lloydのアルゴリズム
 k-means法で$cal(J)$を最小化するクラス分けを見つけるために、**Lloydのアルゴリズム**（Lloyd's algorithm）がよく用いられる。このアルゴリズムは以下の手順で行われる。
 
 ::: box Lloydのアルゴリズム
-1. 全てのクラスの中心ベクトル$bold(mu)_1, bold(mu)_2, ..., bold(mu)_K$をランダムに初期化する。
+1. 全てのクラスの中心ベクトル$bold(mu)_1, bold(mu)_2, dots.c, bold(mu)_K$をランダムに初期化する。
 2. 各事例$bold(x)_j$について、最も近い中心ベクトル$bold(mu)_(hat(k)(j))$を見つけ、その事例をクラス$C_(hat(k)(j))$に割り当てる。
     $$
     hat(k) (j) &:= op("argmin", limits: #true)_(k in {1, 2, dots, K}) ||bold(x)_j - bold(mu)_k||_2

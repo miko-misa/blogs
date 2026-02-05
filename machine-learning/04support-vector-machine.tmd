@@ -9,7 +9,7 @@
 $$
 g(bold(x)) = sum_(i=1)^d w_i x_i + b
 $$
-ここで、$bold(w) = (w_1, w_2, ..., w_d)^top$は重みベクトル、$b$はバイアス項である。分類は、$g(bold(x))$の符号に基づいて行われ、具体的には以下のように定義される。
+ここで、$bold(w) = (w_1, w_2, dots.c, w_d)^top$は重みベクトル、$b$はバイアス項である。分類は、$g(bold(x))$の符号に基づいて行われ、具体的には以下のように定義される。
 $$
 hat(y) = f(bold(x)) = cases(
 +1 quad & "if " g(bold(x)) > 0,
@@ -78,7 +78,7 @@ $$
 である。つまり、これを最小化する$bold(w)$は無数に存在する。したがって、最適化問題としては適していない。そこで、
 $$
 min_i y_i (bold(w)^top bold(x)_i + b) &= 1\
-=> y_i (bold(w)^top bold(x)_i + b) &>= 1 quad (forall i=1,2,...,n)
+=> y_i (bold(w)^top bold(x)_i + b) &>= 1 quad (forall i=1,2,dots.c,n)
 $$
 という制約を課すことにする。これにより、$bold(w)$のスケールが固定されることになる。すると、マージンは
 $$
@@ -87,7 +87,7 @@ $$
 となる。したがって、マージンを最大化することは$||bold(w)||_2$を最小化することと同値である。以上より、SVMの最適化問題は以下のように定式化される。
 $$
 w^ast, b^ast = min_(bold(w), b) 1/2||bold(w)||_2^2\
-"subject to" y_i (bold(w)^top bold(x)_i + b) >= 1 quad (forall i=1,2,...,n)
+"subject to" y_i (bold(w)^top bold(x)_i + b) >= 1 quad (forall i=1,2,dots.c,n)
 $$
 
 ::: box 【定義】subject to
@@ -99,7 +99,7 @@ $$
 $$
 cal(L)(bold(w), b, bold(alpha)) = 1/2||bold(w)||_2^2 - sum_(i=1)^n alpha_i (y_i (bold(w)^top bold(x)_i + b) - 1)
 $$
-ここで、$bold(alpha) = (alpha_1, alpha_2, ..., alpha_n)^top$はラグランジュ未定乗数であり、各$alpha_i >= 0$である。まずラグランジュ関数を$bold(w)$と$b$で偏微分し、それらを0に等しく設定する。
+ここで、$bold(alpha) = (alpha_1, alpha_2, dots.c, alpha_n)^top$はラグランジュ未定乗数であり、各$alpha_i >= 0$である。まずラグランジュ関数を$bold(w)$と$b$で偏微分し、それらを0に等しく設定する。
 $$
 &diff/(diff bold(w)) cal(L)(bold(w), b, bold(alpha)) = bold(w) - sum_(i=1)^n alpha_i y_i bold(x)_i = bold(0)\
 & quad quad => bold(w) = sum_(i=1)^n alpha_i y_i bold(x)_i\
@@ -117,7 +117,7 @@ $$
 ここで、$L(bold(alpha))$はラグランジュ関数における双対関数である。したがって、元の最適化問題は以下の双対問題に帰着される。
 $$
 bold(alpha)^ast = op("argmax", limits: #true)_(bold(alpha)) sum_(i=1)^n alpha_i -1/2 sum_(i=1)^n sum_(j=1)^n alpha_i alpha_j y_i y_j bold(x)_i^top bold(x)_j\
-"subject to" alpha_i >= 0 quad (forall i=1,2,...,n), sum_(i=1)^n alpha_i y_i = 0
+"subject to" alpha_i >= 0 quad (forall i=1,2,dots.c,n), sum_(i=1)^n alpha_i y_i = 0
 $$
 この双対問題は凸二次計画問題であり、様々な数値最適化手法を用いて解くことができる。例えば、逐次最小問題最適化法（Sequential Minimal Optimization; SMO）などがある。最適な$bold(alpha)^ast$が得られたら、対応する$bold(w)^ast$は以下のように計算される。
 $$
@@ -129,8 +129,8 @@ b^ast = y_k - bold(w)^ast^top bold(x)_k
 $$
 ここで、$k$は任意のサポートベクトルのインデックスである。また、Karush-Kuhn-Tucker (KKT) 条件により、以下の関係が成り立つ。
 $$
-alpha_i^ast (y_i (bold(w)^ast^top bold(x)_i + b^ast) - 1) &= 0 quad (forall i=1,2,...,n)\
-y_i (bold(w)^ast^top bold(x)_i + b^ast) - 1 &>= 0 quad (forall i=1,2,...,n)\
-alpha_i^ast &>= 0 quad (forall i=1,2,...,n)
+alpha_i^ast (y_i (bold(w)^ast^top bold(x)_i + b^ast) - 1) &= 0 quad (forall i=1,2,dots.c,n)\
+y_i (bold(w)^ast^top bold(x)_i + b^ast) - 1 &>= 0 quad (forall i=1,2,dots.c,n)\
+alpha_i^ast &>= 0 quad (forall i=1,2,dots.c,n)
 $$
 後半二つは制約条件そのものとなっている。これらの条件により、サポートベクトルは分類境界に最も近いデータ点であることが保証される。

@@ -4,7 +4,7 @@
 
 データ$cal(D)$は以下のように表現できる。
 $$
-cal(D) &:= {(x_1, y_1), (x_2, y_2), ..., (x_n, y_n)}\
+cal(D) &:= {(x_1, y_1), (x_2, y_2), dots.c, (x_n, y_n)}\
 &= {(x_i, y_i)}_(i=1)^n & in cal(P)(RR times RR)
 $$
 
@@ -301,14 +301,14 @@ $$
 ## 導入
 単回帰分析では説明変数は1つのスカラー値であったが、説明変数が複数のスカラー値からなる場合を考える。この手法を**重回帰分析**（multiple regression analysis）と呼ぶ。説明変数が$d$個のスカラー値からなる場合、説明変数はベクトル値$bold(x) in RR^d$として表現される。データ$cal(D)$は以下のように表現できる。
 $$
-cal(D) &:= {(bold(x)_1, y_1), (bold(x)_2, y_2), ..., (bold(x)_n, y_n)}\
+cal(D) &:= {(bold(x)_1, y_1), (bold(x)_2, y_2), dots.c, (bold(x)_n, y_n)}\
 &= {(bold(x)_i, y_i)}_(i=1)^n & in cal(P)(RR^d times RR)
 $$
 
 ::: box 【定義】ベクトル
 **ベクトル**（vector）とは、複数のスカラー値を1つにまとめたものである。例えば、$d$次元実ベクトル$bold(x) in RR^d$は以下で定義される。
 $$
-bold(x) := vec(x_1, x_2, dots.v, x_d) = (x_1, x_2, ..., x_d)^top
+bold(x) := vec(x_1, x_2, dots.v, x_d) = (x_1, x_2, dots.c, x_d)^top
 $$
 また、これは$d times 1$の行列としても解釈することができ、**縦ベクトル**（column vector）と呼ばれる。
 :::
@@ -318,7 +318,7 @@ $$
 :::
 
 ::: box 【注意】添え字と変数の種別
-ここで、約束事として変数の添え字ではない「本体」の部分がその変数の種別を表していて、$bold(x), bold(x)_1, bold(x)_n$などはすべてベクトルである。ただ、$bold(x)$の各成分はスカラー値であり、$x_1, x_2, ..., x_d$のように表現されることがある。$bold(x)_1$と$x_1$は全く別の変数であることに注意されたい。
+ここで、約束事として変数の添え字ではない「本体」の部分がその変数の種別を表していて、$bold(x), bold(x)_1, bold(x)_n$などはすべてベクトルである。ただ、$bold(x)$の各成分はスカラー値であり、$x_1, x_2, dots.c, x_d$のように表現されることがある。$bold(x)_1$と$x_1$は全く別の変数であることに注意されたい。
 :::
 
 ::: box 【注意】添え字の表現方法
@@ -332,15 +332,15 @@ $$
 
 このとき、予測関数$f: RR^d -> RR$（引数がベクトルになっていることに注意）は以下のように表現される。
 $$
-f(bold(x)) &:= w_1 x_1 + w_2 x_2 + ... + w_d x_d\
+f(bold(x)) &:= w_1 x_1 + w_2 x_2 + dots.c + w_d x_d\
 &= sum_(j=1)^d w_j x_j
 $$
-ただし、$bold(x) = (x_1, x_2, ..., x_d)^top$である。このとき、パラメータ$theta$は$(w_1, w_2, ..., w_d)$である。ここで、今まで考えてきた切片$b$が含まれていないように見える。が、実際には説明変数$bold(x)$の最初の成分$x_1$（もしくは最後の成分）を常に1に固定することで、切片$b$を含めることができる。すなわち、$bold(x) = (1, x_2, ..., x_d)^top$とする。このようにして、重回帰分析においても切片$b$を$w_1$として含めることができる。以降は上のような一般化された予測関数$f$を考えることにする。
+ただし、$bold(x) = (x_1, x_2, dots.c, x_d)^top$である。このとき、パラメータ$theta$は$(w_1, w_2, dots.c, w_d)$である。ここで、今まで考えてきた切片$b$が含まれていないように見える。が、実際には説明変数$bold(x)$の最初の成分$x_1$（もしくは最後の成分）を常に1に固定することで、切片$b$を含めることができる。すなわち、$bold(x) = (1, x_2, dots.c, x_d)^top$とする。このようにして、重回帰分析においても切片$b$を$w_1$として含めることができる。以降は上のような一般化された予測関数$f$を考えることにする。
 
 ## 計画行列
 重回帰分析では、説明変数がベクトル値であるため、計算を行う際に行列を用いることで見通しをよくすることができる。まず、パラメータを重み行列$bold(w)$として以下で定義する。
 $$
-bold(w) := (w_1, w_2, ..., w_d)^top in RR^d
+bold(w) := (w_1, w_2, dots.c, w_d)^top in RR^d
 $$
 このとき、予測関数$f$は以下のように表現できる。
 $$
@@ -363,20 +363,20 @@ $$
 $$
 bold(X) &:= vec(bold(x)_1^top, bold(x)_2^top, dots.v, bold(x)_n^top)\
 &= mat(
-x_11, x_12, ..., x_(1d);
-x_21, x_22, ..., x_(2d);
+x_11, x_12, dots.c, x_(1d);
+x_21, x_22, dots.c, x_(2d);
 dots.v, dots.v, dots.down, dots.v;
-x_(n 1), x_(n 2), ..., x_(n d)
+x_(n 1), x_(n 2), dots.c, x_(n d)
 ) in RR^(n times d)
 $$
 
-なお、$bold(x)_i = (x_(i 1), x_(i 2), ..., x_(i d))^top$である。また、目的変数をまとめたベクトル$bold(y)$を以下で定義する。
+なお、$bold(x)_i = (x_(i 1), x_(i 2), dots.c, x_(i d))^top$である。また、目的変数をまとめたベクトル$bold(y)$を以下で定義する。
 $$
-bold(y) := (y_1, y_2, ..., y_n)^top in RR^n
+bold(y) := (y_1, y_2, dots.c, y_n)^top in RR^n
 $$
 同様に、予測関数$f$によって得られた予測値をまとめたベクトル$hat(bold(y))$を以下で定義する。
 $$
-hat(bold(y)) := (hat(y)_1, hat(y)_2, ..., hat(y)_n)^top in RR^n
+hat(bold(y)) := (hat(y)_1, hat(y)_2, dots.c, hat(y)_n)^top in RR^n
 $$
 このとき、
 $$
@@ -397,7 +397,7 @@ $$
 bold(X) bold(w) &= vec(bold(x)_1^top, bold(x)_2^top, dots.v, bold(x)_n^top) bold(w)\
 &= vec(bold(x)_1^top bold(w), bold(x)_2^top bold(w), dots.v, bold(x)_n^top bold(w))\
 &= vec(f(bold(x)_1), f(bold(x)_2), dots.v, f(bold(x)_n)) quad (because f(bold(x)) = bold(x)^top bold(w))\
-&= vec(hat(y)_1, hat(y)_2, ..., hat(y)_n)\
+&= vec(hat(y)_1, hat(y)_2, dots.c, hat(y)_n)\
 &= hat(bold(y))
 $$
 :::
@@ -432,11 +432,11 @@ $$
 ::: box 【定義】ベクトルによる偏微分
 ベクトル$bold(a)$による偏微分作用素$(diff)/(diff bold(a))$は以下で定義される。
 $$
-(diff)/(diff bold(a)) := ((diff)/(diff a_1), (diff)/(diff a_2), ..., (diff)/(diff a_n))^top
+(diff)/(diff bold(a)) := ((diff)/(diff a_1), (diff)/(diff a_2), dots.c, (diff)/(diff a_n))^top
 $$
 例えば,スカラー関数$f$に対して$(diff f)/(diff bold(a))$は$f$をスカラーとみなし、作用素との積のように解釈される。
 $$
-(diff f)/(diff bold(a)) = (diff)/(diff bold(a)) f &= ((diff)/(diff a_1) f, (diff)/(diff a_2) f, ..., (diff)/(diff a_n) f)^top\
+(diff f)/(diff bold(a)) = (diff)/(diff bold(a)) f &= ((diff)/(diff a_1) f, (diff)/(diff a_2) f, dots.c, (diff)/(diff a_n) f)^top\
 &= vec((diff f)/(diff a_1), (diff f)/(diff a_2), dots.v, (diff f)/(diff a_n))
 $$
 :::
@@ -444,7 +444,7 @@ $$
 ::: box 【定義】勾配
 あるスカラー関数$f: RR^n -> RR$に関して、その**勾配**（gradient）$nabla f(bold(a))$は以下で定義される。
 $$
-nabla f(bold(a)) := (diff f)/(diff bold(a)) = ((diff f)/(diff a_1), (diff f)/(diff a_2), ..., (diff f)/(diff a_n))^top
+nabla f(bold(a)) := (diff f)/(diff bold(a)) = ((diff f)/(diff a_1), (diff f)/(diff a_2), dots.c, (diff f)/(diff a_n))^top
 $$
 
 ただし、$bold(a)$は$f$の引数全てを並べたベクトルであることに注意されたい。
@@ -505,17 +505,17 @@ $$
 :::
 
 ::: box 【定義】ヤコビアン
-あるベクトル値関数$bold(f): RR^m -> RR^n$に関して、下のように$f_1, f_2, ..., f_n: RR^m -> RR$をそれぞれ$bold(f)$の成分関数と表現することにする。
+あるベクトル値関数$bold(f): RR^m -> RR^n$に関して、下のように$f_1, f_2, dots.c, f_n: RR^m -> RR$をそれぞれ$bold(f)$の成分関数と表現することにする。
 $$
 bold(f)(bold(x)) := vec(f_1(bold(x)), f_2(bold(x)), dots.v, f_n(bold(x)))
 $$
 このとき、ベクトル値関数$bold(f)$の**ヤコビアン**（Jacobian）$J_(bold(f))(bold(x))$は以下で定義される。
 $$
 J_(bold(f))(bold(x)) := mat(
-(diff f_1)/(diff x_1), (diff f_1)/(diff x_2), ..., (diff f_1)/(diff x_m);
-(diff f_2)/(diff x_1), (diff f_2)/(diff x_2), ..., (diff f_2)/(diff x_m);
+(diff f_1)/(diff x_1), (diff f_1)/(diff x_2), dots.c, (diff f_1)/(diff x_m);
+(diff f_2)/(diff x_1), (diff f_2)/(diff x_2), dots.c, (diff f_2)/(diff x_m);
 dots.v, dots.v, dots.down, dots.v;
-(diff f_n)/(diff x_1), (diff f_n)/(diff x_2), ..., (diff f_n)/(diff x_m)
+(diff f_n)/(diff x_1), (diff f_n)/(diff x_2), dots.c, (diff f_n)/(diff x_m)
 ) in RR^(n times m)
 $$
 
@@ -640,10 +640,10 @@ $$
 解析解によって得られた予測関数$f_(theta^ast) (bold(x)) = bold(x)^top bold(w)^ast$は**回帰平面**（regression plane）と呼ばれる。この回帰平面にはいくつかの性質が成り立つ。ここでは、切片を含む場合について考える。切片を含む場合、計画行列$bold(X)$について、各行の最初の成分がすべて1になる。
 $$
 bold(X) = mat(
-1, x_(1 2), ..., x_(1 d);
-1, x_(2 2), ..., x_(2 d);
+1, x_(1 2), dots.c, x_(1 d);
+1, x_(2 2), dots.c, x_(2 d);
 dots.v, dots.v, dots.down, dots.v;
-1, x_(n 2), ..., x_(n d)
+1, x_(n 2), dots.c, x_(n d)
 )
 $$
 
@@ -670,16 +670,16 @@ $$
 この命題を分解してみるとそもそも$bold(X)^top$は
 $$
 bold(X)^top = mat(
-1, 1, ..., 1;
-x_(1 2), x_(2 2), ..., x_(n 2);
+1, 1, dots.c, 1;
+x_(1 2), x_(2 2), dots.c, x_(n 2);
 dots.v, dots.v, dots.v;
-x_(1 d), x_(2 d), ..., x_(n d)
+x_(1 d), x_(2 d), dots.c, x_(n d)
 )
 $$
 であるので各行は$j$番目の説明変数の値を並べたベクトルである。これをあえて,$bold(z)_j$とおく。これと$bold(epsilon)$の行列積が$bold(0)$になるということは、
 $$
 bold(X)^top bold(epsilon) &= vec(bold(z)_1^top bold(epsilon), bold(z)_2^top bold(epsilon), dots.v, bold(z)_d^top bold(epsilon)) = vec(0, 0, dots.v, 0) = bold(0)\
-bold(z)_j^top bold(epsilon) &= 0 quad ("for" j = 1, 2, ..., d)
+bold(z)_j^top bold(epsilon) &= 0 quad ("for" j = 1, 2, dots.c, d)
 $$
 であることを意味する。すなわち、訓練データの各説明変数と残差は直交していることを意味する。
 
@@ -800,15 +800,15 @@ $$
 ## 多項式回帰分析
 重回帰分析では説明変数が複数のスカラー値からなる場合を考えたが、説明変数が1つのスカラー値であっても、予測関数$f$が線形関数でない場合を考えることができる。この手法を**多項式回帰分析**（polynomial regression analysis）と呼ぶ。つまり、予測関数を以下のように定義する。
 $$
-f(x) := w_0 + w_1 x + w_2 x^2 + ... + w_d x^d = sum_(j=0)^d w_j x^j
+f(x) := w_0 + w_1 x + w_2 x^2 + dots.c + w_d x^d = sum_(j=0)^d w_j x^j
 $$
-このとき、パラメータ$theta$は$(w_0, w_1, w_2, ..., w_d)$である。しかしここで、訓練データ$cal(D)_s = {(x_i, y_i)}_(i=1)^n$について次のような計画行列を定義する。
+このとき、パラメータ$theta$は$(w_0, w_1, w_2, dots.c, w_d)$である。しかしここで、訓練データ$cal(D)_s = {(x_i, y_i)}_(i=1)^n$について次のような計画行列を定義する。
 $$
 bold(X) := mat(
-1, x_1, x_1^2, ..., x_1^d;
-1, x_2, x_2^2, ..., x_2^d;
+1, x_1, x_1^2, dots.c, x_1^d;
+1, x_2, x_2^2, dots.c, x_2^d;
 dots.v, dots.v, dots.v, dots.down, dots.v;
-1, x_n, x_n^2, ..., x_n^d
+1, x_n, x_n^2, dots.c, x_n^d
 ) in RR^(n times (d+1))
 $$
 つまり、$x_i^j$を$j$番目の説明変数$x_(i j)$とみなす。このとき、これは$d+1$次元の説明変数を持つ重回帰分析とみなすことができる。以降の議論は重回帰分析と同様である。
