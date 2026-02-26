@@ -1,0 +1,756 @@
+# 微分積分学
+## 1変数スカラー関数
+関数$f: RR -> RR$は高校数学から馴染みのある関数で、入力も出力も実数値を取る。このような関数に対する微分は、多くの場合以下のように定義されてきた。
+$$
+f^prime (x) = lim_(h->0) frac(f(x+h) - f(x), h)
+$$
+しかし、多変数に拡張するにあたりより一般的な性質である**一次近似**を用いて定義することが望ましい。一次近似とは、関数$f$が点$x$の近傍で線形関数で近似できることを意味する。
+
+すなわち、ある$r>0$が存在し、$|h| < r$の全ての$h$に対して、関数$f$が以下のように表せるとき、関数$f$は点$x$で一次近似可能であると言う。
+$$
+f(x+h) = f(x) + A h + epsilon(h)
+$$
+ここで、$A$は定数であり、$epsilon(h) = cal(o)(|h|) thin (h -> 0)$を満たす関数である。$cal(o)$はランダウの小記号で、以下のように定義される。
+
+::: box 【定義】ランダウの記号
+関数$f, g: RR -> RR$に対して、$f(x) = cal(o)(g(x)) thick thin (x -> a)$は、
+$$
+lim_(x->a) frac(f(x), g(x)) = 0
+$$
+であることを言う。
+:::
+
+この定義において、$A$は関数$f$の点$x$における微分係数であると定義される。すなわち、
+$$
+f^prime (x) = frac(d f(x), d x) = A
+$$
+である。この定義は、関数$f$が点$x$の近傍で線形関数で近似できることを意味しており、分の概念をより一般的な形で捉えることができるようになる。
+
+## 多変数関数
+以下で定義するベクトルを入力と出力に用いることで、関数$bold(f): RR^n -> RR^m$を定義することができる。ここで、$n$は入力の次元数、$m$は出力の次元数である。ここでは、このような関数を多変数ベクトル値関数と呼ぶことにする。$bold(f)$を以下のようにして分解し、$f_1, f_2, ..., f_m: RR^n -> RR$を$bold(f)$の成分関数と呼ぶことにする。
+$$
+bold(f)(bold(x)) = (f_1(bold(x)), f_2(bold(x)), ..., f_m (bold(x)))^top
+$$
+
+### ベクトル
+ここではベクトルをここで当たり障りない範囲で定義する。本来であれば数学的にはより抽象的な概念であるが、ここでは実用的な範囲で定義することにする。
+
+実数を$n$個集めた順序付きの組を$n$次元ベクトルと呼ぶことにする。数の組は下のように縦に並べて表すこととする。
+$$
+bold(x) = vec(x_1, x_2, dots.v, x_n)
+$$
+なお、ベクトル変数は太字で表すことにする。また、スペースの関係で横に並べて書いて行列の転置記号をつけて表すこともある。
+$$
+bold(x) = (x_1, x_2, dots.c, x_n)^top
+$$
+$n$次元ベクトル全体の集合を$RR^n$と表すことにし、$n$次元ベクトルは$1 times n$行列であるとみなすことにし、行列と同じ演算を与えるとする。すなわち、ベクトルの和やスカラー倍は行列の和やスカラー倍と同じように定義される。
+
+また、標準基底として$bold(e)_i thick (i = 1,2, dots.c, n)$を定義する。これは、$i$番目の成分が1で、他の成分が0であるベクトルである。
+
+### ノルム
+
+ベクトル間の距離を定義するために、ベクトル空間$RR^n$にノルム$||dot.c||: RR^n -> RR$を好きに定義することにする。ノルムは以下の条件を満たすものである。
+- **非負性**: $||bold(x)|| >= 0$
+- **正定性**: $||bold(x)|| = 0$ならば$bold(x) = bold(0)$
+- **斉次性**: 任意の実数$alpha$とベクトル$bold(x)$に対して、$||alpha bold(x)|| = |alpha| ||bold(x)||$が成り立つ。
+- **三角不等式**: 任意のベクトル$bold(x), bold(y)$に対して、$||bold(x) + bold(y)|| <= ||bold(x)|| + ||bold(y)||$が成り立つ。
+
+これらの条件を満たす関数はノルムと呼ばれる。ノルムが定義されているベクトル空間はノルム空間と呼ばれる。ノルム空間において、ベクトルの距離を定義することができる。ベクトル$bold(x), bold(y)$の距離は、$||bold(x) - bold(y)||$で定義される。ノルムを定義して初めて収束や連続などの概念をその空間上で定義することができるようになるが、ここではそれらの定義は省略することにする。
+
+有名なノルムの例として、ユークリッドノルムがある。ユークリッドノルムは以下のように定義される。
+$$
+||bold(x)||_2 = sqrt(x_1^2 + x_2^2 + dots.c + x_n^2)
+$$
+これはL2ノルムとも呼ばれる。ユークリッドノルムは、ベクトル空間$RR^n$において、ベクトルの距離を定義するために広く用いられている。ここでも基本的にユークリッドノルムを用いることにするが、他のノルムを用いても構わない。
+
+ここではノルムに関する重要な定理を証明する。
+
+::: box 【定理】ノルムの同値性定理
+
+#### 主張
+有限次元のベクトル空間上に二つの相異なるノルム$||dot.c||_a $および$||dot.c||_b$を定義する。このとき、どんな二つのノルムについてもある定数$c, C>0$が存在し、すべての$bold(x)$について
+$$
+c||bold(x)||_a <= ||bold(x)||_b <= C||bold(x)||_a
+$$
+が成り立つ。
+
+#### 証明
+この定理を証明するにあたり
+$$
+c||bold(x)||_1 <= ||bold(x)|| <= C||bold(x)||_1
+$$
+が全てのノルム$||dot.c||$の全ての$bold(x)$に成り立つことをまず示す。なお、$||dot.c||_1$はL1ノルムと呼ばれ
+$$
+||bold(x)||_1 := sum_(i=1)^n |x_i|
+$$
+と定義される。まず$C$の存在を示す。$bold(x) = display(sum_(i=1)^n x_i bold(e)_i)$なので、三角不等式及び斉次性から
+$$
+||bold(x)|| = abs(abs(sum_(i=1)^n x_i bold(e)_i)) <= sum_(i=1)^n ||x_i bold(e)_i|| = sum_(i=1)^n |x_i| ||bold(e)_i||
+$$
+ここで、$C = display(max_i) ||bold(e)_i||$とおくと、非負性から$C >= 0$であることが保証される。また、標準基底はゼロベクトルではないので正定性から$C eq.not 0$でありつまり、$C > 0$を満たす。この$C$を用いると
+$$
+||bold(x)|| <= sum_(i=1)^n |x_i| ||bold(e)_i|| <= C sum_(i=1)^n |x_i| = C||bold(x)||_1
+$$
+が成り立つ。このとき、三角不等式を用いると
+$$
+abs(||bold(x)|| - ||bold(y)||) <= ||bold(x) - bold(y)|| <= C||bold(x) - bold(y)||_1
+$$
+が成り立つ。つまり、全てのノルム関数はL1上連続である。正確に書き下すと$f(bold(x)) = ||bold(x)||$とすれば
+$$
+forall bold(x)_0 in RR^n, forall epsilon > 0, exists delta > 0, forall bold(x) "with" ||bold(x) - bold(x)_0||_1 < delta "s.t." abs(f(bold(x)) - f(bold(x)_0)) < epsilon
+$$
+である。
+
+さて、次に$c$の存在を証明する。L1ノルム空間上に単位球面$S$を定義する。
+$$
+S = { bold(x) in RR^n | ||bold(x)||_1 = 1 }
+$$
+この$S$は明らかに有界であり、$||dot.c||$はL1上連続な関数であることを先ほど示したので、Weierstrassの最小値最大値定理より、
+$$
+||bold(x)_"min"|| = c := min_(bold(x) in S) ||bold(x)||
+$$
+となる$bold(x)_"min"$が$S$の元に存在する。$||bold(x)_"min"||_1 = 1 => bold(x)_"min" eq.not bold(0)$（正定性）及びノルムの非負性から$c > 0$であることが保証される。以上より$bold(x) in S$に対しては
+$$
+||bold(x)|| >= c
+$$
+であることがわかる。次に任意のベクトル$bold(x)$について
+$$
+bold(u) = bold(x)/(||bold(x)||_1)
+$$
+を考えると、
+$$
+||bold(u)||_1 = abs(abs(bold(x)/(||bold(x)||_1)))_1 = frac(||bold(x)||_1, ||bold(x)||_1) = 1
+$$
+となるので、$bold(u) in S$であり、$||bold(u)|| >= c$であった。これを用いれば
+$$
+||bold(u)|| = frac(||bold(x)||, ||bold(x)||_1) &>= c\
+therefore ||bold(x)|| &>= c||bold(x)||_1
+$$
+が成り立つ。以上より、どんなノルムについても、L1ノルムとの間には定数$c, C > 0$が存在し、
+$$
+c||bold(x)||_1 <= ||bold(x)|| <= C||bold(x)||_1
+$$
+である。異なる2つの$||dot.c||_a$および$||dot.c||_b$についても以下が成り立つ。
+$$
+c_a||bold(x)||_1 <= ||bold(x)||_a <= C_a||bold(x)||_1\
+c_b||bold(x)||_1 <= ||bold(x)||_b <= C_b||bold(x)||_1
+$$
+これの第1式を変形すると、
+$$
+1/C_a||bold(x)||_a <= ||bold(x)||_1 <= 1/c_a||bold(x)||_a
+$$
+これを第2式に代入すると、
+$$
+c_b/C_a ||bold(x)||_a <= ||bold(x)||_b <= C_b/c_a ||bold(x)||_a
+$$
+となる。よって示された。
+
+:::
+
+この定理は、全てのノルムで同じように収束・発散・連続などのノルムを使った議論が可能であるということを示している。ノルムの値は違くてもその増減は同期している。
+
+### 内積
+ベクトル空間$RR^n$に内積を定義することもできる。内積$chevron.l thin dot.c thin , thin dot.c thin chevron.r: RR^n times RR^n -> RR$は、以下の条件を満たす関数である。
+- **線形性**: 任意のベクトル$bold(x), bold(y), bold(z) in RR^n$と任意の実数$alpha$に対して、$chevron.l alpha bold(x) + bold(y), bold(z) chevron.r = alpha chevron.l bold(x), bold(z) chevron.r + chevron.l bold(y), bold(z) chevron.r$が成り立つ。
+- **対称性**: 任意のベクトル$bold(x), bold(y) in RR^n$に対して、$chevron.l bold(x), bold(y) chevron.r = chevron.l bold(y), bold(x) chevron.r$が成り立つ。
+- **正定性**: 任意のベクトル$bold(x) in RR^n$に対して、$chevron.l bold(x), bold(x) chevron.r >= 0$が成り立ち、$chevron.l bold(x), bold(x) chevron.r = 0$ならば$bold(x) = bold(0)$が成り立つ。
+
+内積が定義されているベクトル空間は内積空間と呼ばれる。内積には有名なものとしてドット積があり、標準内積とも呼ばれる。ドット積は以下のように定義される。
+$$
+chevron.l bold(x), bold(y) chevron.r = bold(x) dot.c bold(y) = x_1 y_1 + x_2 y_2 + dots.c + x_n y_n
+$$
+ここでは、標準内積を用いることにする。また、ドット積はベクトルを行列をみなして以下のように表記でき、こちらの表記を頻繁に用いることにする。
+$$
+chevron.l bold(x), bold(y) chevron.r = bold(x) dot.c bold(y) = bold(x)^top bold(y)
+$$
+
+### 偏微分
+
+まず、多変数スカラー値関数について**偏微分**を定義する。偏微分は一見すると1変数関数における微分の拡張のように見えるが、実際にはそうではない。偏微分は、関数$f: RR^n -> RR$の点$bold(x)$において、ある特定の変数$x_i$に関する微分を定義するものである。
+
+::: box 【定義】多変数スカラー値関数の偏微分
+ある$r>0$が存在し、$|h| < r$の全ての$h$に対して、関数$f$が以下のように表せるとき、関数$f$は点$bold(x)$の変数$x_i$に関して偏微分可能であると言う。
+$$
+f(bold(x) + h bold(e)_i) = f(bold(x)) + A h + epsilon(h)
+$$
+$A in RR$は定数であり、$epsilon$は$epsilon(h) = cal(o)(|h|) thin (h -> 0)$を満たす関数である。このとき、$A$は関数$f$の点$bold(x)$の変数$x_i$に関する偏微分係数$display(frac(partial f (bold(x)), partial x_i))$であると定義される。
+すなわち、
+$$
+frac(partial f (bold(x)), partial x_i) = A
+$$
+である。
+
+:::
+これは、関数$f$を$x_i$にのみ依存する関数とみなしたときの微分係数である。
+
+これを多変数ベクトル値関数$bold(f): RR^n -> RR^m$に対しても同様に定義することができる。
+
+::: box 【定義】多変数ベクトル値関数の偏微分
+ある$r>0$が存在し、$|h| < r$の全ての$h$に対して、関数$bold(f): RR^n -> RR^m$が以下のように表せるとき、関数$bold(f)$は点$bold(x)$の変数$x_i$に関して偏微分可能であると言う。
+$$
+bold(f)(bold(x) + h bold(e)_i) = bold(f)(bold(x)) + bold(A) bold(h) + bold(epsilon)(h)
+$$
+ここで、$bold(A) in RR^m$は$m$次元ベクトルであり、$bold(epsilon)$は$bold(epsilon)(h) = cal(o)(|h|) thin (h -> 0)$を満たす関数である。このとき、$bold(A)$は関数$bold(f)$の点$bold(x)$の変数$x_i$に関する"**真の**"偏微分係数$diff_i bold(f)(bold(x))$であると定義される。すなわち、
+$$
+diff_i bold(f)(bold(x)) = bold(A)
+$$
+である。ここで、"真の"とつけたのは理由があり、後ほどに偏微分係数の別表記を定義することになる。
+:::
+
+スカラー値関数に対する偏微分は、関数を特定の変数にのみ依存する関数とみなしたときの微分係数であったが、ベクトル値関数に対する偏微分は、具体的にどのように表わされるのだろうか？実は、
+$$
+diff_i bold(f)(bold(x)) = (frac(partial f_1 (bold(x)), partial x_i), frac(partial f_2 (bold(x)), partial x_i), dots.c, frac(partial f_m (bold(x)), partial x_i))^top
+$$
+である。すなわち、ベクトル値関数の偏微分は、成分関数の偏微分を集めたベクトルである。これを定義に則して証明する。
+
+::: box 【定理】ベクトル値関数の偏微分の具体的表現
+
+#### 主張
+関数$bold(f): RR^n -> RR^m$が点$bold(x)$の変数$x_i$に関して偏微分可能であるとする。このとき、関数$bold(f)$の点$bold(x)$の変数$x_i$に関する偏微分係数は、関数$bold(f)$の成分関数の点$bold(x)$の変数$x_i$に関する偏微分係数を集めたベクトルである。すなわち、
+$$
+diff_i bold(f)(bold(x)) = (frac(partial f_1 (bold(x)), partial x_i), frac(partial f_2 (bold(x)), partial x_i), dots.c, frac(partial f_m (bold(x)), partial x_i))^top
+$$
+である。
+
+#### 証明
+関数$bold(f)$の点$bold(x)$の変数$x_i$に関して偏微分可能であるので、ある$r>0$が存在し、$|h| < r$の全ての$h$に対して、関数$bold(f)$が以下のように表せる。
+$$
+bold(f)(bold(x) + h bold(e)_i) = bold(f)(bold(x)) + diff_i bold(f)(bold(x)) h + bold(epsilon)(h)
+$$
+
+ここで、$bold(f)$の成分関数は$f_1, f_2, ..., f_m$であるので、上の式は以下のように成分ごとに表すことができる。
+$$
+vec(f_1(bold(x) + h bold(e)_i), f_2(bold(x) + h bold(e)_i), dots.v, f_m (bold(x) + h bold(e)_i)) = vec(f_1(bold(x)), f_2(bold(x)), dots.v, f_m (bold(x))) + diff_i bold(f)(bold(x)) h + vec(epsilon_1(h), epsilon_2(h), dots.v, epsilon_m (h))
+$$
+つまり、$j = 1,2, dots.c, m$に対して、以下の式が成り立つ。
+$$
+f_j (bold(x) + h bold(e)_i) = f_j (bold(x)) + [diff_i bold(f)(bold(x))]_j h + epsilon_j (h)
+$$
+
+ここで、$bold(epsilon)(h) = cal(o)(|h|) thin (h -> 0)$を満たす関数であるので、$epsilon_j (h) = cal(o)(|h|) thin (h -> 0)$を満たす関数である。各成分関数$f_j$は点$bold(x)$の変数$x_i$に関して偏微分可能であるので、ある$r_j > 0$が存在し、$|h| < r_j$の全ての$h$に対して、関数$f_j$が以下のように表せる。
+$$
+f_j (bold(x) + h bold(e)_i) = f_j (bold(x)) + (diff f_j (bold(x)))/(diff x_i) h + epsilon_j^prime (h)
+$$
+ここで、$A_j in RR$は定数であり、$epsilon_j^prime (h) = cal(o)(|h|) thin (h -> 0)$を満たす関数である。このとき、$A_j$は関数$f_j$の点$bold(x)$の変数$x_i$に関する偏微分係数であると定義される。すなわち、これらを連立すれば
+$$
+[diff_i bold(f)(bold(x))]_j h + epsilon_j (h) &= frac(partial f_j (bold(x)), partial x_i) h + epsilon_j^prime (h)\
+<=> [diff_i bold(f)(bold(x))]_j + frac(epsilon_j (h), h) &= frac(partial f_j (bold(x)), partial x_i) + frac(epsilon_j^prime (h), h)
+$$
+
+となる。両辺$h -> 0$とすると、$[diff_i bold(f)(bold(x))]_j$と$frac(partial f_j (bold(x)), partial x_i)$は$h$によらないので
+$$
+[diff_i bold(f)(bold(x))]_j = frac(partial f_j (bold(x)), partial x_i)
+$$
+となる。これが全ての$j = 1,2, dots.c, m$に対して成り立つので、
+$$
+diff_i bold(f)(bold(x)) = (frac(partial f_1 (bold(x)), partial x_i), frac(partial f_2 (bold(x)), partial x_i), dots.c, frac(partial f_m (bold(x)), partial x_i))^top
+$$
+である。
+:::
+
+
+### 微分（全微分）
+偏微分は特定の変数に関する一次近似であり、1変数関数の微分の拡張とは言えない。全変数に関する一次近似を用いて、関数$f: RR^n -> RR$の点$bold(x)$における微分を定義する。これを偏微分と区別して**全微分**と呼ぶこともある。
+
+関数$bold(f): RR^n -> RR^m$が点$bold(x)$の近傍で微分可能であるとは、ある$r>0$が存在し、$||bold(h)|| < r$の全ての$bold(h) in RR^n$に対して、関数$bold(f)$が以下のように表せるときである。
+$$
+bold(f)(bold(x) + bold(h)) = bold(f)(bold(x)) + A bold(h) + bold(epsilon)(bold(h))
+$$
+ここで、$bold(epsilon)(bold(h)) = cal(o)(||bold(h)||) thin (||bold(h)|| -> 0)$を満たす関数$bold(epsilon): RR^n -> RR^m$である。このとき、$A$は関数$bold(f)$の点$bold(x)$における"**真の**"微分係数$D bold(f) (bold(x))$であると定義される。すなわち、
+$$
+D bold(f) (bold(x)) =  A
+$$
+である。
+
+$bold(f)$は$m$次元ベクトルであるので、当然$A bold(h)$も$m$次元ベクトルでなければならない。$bold(h)$は$n$次元ベクトルであるので、$A$は$m times n$行列でなければならない。すなわち、$A in RR^(m times n)$である。したがって、関数$bold(f): RR^n -> RR^m$の点$bold(x)$における微分係数は$m times n$行列であると定義される。
+
+### ヤコビ行列（ヤコビアン）
+関数$bold(f)$のヤコビ行列（ヤコビアン）$J_bold(f) (bold(x))$は、以下のように定義される。
+$$
+J_bold(f) (bold(x)) := mat(
+frac(partial f_1(bold(x)), partial x_1), frac(partial f_1(bold(x)), partial x_2), dots.c, frac(partial f_1(bold(x)), partial x_n);
+frac(partial f_2(bold(x)), partial x_1), frac(partial f_2(bold(x)), partial x_2), dots.c, frac(partial f_2(bold(x)), partial x_n);
+dots.v, dots.v, dots.down, dots.v;
+frac(partial f_m (bold(x)), partial x_1), frac(partial f_m (bold(x)), partial x_2), dots.c, frac(partial f_m (bold(x)), partial x_n)
+) in RR^(m times n)
+$$
+
+さて、このヤコビアンは、関数$bold(f)$の点$bold(x)$における真の微分係数とどのような関係があるのだろうか？実は、ヤコビアンは関数$bold(f)$の点$bold(x)$における真の微分係数と同じものである。すなわち、
+$$
+D bold(f) (bold(x)) = J_bold(f) (bold(x))
+$$
+である。これを証明する。
+
+::: box 【定理】ヤコビアンは微分係数である
+
+#### 主張
+
+関数$bold(f): RR^n -> RR^m$が点$bold(x)$の近傍で微分可能であるとする。このとき、関数$bold(f)$の点$bold(x)$における真の微分係数は、関数$bold(f)$のヤコビ行列である。すなわち、
+$$
+D bold(f) (bold(x)) = J_bold(f) (bold(x))
+$$
+である。
+
+#### 証明
+関数$bold(f)$の点$bold(x)$において微分可能であるので、ある$r>0$が存在し、$||bold(h)|| < r$の全ての$bold(h) in RR^n$に対して、関数$bold(f)$が以下のように表せる。
+$$
+bold(f)(bold(x) + bold(h)) = bold(f)(bold(x)) + D bold(f) (bold(x)) bold(h) + bold(epsilon)(bold(h))
+$$
+
+ここで、$bold(epsilon)(bold(h)) = cal(o)(||bold(h)||) thin (||bold(h)|| -> 0)$である。
+ここで,$|h| < r$を取り、$bold(h) = h bold(e)_i$としても成り立つので、
+$$
+bold(f)(bold(x) + h bold(e)_i) = bold(f)(bold(x)) + D bold(f) (bold(x)) h bold(e)_i + bold(epsilon)(h bold(e)_i)
+$$
+である。このとき、明らかに$bold(f)$は偏微分可能であるので、ある$r_i > 0$が存在し、$|h| < r_i$の全ての$h$に対して、関数$bold(f)$が以下のように表せる。
+$$
+bold(f)(bold(x) + h bold(e)_i) = bold(f)(bold(x)) + frac(partial bold(f) (bold(x)), partial x_i) h + bold(epsilon)^prime (h)
+$$
+
+ここで、$bold(epsilon)^prime (h) = cal(o)(|h|) thin (h -> 0)$である。これらを連立すると、
+$$
+D bold(f) (bold(x)) h bold(e)_i + bold(epsilon)(h bold(e)_i) &= frac(partial bold(f) (bold(x)), partial x_i) h + bold(epsilon)^prime (h)\
+<=> D bold(f) (bold(x)) bold(e)_i + frac(bold(epsilon)(h bold(e)_i), h ||bold(e)_i||) ||bold(e)_i|| &= frac(partial bold(f) (bold(x)), partial x_i) + frac(bold(epsilon)^prime (h), h)
+$$
+
+両辺$h -> 0$とすると、
+$$
+frac(bold(epsilon)(bold(h)), bold(h)) = frac(bold(epsilon)(h bold(e)_i), |h| ||bold(e)_i||) -> 0 => frac(bold(epsilon)(h bold(e)_i), h ||bold(e)_i||) -> 0
+$$
+
+であり、$D bold(f) (bold(x)) bold(e)_i$と$frac(partial bold(f) (bold(x)), partial x_i)$は$h$によらないので、
+$$
+D bold(f) (bold(x)) bold(e)_i = frac(partial bold(f) (bold(x)), partial x_i)
+$$
+となる。$D bold(f) (bold(x))$は$m times n$行列であるので、$bold(e)_i$を掛けると、$D bold(f) (bold(x))$の第$i$列が得られる。したがって、$D bold(f) (bold(x))$の第$i$列は、関数$bold(f)$の点$bold(x)$の変数$x_i$に関する偏微分係数である。これが全ての$i = 1,2, dots.c, n$に対して成り立つので、
+$$
+D bold(f) (bold(x)) &= mat(
+frac(partial bold(f) (bold(x)), partial x_1), frac(partial bold(f) (bold(x)), partial x_2), dots.c, frac(partial bold(f) (bold(x)), partial x_n)
+)\
+&= mat(
+frac(partial f_1(bold(x)), partial x_1), frac(partial f_1(bold(x)), partial x_2), dots.c, frac(partial f_1(bold(x)), partial x_n);
+frac(partial f_2(bold(x)), partial x_1), frac(partial f_2(bold(x)), partial x_2), dots.c, frac(partial f_2(bold(x)), partial x_n);
+dots.v, dots.v, dots.down, dots.v;
+frac(partial f_m (bold(x)), partial x_1), frac(partial f_m (bold(x)), partial x_2), dots.c, frac(partial f_m (bold(x)), partial x_n)
+)\
+&= J_bold(f) (bold(x))
+$$
+
+:::
+
+
+### ナブラ
+今まで考えてきた微分、偏微分はある関数に対する作用素$display(frac(partial, partial x_i)), display(frac(d, d x))$を作用させることで表してきた。作用素は演算子とも呼ばれ$+$や$-$などの演算子と同じように、それ単体では意味を持たないものである。これらの作用素は右側に関数を取ることで、微分や偏微分を表すことができる。例えば、関数$f$の点$x$における微分は、作用素$display(frac(d, d x))$を関数$f$に作用させることで表すことができる。
+
+さて、新たな作用素として、**ナブラ**を定義しておこう。$RR^n$上のナブラは以下のように定義される。
+$$
+nabla := (frac(partial, partial x_1), frac(partial, partial x_2), dots.c, frac(partial, partial x_n))^top
+$$
+ナブラはベクトルのような見た目をしているが、実数を集めたものではなく、作用素を集めたものなのでベクトルではない。（つまり$RR^n$の元ではない）しかし、形式的にベクトルと同じ演算を与えることができる。例えば、ナブラを関数$f$に作用させると、以下のように形式的にベクトルの積を考えることができる。
+$$
+nabla f = (frac(partial f, partial x_1), frac(partial f, partial x_2), dots.c, frac(partial f, partial x_n))^top
+$$
+これはのちに勾配と呼ばれるものである。また、以下のように形式的に標準内積も取ることができる。
+$$
+nabla dot.c bold(v) = nabla^top bold(v) = frac(partial, partial x_1) v_1 + frac(partial, partial x_2) v_2 + dots.c + frac(partial, partial x_n) v_n
+$$
+このように、ナブラは形式的にベクトルのような演算を与えることができるが、あくまで作用素の集まりであることに注意する必要がある。
+
+### "偽の"微分係数
+"真の"微分係数のままでは、数値計算上不便なことがある。なので以下のように"偽の"微分係数を定義し、それを用いて導関数を定義する。関数$bold(f): RR^n -> RR^m$の点$bold(x)$の"偽の"微分係数は、以下のように定義される。
+
+$$
+frac(partial bold(f) (bold(x)), partial x_i) &:= (partial_i bold(f)(bold(x)))^top = (frac(partial f_1 (bold(x)), partial x_i), frac(partial f_2 (bold(x)), partial x_i), dots.c, frac(partial f_m (bold(x)), partial x_i))\
+frac(partial bold(f) (bold(x)), partial bold(x)) &:= (D bold(f)(bold(x)))^top = mat(
+frac(partial f_1(bold(x)), partial x_1), frac(partial f_2(bold(x)), partial x_1), dots.c, frac(partial f_m (bold(x)), partial x_1);
+frac(partial f_1(bold(x)), partial x_2), frac(partial f_2(bold(x)), partial x_2), dots.c, frac(partial f_m (bold(x)), partial x_2);
+dots.v, dots.v, dots.down, dots.v;
+frac(partial f_1(bold(x)), partial x_n), frac(partial f_2(bold(x)), partial x_n), dots.c, frac(partial f_m (bold(x)), partial x_n)
+)\
+$$
+
+$f$がスカラー値関数となっている場合、$f = (f_1)$であるとみなすことができるので、
+$$
+frac(partial f (bold(x)), partial bold(x)) = vec(frac(partial f (bold(x)), partial x_1), frac(partial f (bold(x)), partial x_2), dots.v, frac(partial f (bold(x)), partial x_n))
+$$
+
+ここで微分係数を$partial$で表しているのは関数を$bold(x)$のみの関数とみなしており、本質的に偏微分であるからである。なので、$bold(x)$以外にの変数があっても、$bold(x)$による偏微分は$bold(x)$以外の変数は定数とみなして全微分を取ることになる。多変数ベクトル値関数の微分、偏微分の定義はこれまで述べたとおりであるが、その定義を愚直に持ち出すよりは、偏微分を並べたベクトルや行列を定義と思い込む方がはるかに便利である。加えて、今定義した"偽の"微分係数は、数値計算上も便利である。
+
+ここではそれを"偽の"微分係数と呼んでいるが、実際にはこれも微分係数であるとみなすことができる。このように定義した微分係数は`denominator-layout notion`（分母レイアウト記法）と呼ばれている。以前定義された"真の"微分係数は`numerator-layout notion`（分子レイアウト記法）と呼ばれている。
+
+denominator-layout notionでは、$f: RR^n -> RR$について
+$$
+frac(partial f (bold(x)), partial bold(x)) = nabla f
+$$
+である。すなわち、スカラー値関数の微分は、ナブラを関数に作用させることで表すことができる。これも、denominator-layout notionを採用したからこそ成り立つ式である。
+
+微分係数を定義域全体またはその一部で定義できるとき、$display(frac(partial bold(f), partial bold(x)))$は引数$bold(x)$をとる関数として定義できる。これを**導関数**と呼ぶことにする。
+
+## 微分規則
+
+ここでは導関数の規則について以下を説明する。
+
+- **定数**
+  $$
+  frac(partial bold(c), partial bold(x)) = bold(O)
+  $$
+- **行列変換**
+  $$
+  frac(partial (bold(A) bold(x)), partial bold(x)) = bold(A)^top
+  $$
+- **線型結合**
+  $$
+  frac(partial (alpha bold(f) + beta bold(g)) (bold(x)), partial bold(x)) = alpha frac(partial bold(f) (bold(x)), partial bold(x)) + beta frac(partial bold(g) (bold(x)), partial bold(x))
+  $$
+- **連鎖律**
+  $$
+  frac(partial bold(f) (bold(g)(bold(x))), partial bold(x)) = frac(partial bold(g) (bold(x)), bold(x)) thin frac(partial bold(f)(bold(g)), bold(g))
+  $$
+- **標準内積**
+  $$
+  frac(partial (bold(u)^top bold(v)) (bold(x)), partial bold(x)) = frac(bold(u) (bold(x)), partial bold(x)) bold(v) (bold(x)) + frac(partial bold(v) (bold(x)), partial bold(x)) bold(u) (bold(x))
+  $$
+
+### 定数
+
+::: box 【定理】依存しないベクトルの微分
+
+#### 主張
+ベクトル$bold(c) in RR^m$が変数$bold(x) in RR^n$に依存しないとき、
+$$
+frac(partial bold(c), partial bold(x)) = bold(O)
+$$
+となる。
+
+#### 証明
+$bold(c)$を変数$bold(x)$を受け取る関数として、$bold(c)(bold(x)) = bold(c)$と定義する。このとき$bold(c)$は微分可能なので$r > 0$が存在し、$||bold(h)|| < r$となる全ての$bold(h)$に対し
+$$
+bold(c)(bold(x) + bold(h)) = bold(c)(bold(x)) + bold(A) bold(h) + bold(epsilon)(bold(h))
+$$
+と表せる。ただし、$bold(epsilon)(bold(h)) = cal(o)(||bold(h)||) thin (bold(h) -> bold(0))$である。しかし、ここで$bold(c)$は定数なので常に$bold(c)(bold(x) + bold(h)) = bold(c)(bold(x))$であり、
+$$
+bold(A) bold(h) + bold(epsilon)(bold(h)) = bold(0)\
+therefore bold(A) bold(h) = - bold(epsilon)(bold(h))
+$$
+両辺$||bold(h)||$で割り、$bold(h) = ||bold(h)||bold(e)$とおくと、
+$$
+bold(A) bold(e) = - epsilon(bold(h))/(||bold(h)||)
+$$
+となる。ここで、$||bold(h)|| -> 0$のとき、左辺は定数で右辺は$bold(0)$に収束する。つまり、
+$$
+bold(A) bold(e) = bold(0)
+$$
+これが任意の$||bold(e)|| = 1$を満たす$bold(e)$について成り立つ。つまり、任意の$bold(h)^prime$について
+$$
+bold(A) bold(h)^prime = bold(A)(||bold(h)^prime||bold(e)) = ||bold(h)^prime|| bold(A) bold(e) = bold(0)
+$$
+が成り立つ。このような行列は$bold(A) = bold(O)_(m times n)$のみ。よって、
+$$
+frac(partial bold(c), partial bold(x)) = bold(O)_(m times n)^top = bold(O)_(n times m)
+$$
+が成り立つ。
+
+:::
+
+### 行列変換
+
+::: box 【定理】行列変換の微分
+
+#### 主張
+関数$bold(f): RR^n -> RR^m$が$bold(f) (bold(x)) = bold(A) bold(x)$と表されるとする。なお$bold(A) in RR^(m times n)$は定数とする。このとき、
+$$
+frac(partial bold(f) (bold(x)), partial bold(x)) = bold(A)^top
+$$
+である。
+
+#### 証明
+$bold(f)$は微分可能なので、ある$r > 0$が存在し、$||bold(h)|| < r$となる全ての$bold(h)$に対し
+$$
+bold(f)(bold(x) + bold(h)) = bold(f)(bold(x)) + D bold(f)(bold(x)) bold(h) + bold(epsilon)(bold(h))
+$$
+と表せる。ただし、$bold(epsilon)(bold(h)) = cal(o)(||bold(h)||) thin (bold(h) -> bold(0))$である。関数を代入すれば
+$$
+bold(A)(bold(x) + bold(h)) = bold(A) bold(x) + bold(A) bold(h) = bold(A) bold(x) + D bold(f) (bold(x)) bold(h) + epsilon(bold(h))\
+therefore D bold(f) (bold(x)) bold(h) + epsilon(bold(h)) = bold(A) bold(h)
+$$
+が成り立つ。両辺$bold(h)$で割り、$bold(h) = ||bold(h)||bold(e)$とおくと、
+$$
+D bold(f) (bold(x)) bold(e) + epsilon(bold(h))/(||bold(h)||) = bold(A) bold(e)
+$$
+となる。ここで、$||bold(h)|| -> 0$のとき、$bold(e)$は$||bold(h)||$にはよらないので
+$$
+D bold(f) (bold(x)) bold(e) = bold(A) bold(e)
+$$
+が成り立つ。これは任意の$||bold(e)|| = 1$を満たす$bold(e)$について成り立つので、
+$$
+D bold(f) (bold(x)) = bold(A)
+$$
+が成り立つ。よって、
+$$
+frac(partial bold(f) (bold(x)), partial bold(x)) = D bold(f)(bold(x))^top = bold(A)^top
+$$
+が成り立つ。
+:::
+
+この定理から導かれる系として、
+$$
+frac(partial bold(x), partial bold(x)) = bold(I)
+$$
+がある。これは$bold(f)(bold(x)) = bold(I) bold(x)$とすれば$bold(I)^top = bold(I)$から明らかである。
+
+### 線型結合
+
+::: box 【定理】和の微分
+
+#### 主張
+関数$bold(f), bold(g): RR^n -> RR^m$について、その和$bold(f) + bold(g)$の導関数は以下のように表される。
+
+$$
+frac(partial (bold(f) + bold(g)) (bold(x)), partial bold(x)) = frac(partial bold(f) (bold(x)), partial bold(x)) + frac(partial bold(g) (bold(x)), partial bold(x))
+$$
+
+#### 証明
+$bold(f), bold(g)$は微分可能であるので、ある$r > 0$が存在し、$||bold(h)|| < r$となる全ての$bold(h)$に対し
+$$
+bold(f)(bold(x) + bold(h)) &= bold(f)(bold(x)) + D bold(f)(bold(x)) bold(h) + bold(epsilon_f)(bold(h))\
+bold(g)(bold(x) + bold(h)) &= bold(g)(bold(x)) + D bold(g)(bold(x)) bold(h) + bold(epsilon_g)(bold(h))
+$$
+が成り立つ。これを辺々加えれば
+$$
+bold(f)(bold(x) + bold(h)) + bold(g)(bold(x) + bold(h)) &= bold(f)(bold(x)) + bold(g)(bold(x)) + D bold(f)(bold(x)) bold(h) + D bold(g)(bold(x)) bold(h) + bold(epsilon_f)(bold(h)) + bold(epsilon_g)(bold(h))\
+therefore (bold(f) + bold(g))(bold(x) + bold(h)) &= (bold(f) + bold(g))(bold(x)) + (D bold(f)(bold(x)) + D bold(g)(bold(x))) bold(h) + (bold(epsilon_f)(bold(h)) + bold(epsilon_g)(bold(h)))
+$$
+ここで、$bold(epsilon)(bold(h)) := bold(epsilon_f)(bold(h)) + bold(epsilon_g)(bold(h))$と定義する。すると、
+$$
+(bold(epsilon)(bold(h)))/(||bold(h)||) = (bold(epsilon_f)(bold(h)) + bold(epsilon_g)(bold(h)))/(||bold(h)||) -> bold(0) quad (||bold(h)|| -> 0)
+$$
+なので、$bold(epsilon)(bold(h)) = cal(o)(||bold(h)||)$である。よって、$(bold(f) + bold(g))$は微分可能であり、
+$$
+D (bold(f) + bold(g))(bold(x)) = D bold(f)(bold(x)) + D bold(g)(bold(x))
+$$
+が成り立つ。両辺転置をとれば
+$$
+frac(partial (bold(f) + bold(g)) (bold(x)), partial bold(x)) &= (D (bold(f) + bold(g))(bold(x)))^top = D bold(f)(bold(x))^top + D bold(g)(bold(x))^top\
+&= frac(partial bold(f) (bold(x)), partial bold(x)) + frac(partial bold(g) (bold(x)), partial bold(x))
+$$
+が成り立つ。
+
+:::
+
+::: box 【定理】定数倍の微分
+
+#### 主張
+関数$bold(f): RR^n -> RR^m$と定数$c in RR$について、その定数倍$c bold(f)$の導関数は以下のように表される。
+
+$$
+frac(partial (c bold(f)) (bold(x)), partial bold(x)) = c frac(partial bold(f) (bold(x)), partial bold(x))
+$$
+
+#### 証明
+関数$bold(f)$は微分可能であるので、ある$r > 0$が存在し、$||bold(h)|| < r$となる全ての$bold(h)$に対し
+$$
+bold(f)(bold(x) + bold(h)) = bold(f)(bold(x)) + D bold(f)(bold(x)) bold(h) + bold(epsilon)(bold(h))
+$$
+と表せる。ただし、$bold(epsilon)(bold(h)) = cal(o)(||bold(h)||) thin (bold(h) -> bold(0))$である。この式に定数$c$をかけると
+$$
+c bold(f)(bold(x) + bold(h)) = c bold(f)(bold(x)) + c D bold(f)(bold(x)) bold(h) + c bold(epsilon)(bold(h))
+$$
+となる。ここで、$c bold(epsilon)(bold(h)) = cal(o)(||bold(h)||)$であることに注意すると、関数$c bold(f)$は微分可能であり、その導関数は以下のように表される。
+$$
+D (c bold(f))(bold(x)) = c D bold(f)(bold(x))
+$$
+両辺転置をとれば
+$$
+frac(partial (c bold(f)) (bold(x)), partial bold(x)) = D (c bold(f))(bold(x))^top = c D bold(f)(bold(x))^top = c frac(partial bold(f) (bold(x)), partial bold(x))
+$$
+が成り立つ。
+
+:::
+
+
+### 連鎖律
+1変数スカラー値関数$f,g$についてその合成関数$h = f compose g = f(g(x))$を考える。このとき$h$の導関数は
+$$
+frac(d h(x), d x) = frac(d h(g), d g) frac(d g(x), d x)
+$$
+となる。これはスカラー関数の微分の定義から証明できるのでここでは既知とする。
+
+
+多変数ベクトル値関数$bold(f): RR^n -> RR^m$と$bold(g): RR^l -> RR^n$について、合成関数$bold(h) = bold(f) compose bold(g): RR^l -> RR^m$を考える。このとき、合成関数の導関数は以下のように表される。
+$$
+underbracket(frac(partial bold(h) (bold(x)), partial bold(x)), l times m) = underbracket(frac(partial bold(g) (bold(x)), partial bold(x)), l times n) thin underbracket(frac(partial bold(f) (bold(g)), partial bold(g)), n times m)
+$$
+形からもわかるように$display(frac(partial bold(f) (bold(g)), partial bold(g)) frac(partial bold(g) (bold(x)), partial bold(x)))$ではないことに注意されたい。さてこれを"真の"微分係数を用いて証明しよう。まずは以下の補題を示しておく。
+
+::: box 【補題】行列による変換は上に有界
+
+#### 主張
+行列$bold(A) in RR^(m times n)$に対して、ある有限な定数$M > 0$が存在し、任意の$bold(x) in RR^n$に対して
+$$
+||bold(A) bold(x)|| <= M||bold(x)||
+$$
+が成り立つ。
+
+#### 証明
+$bold(x) = display(sum_(i=1)^n x_i bold(e_i))$である。これを代入すると、三角不等式と斉次性から、
+$$
+||bold(A) bold(x)|| = abs(abs(bold(A) sum_(i=1)^n x_i bold(e_i))) = sum_(i=1)^n abs(abs(x_i bold(A) bold(e_i))) <= sum_(i=1)^n |x_i| ||bold(A) bold(e_i)||
+$$
+となる。ここで、$||bold(A) bold(e_i)||quad (i=1,2,dots.c,n)$は有限個しかないので、そのうち最大のものを$K$とおく。これは当然有限である。すると、
+$$
+||bold(A) bold(x)|| <= K sum_(i=1)^n |x_i| = K||bold(x)||_1
+$$
+となる。ノルムの同値性より、ある$c, C>0$が存在し、
+$$
+c||bold(x)|| <= ||bold(x)||_1 <= C||bold(x)||
+$$
+が成り立つ。よって、
+$$
+||bold(A) bold(x)|| <= K||bold(x)||_1 <= (K C)||bold(x)||
+$$
+であり、$M=K C$とすれば証明が完了した。
+:::
+
+これを元に証明を行う。
+
+::: box 【定理】連鎖律
+#### 主張
+関数$bold(f): RR^n -> RR^m$と$bold(g): RR^l -> RR^n$が点$bold(x)$の近傍で微分可能であるとする。このとき、関数$bold(h) = bold(f) compose bold(g): RR^l -> RR^m$の導関数は以下のように表される。
+$$
+frac(partial bold(h) (bold(x)), partial bold(x)) = frac(partial bold(g) (bold(x)), partial bold(x)) thin frac(partial bold(f) (bold(g)), partial bold(g))
+$$
+
+#### 証明
+関数$bold(g)$は全微分可能であるので、ある$r>0$が存在し、$||bold(h_g)|| < r$の全ての$bold(h_g) in RR^l$に対して、関数$bold(g)$が以下のように表せる。
+$$
+bold(g)(bold(x) + bold(h_g)) = bold(g)(bold(x)) + D bold(g) (bold(x)) bold(h_g) + bold(epsilon_g)(bold(h_g))
+$$
+
+ここで$bold(epsilon_g)(bold(h_g)) = cal(o)(||bold(h_g)||) thin (bold(h_g) -> bold(0))$である。ここで、$bold(Delta g) := bold(g)(bold(x) + bold(h_g)) - bold(g)(bold(x))$と定義する。
+
+また、$bold(f)$も全微分可能であるので、ある$r'>0$が存在し、$||bold(h_f)|| < r'$の全ての$bold(h_f) in RR^n$に対して、関数$bold(f)$が以下のように表せる。
+$$
+bold(f)(bold(y) + bold(h_f)) = bold(f)(bold(y)) + D bold(f) (bold(y)) bold(h_f) + bold(epsilon_f)(bold(h_f))
+$$
+ここで$bold(epsilon_f)(bold(h_f)) = cal(o)(||bold(h_f)||) thin (bold(h_f) -> bold(0))$である。さて、
+$$
+bold(h)(bold(x) + bold(h_g)) = bold(f)(bold(g)(bold(x) + bold(h_g))) = bold(f)(bold(g)(bold(x)) + bold(Delta g))
+$$
+である。$bold(Delta g)$は$bold(h_g) -> bold(0)$のとき、$bold(Delta g) -> bold(0)$である。よって、$bold(h_g)$が十分小さければ、$||bold(Delta g)||$も十分小さくできる。なので、$bold(h_f) = bold(Delta g)$とすることができ、$bold(y) = bold(g)(bold(x))$とおくと
+$$
+bold(h)(bold(x) + bold(h_g)) &= bold(f)(bold(y) + bold(Delta g))\
+&= bold(f)(bold(y)) + D bold(f) (bold(y)) bold(Delta g) + bold(epsilon_f)(bold(Delta g))\
+&= bold(f)(bold(y)) + D bold(f) (bold(y)) (D bold(g) (bold(x)) bold(h_g) + bold(epsilon_g)(bold(h_g))) + bold(epsilon_f)(bold(Delta g))\
+&= bold(f)(bold(y)) + D bold(f) (bold(y)) thin D bold(g) (bold(x)) bold(h_g) + underbracket(D bold(f) (bold(y)) bold(epsilon_g)(bold(h_g)), A) + underbracket(bold(epsilon_f)(bold(Delta g)), B)
+$$
+ここで、$B$について考える。
+$$
+frac(bold(epsilon_f)(bold(Delta g)),||bold(h_g)||) &= frac(bold(epsilon_f)(bold(Delta g)),||bold(Delta g)||) frac(||bold(Delta g)||,||bold(h_g)||)\
+&= frac(bold(epsilon_f)(bold(Delta g)),||bold(Delta g)||) frac(||D bold(g) (bold(x)) bold(h_g) + bold(epsilon_g)(bold(h_g))||,||bold(h_g)||)\
+$$
+となる。ここで、
+$$
+frac(||D bold(g) (bold(x)) bold(h_g) + bold(epsilon_g)(bold(h_g))||,||bold(h_g)||) <= frac(||D bold(g) (bold(x)) bold(h_g)||,||bold(h_g)||) + frac(||bold(epsilon_g)(bold(h_g))||,||bold(h_g)||)\
+$$
+となる。先述した補題を用いれば、ある有限の$M >0$が存在しどんな$bold(x)$に対しても
+$$
+||D bold(g) (bold(x)) bold(h_g)|| <= M||bold(h_g)||
+$$
+となる。よって
+$$
+frac(||D bold(g) (bold(x)) bold(h_g) + bold(epsilon_g)(bold(h_g))||,||bold(h_g)||) <= M + frac(||bold(epsilon_g)(bold(h_g))||,||bold(h_g)||)\
+$$
+となる。ここで、$bold(epsilon_g)(bold(h_g)) = cal(o)(||bold(h_g)||) thin (bold(h_g) -> bold(0))$である。よって$display(frac(||D bold(g) (bold(x)) bold(h_g) + bold(epsilon_g)(bold(h_g))||,||bold(h_g)||))$は有限の値$0 <= alpha <= M$に収束する。また、$bold(epsilon_f)(bold(Delta g)) = cal(o)(||bold(Delta g)||)$である。$||bold(h_g)|| -> 0$のとき、$bold(Delta g) -> bold(0)$となるので、
+$$
+frac(B,||bold(h_g)||) = frac(bold(epsilon_f)(bold(Delta g)),||bold(h_g)||) -> bold(0) dot.c alpha = bold(0) quad (||bold(h_g)|| -> 0)
+$$
+である。加えて、$A$について考えると
+$$
+frac(A,||bold(h_g)||) = frac(D bold(f) (bold(y)) bold(epsilon_g)(bold(h_g)), ||bold(h_g)||) &= D bold(f) (bold(y)) frac(bold(epsilon_g)(bold(h_g)), ||bold(h_g)||)\
+&-> D bold(f) (bold(y)) bold(0) = bold(0) quad (||bold(h_g)|| -> 0)
+$$
+となる。よって、
+$$
+frac(A+B, ||bold(h_g)||) -> bold(0) quad (||bold(h_g)|| -> 0)
+$$
+なので、
+$$
+bold(epsilon_h) (bold(h_g)) := D bold(f) (bold(y)) bold(epsilon_g)(bold(h_g)) + bold(epsilon_f)(bold(Delta g)) = cal(o)(||bold(h_g)||) quad (bold(h_g) -> bold(0))
+$$
+とわかる。よって$bold(h)$は下のように一次近似できる。
+$$
+bold(h)(bold(x) + bold(h_g)) = bold(h)(bold(x)) + underbracket(D bold(f) (bold(y)) D bold(g) (bold(x)), D bold(h) (bold(x))) bold(h_g) + bold(epsilon_h)(bold(h_g))
+$$
+全微分の定義から
+$$
+D bold(h) (bold(x)) = D bold(f) (bold(g)(bold(x))) D bold(g) (bold(x))
+$$
+である。これが全ての定義された$bold(x)$で成り立つので転置を取れば、
+$$
+frac(partial bold(h), partial bold(x)) = (D bold(h) (bold(x)))^top &= (D bold(f) (bold(g)(bold(x))) D bold(g) (bold(x)))^top\
+&= (D bold(g) (bold(x)))^top (D bold(f) (bold(g)(bold(x))))^top\
+&= frac(partial bold(g), partial bold(x)) frac(partial bold(f), partial bold(g))
+$$
+のように表現できる。証明は完了した。
+:::
+
+### 標準内積（積）
+
+::: box 【定理】標準内積の微分
+
+#### 主張
+$bold(u), bold(v): RR^n -> RR^m$を微分可能な関数とする。このとき、標準内積$f = bold(u)^top bold(v)$の導関数は以下のように表される。
+$$
+frac(partial f (bold(x)), partial bold(x)) = frac(partial bold(u) (bold(x)), partial bold(x)) bold(v) (bold(x)) + frac(partial bold(v) (bold(x)), partial bold(x)) bold(u) (bold(x))
+$$
+
+#### 証明
+$bold(u), bold(v)$は微分可能なので、ある$r > 0$が存在し、$||bold(h)|| < r$を満たすすべての$bold(h)$に対して、
+$$
+bold(u)(bold(x) + bold(h)) &= bold(u)(bold(x)) + D bold(u) (bold(x)) bold(h) + bold(epsilon_u)(bold(h))\
+bold(v)(bold(x) + bold(h)) &= bold(v)(bold(x)) + D bold(v) (bold(x)) bold(h) + bold(epsilon_v)(bold(h))
+$$
+が成り立つ。ただし、$bold(epsilon_u)(bold(h)) = cal(o)(||bold(h)||)$、$bold(epsilon_v)(bold(h)) = cal(o)(||bold(h)||)$である。これを代入すると
+$$
+f( bold(x) + bold(h) ) &= bold(u)(bold(x) + bold(h))^top bold(v)(bold(x) + bold(h))\
+&= (bold(u)(bold(x))^top + bold(h)^top D bold(u) (bold(x))^top + bold(epsilon_u)(bold(h))^top) (bold(v)(bold(x)) + D bold(v) (bold(x)) bold(h) + bold(epsilon_v)(bold(h)))\
+&= bold(u)^top bold(v) + bold(u)^top D bold(v) bold(h) + bold(h)^top D bold(u)^top bold(v) + bold(h)^top D bold(u)^top D bold(v) bold(h)\
+& quad quad quad + bold(epsilon_u)(bold(h))^top bold(v)(bold(x) + bold(h)) + bold(u)(bold(x) + bold(h))^top bold(epsilon_v)(bold(h)) - bold(epsilon_u)(bold(h))^top bold(epsilon_v)(bold(h))
+$$
+となる。ただし、$bold(u) = bold(u)(bold(x))$、$bold(v) = bold(v)(bold(x))$である。各項はスカラーであるのでそれぞれ転置しても等しい。よって、
+$$
+f(bold(x) + bold(h)) &= f(bold(x)) + (D bold(v)^top bold(u))^top bold(h) + (D bold(u)^top bold(v))^top bold(h) + bold(h)^top D bold(u)^top D bold(v) bold(h)\
+&quad quad quad + bold(epsilon_u)(bold(h))^top bold(v)(bold(x) + bold(h)) + bold(u)(bold(x) + bold(h))^top bold(epsilon_v)(bold(h)) - bold(epsilon_u)(bold(h))^top bold(epsilon_v)(bold(h))\
+&= f(bold(x)) + (D bold(u)^top bold(v) + D bold(v)^top bold(u))^top bold(h) + underbracket(bold(h)^top D bold(u)^top D bold(v) bold(h), A)\
+& quad quad quad + underbracket(bold(epsilon_u)(bold(h))^top bold(v)(bold(x) + bold(h)) + bold(u)(bold(x) + bold(h))^top bold(epsilon_v)(bold(h)), B) - underbracket(bold(epsilon_u)(bold(h))^top bold(epsilon_v)(bold(h)), C)\
+$$
+である。$A,B,C$がそれぞれ$||bold(h)|| -> 0$で$cal(o)(||bold(h)||)$であることを示していく。まず$B$について、
+$$
+B/(||bold(h)||) &= ((bold(epsilon_u)(bold(h)))/(||bold(h)||))^top bold(v)(bold(x) + bold(h)) + bold(u)(bold(x) + bold(h))^top (bold(epsilon_v)(bold(h)))/(||bold(h)||)\
+&-> bold(0)^top bold(v)(bold(x)) + bold(u)(bold(x))^top bold(0) quad (||bold(h)|| -> 0)\
+&= 0 + 0 = 0 
+$$
+である。次に$C$について、$||bold(h)|| -> 0$を考えるにあたり、$||bold(h)|| < 1$であるとしてよくこのとき、
+$$
+C/(||bold(h)||) &<= C/(||bold(h)||^2) = ((bold(epsilon_u)(bold(h)))/(||bold(h)||))^top ((bold(epsilon_v)(bold(h)))/(||bold(h)||))\
+&-> bold(0)^top bold(0) quad (||bold(h)|| -> 0)\
+&= 0
+$$
+である。最後に$A$について、$bold(h) = ||bold(h)||bold(e)$とおくと、$bold(e)$は方向ベクトル（ノルムが1のベクトル）である。このとき、
+$$
+A/(||bold(h)||) &= (bold(h)^top D bold(u)^top D bold(v) bold(h))/(||bold(h)||) = (||bold(h)||^2 bold(e)^top D bold(u)^top D bold(v) bold(e))/(||bold(h)||)\
+&= ||bold(h)|| (bold(e)^top D bold(u)^top D bold(v) bold(e))\
+&-> 0 (bold(e)^top D bold(u)^top D bold(v) bold(e)) quad (||bold(h)|| -> 0)\
+&= 0
+$$
+である。つまり、$epsilon(bold(x)) := A + B - C$とおくと、$epsilon(bold(x)) = cal(o)(||bold(h)||)$である。よって、
+$$
+D f (bold(x)) = (D bold(u) (bold(x))^top bold(v) (bold(x)) + D bold(v) (bold(x))^top bold(u) (bold(x)))^top
+$$
+であり、転置を導入すれば導関数は
+$$
+frac(partial f (bold(x)), partial bold(x)) &= D bold(u) (bold(x))^top bold(v) (bold(x)) + D bold(v) (bold(x))^top bold(u) (bold(x))\
+&= frac(partial bold(u) (bold(x)), partial bold(x)) bold(v) (bold(x)) + frac(partial bold(v) (bold(x)), partial bold(x)) bold(u) (bold(x))
+$$
+となる。証明は完了した。
+:::

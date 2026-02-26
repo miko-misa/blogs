@@ -111,11 +111,11 @@ $$
 $$
 lambda_1 >= lambda_2 >= dots.c >= lambda_d >= 0
 $$
-である。ここで、$cal(L)$に、$bold(S) bold(u)_i = lambda_i bold(u)_i$を代入すると、
+である。ここで、$cal(S)$に、$bold(S) bold(u)_i = lambda_i bold(u)_i$を代入すると、
 $$
-cal(L) = bold(u)_i^top bold(S) bold(u)_i = bold(u)_i^top (lambda_i bold(u)_i) = lambda_i (bold(u)_i^top bold(u)_i) = lambda_i ||bold(u)_i||_2^2 = lambda_i
+cal(S) = bold(u)_i^top bold(S) bold(u)_i = bold(u)_i^top (lambda_i bold(u)_i) = lambda_i (bold(u)_i^top bold(u)_i) = lambda_i ||bold(u)_i||_2^2 = lambda_i
 $$
-となる。つまり、求めた固有値は$cal(L)$の値に対応している。したがって、最も大きい固有値$lambda_1$に対応する固有ベクトル$bold(u)_1$が主成分分析における最適解である。これを**第1主成分**（first principal component）と呼ぶ。
+となる。つまり、求めた固有値は$cal(S)$の値に対応している。したがって、最も大きい固有値$lambda_1$に対応する固有ベクトル$bold(u)_1$が主成分分析における最適解である。これを**第1主成分**（first principal component）と呼ぶ。
 
 ## 第2主成分以降
 第1主成分$bold(u)^ast$が求まった後、次に第2主成分$bold(v)^ast$を求めることができる。第2主成分は、第1主成分と直交する方向で、かつ分散が最大になるような方向ベクトルである。つまり、以下の最適化問題を解くことで求められる。
