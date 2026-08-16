@@ -1,11 +1,172 @@
 ```typst {scope=preamble}
-#let panel(body, fill: rgb("#eef2ff")) = box(
-  inset: (x: 9pt, y: 6pt),
-  radius: 4pt,
-  fill: fill,
-  stroke: rgb("#64748b") + 0.7pt,
-  body,
+#import "@preview/cetz:0.3.4"
+#import cetz.draw: circle, content, get-ctx, group, line, on-layer, set-ctx
+#set page(fill: white, margin: 4pt)
+#set text(font: ("New Computer Modern", "Noto Sans JP"))
+
+#let to-str(val) = if type(val) == label { str(val) } else { str(val) }
+
+#let nn-node(layer, i, anchor: none) = {
+  let base = to-str(layer) + "." + str(i)
+  if anchor == none { base } else { base + "." + anchor }
+}
+
+#let tensor(x) = $bold(cal(#x))$
+
+#let _nn-default-style = (
+  sep: 1.0,
+  radius: 0.2,
+  labels: none,
+  label-anchor: "center",
+  node-fill: white,
+  node-stroke: auto,
+  node-layer: 1,
+  from-anchor: none,
+  to-anchor: none,
+  edge-stroke: auto,
+  edge-layer: 0,
 )
+
+#let nn-style(..args) = {
+  let patch = args.named()
+
+  set-ctx(ctx => {
+    let current = _nn-default-style + ctx.at("nn-style", default: (:))
+    let updated = current + patch
+    return ctx + ("nn-style": updated)
+  })
+}
+
+#let nn-label-elem(labels, i, x, y, label-anchor) = {
+  if labels == auto {
+    cetz.draw.content((x, y), [#(i + 1)], anchor: label-anchor)
+  } else if labels != none and i < labels.len() {
+    let lab = labels.at(i)
+    if lab != none {
+      cetz.draw.content((x, y), lab, anchor: label-anchor)
+    } else {
+      ()
+    }
+  } else {
+    ()
+  }
+}
+
+#let nn-layer(
+  n,
+  name,
+  x: 0,
+  y: 0,
+  sep: auto,
+  radius: auto,
+  labels: auto,
+  label-anchor: auto,
+  node-fill: auto,
+  node-stroke: auto,
+  node-layer: auto,
+) = {
+  import cetz.draw: *
+
+  let name-str = to-str(name)
+
+  get-ctx(ctx => {
+    let style = _nn-default-style + ctx.at("nn-style", default: (:))
+
+    let sep = if sep == auto { style.sep } else { sep }
+    let radius = if radius == auto { style.radius } else { radius }
+    let labels = if labels == auto { style.labels } else { labels }
+    let label-anchor = if label-anchor == auto { style.label-anchor } else { label-anchor }
+
+    let node-fill = if node-fill == auto { style.node-fill } else { node-fill }
+    let node-stroke = if node-stroke == auto { style.node-stroke } else { node-stroke }
+    let node-layer = if node-layer == auto { style.node-layer } else { node-layer }
+
+    let register = set-ctx(ctx => {
+      let layers = ctx.at("nn-layers", default: (:))
+      layers.insert(name-str, (
+        n: n,
+        x: x,
+        y: y,
+        sep: sep,
+        radius: radius,
+      ))
+      ctx + ("nn-layers": layers)
+    })
+
+    let start-y = y + (n - 1) * sep / 2
+
+    let elems = range(n).fold((), (acc, i) => {
+      let idx = i + 1
+      let node-y = start-y - i * sep
+      (
+        acc
+          + circle(
+            (x, node-y),
+            radius: radius,
+            name: str(idx),
+            fill: node-fill,
+            stroke: node-stroke,
+          )
+          + nn-label-elem(labels, i, x, node-y, label-anchor)
+      )
+    })
+
+    register + on-layer(node-layer, group(name: name-str, elems))
+  })
+}
+
+#let connect-all(
+  from,
+  to,
+  from-anchor: auto,
+  to-anchor: auto,
+  edge-stroke: auto,
+  edge-layer: auto,
+) = {
+  import cetz.draw: *
+
+  let from-name = to-str(from)
+  let to-name = to-str(to)
+
+  get-ctx(ctx => {
+    let style = _nn-default-style + ctx.at("nn-style", default: (:))
+
+    let from-anchor = if from-anchor == auto { style.from-anchor } else { from-anchor }
+    let to-anchor = if to-anchor == auto { style.to-anchor } else { to-anchor }
+    let edge-stroke = if edge-stroke == auto { style.edge-stroke } else { edge-stroke }
+    let edge-layer = if edge-layer == auto { style.edge-layer } else { edge-layer }
+
+    let layers = ctx.at("nn-layers", default: (:))
+    let from-layer = layers.at(from-name, default: none)
+    let to-layer = layers.at(to-name, default: none)
+
+    if from-layer == none {
+      panic("Unknown layer name: " + from-name)
+    }
+    if to-layer == none {
+      panic("Unknown layer name: " + to-name)
+    }
+
+    on-layer(
+      edge-layer,
+      range(from-layer.n).fold((), (acc-i, i) => {
+        (
+          acc-i
+            + range(to-layer.n).fold((), (acc-j, j) => {
+              (
+                acc-j
+                  + line(
+                    nn-node(from-name, i + 1, anchor: from-anchor),
+                    nn-node(to-name, j + 1, anchor: to-anchor),
+                    stroke: edge-stroke,
+                  )
+              )
+            })
+        )
+      }),
+    )
+  })
+}
 ```
 
 # 生成モデル
@@ -24,21 +185,42 @@ $$
 
 {#fig-autoencoder}
 ```typst {render=svg caption="オートエンコーダの構造"}
-#set align(center)
-#grid(
-  columns: (auto, 18pt, auto, 18pt, auto, 18pt, auto, 18pt, auto),
-  gutter: 4pt,
-  align: center,
-  panel([$bold(x)$], fill: rgb("#dbeafe")),
-  [→],
-  panel([Encoder]),
-  [→],
-  panel([$bold(z)$], fill: rgb("#dcfce7")),
-  [→],
-  panel([Decoder]),
-  [→],
-  panel([$hat(bold(x))$], fill: rgb("#fef3c7")),
-)
+#align(center)[
+  #cetz.canvas(length: 15mm, {
+      import cetz.draw: *
+
+      nn-style(
+        radius: 5mm,
+      )
+
+      set-style(
+        stroke: 0.5pt,
+        content: (padding: 0pt),
+        circle: (fill: white),
+      )
+
+      nn-layer(3, <input>, x: 0.0, sep: 0.8, labels: none)
+      nn-layer(4, <en-h1>, x: 1.5, sep: 0.9, labels: none)
+      nn-layer(4, <en-h2>, x: 2.7, sep: 0.9, labels: none)
+      nn-layer(2, <z>, x: 4.2, sep: 0.8, labels: none)
+      nn-layer(4, <de-h1>, x: 5.7, sep: 0.9, labels: none)
+      nn-layer(4, <de-h2>, x: 6.9, sep: 0.9, labels: none)
+      nn-layer(3, <output>, x: 8.4, sep: 0.8, labels: none)
+
+      connect-all(<input>, <en-h1>)
+      connect-all(<en-h2>, <z>)
+      connect-all(<z>, <de-h1>)
+      connect-all(<de-h2>, <output>)
+
+      content((rel: (0, -2.6), to: "input.north"), $bold(x)$, anchor: "south")
+      content("en-h1", $dots.c$, anchor: "west", padding: 0.48)
+      content((2.1, 2), `Encoder`, anchor: "center")
+      content("de-h1", $dots.c$, anchor: "west", padding: 0.48)
+      content((rel: (0, -2.6), to: "output.north"), $hat(bold(x))$, anchor: "south")
+      content((rel: (0, -1.8), to: "z.north"), $bold(z)$, anchor: "south")
+      content((6.3, 2), `Decoder`, anchor: "center")
+})
+]
 ```
 
 ## 変分オートエンコーダ（VAE）
@@ -53,23 +235,54 @@ $$
 
 {#fig-vae}
 ```typst {render=svg caption="変分オートエンコーダの構造"}
-#set align(center)
-#grid(
-  columns: (auto, 16pt, auto, 16pt, auto, 16pt, auto, 16pt, auto, 16pt, auto),
-  gutter: 3pt,
-  align: center,
-  panel([$bold(x)$], fill: rgb("#dbeafe")),
-  [→],
-  panel([Encoder]),
-  [→],
-  panel([$bold(mu), bold(sigma)$], fill: rgb("#ede9fe")),
-  [⇢],
-  panel([Sample], fill: rgb("#fef3c7")),
-  [→],
-  panel([$bold(z)$], fill: rgb("#dcfce7")),
-  [→],
-  panel([Decoder $arrow.r$ $hat(bold(x))$]),
-)
+#align(center)[
+  #cetz.canvas(length: 15mm, {
+      import cetz.draw: *
+
+      nn-style(
+        radius: 5mm,
+      )
+
+      set-style(
+        stroke: 0.5pt,
+        content: (padding: 0pt),
+        circle: (fill: white),
+      )
+
+      nn-layer(3, <input>, x: 0.0, sep: 0.8, labels: none)
+      nn-layer(4, <en-h1>, x: 1.5, sep: 0.9, labels: none)
+      nn-layer(4, <en-h2>, x: 2.7, sep: 0.9, labels: none)
+      nn-layer(2, <mu-sigma>, x: 4.2, sep: 0.8, labels: none)
+
+      nn-layer(3, <z>, x: 6.2, sep: 0.8, labels: none)
+      nn-layer(4, <de-h1>, x: 7.7, sep: 0.9, labels: none)
+      nn-layer(4, <de-h2>, x: 8.9, sep: 0.9, labels: none)
+      nn-layer(3, <output>, x: 10.4, sep: 0.8, labels: none)
+
+      connect-all(<input>, <en-h1>)
+      connect-all(<en-h2>, <mu-sigma>)
+      connect-all(<z>, <de-h1>)
+      connect-all(<de-h2>, <output>)
+
+      line(
+        "mu-sigma.east",
+        "z.west",
+        stroke: (thickness: 0.5pt, dash: "dashed"),
+        mark: (end: ">", fill: black, stroke: (paint: black, dash: "solid")),
+      )
+
+      content(("mu-sigma.east", 0.6, "z.west"), text(size: 8pt)[サンプリング], anchor: "south", padding: 0.05)
+
+      content((rel: (0, -2.6), to: "input.north"), $bold(x)$, anchor: "south")
+      content("en-h1", $dots.c$, anchor: "west", padding: 0.48)
+      content((2.1, 2), `Encoder`, anchor: "center")
+      content("de-h1", $dots.c$, anchor: "west", padding: 0.48)
+      content((rel: (0, -2.6), to: "output.north"), $hat(bold(x))$, anchor: "south")
+      content((rel: (0, -1.8), to: "mu-sigma.north"), $bold(mu), bold(sigma)$, anchor: "south")
+      content((rel: (0, -2.6), to: "z.north"), $bold(z)$, anchor: "south")
+      content((8.3, 2), `Decoder`, anchor: "center")
+})
+]
 ```
 
 あるデータ$bold(x)$に対してそれが生成できるようになるとは、その尤度$p(bold(x))$を最大化することである。しかし、潜在変数を用いれば

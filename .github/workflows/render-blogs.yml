@@ -11,13 +11,14 @@ jobs:
 
     steps:
       - name: Checkout blogs
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
       - name: Download typmark-cli
         run: |
           python3 - <<'PY'
+          import hashlib
           import json
           import os
           import shutil
@@ -43,13 +44,23 @@ jobs:
             raise SystemExit("typmark-cli release asset not found")
 
           url = asset["browser_download_url"]
+          expected_digest = asset.get("digest", "")
+          if not expected_digest.startswith("sha256:"):
+            raise SystemExit("typmark-cli release digest not found")
+
           archive_path = "typmark-cli.tar.gz"
           urllib.request.urlretrieve(url, archive_path)
+          with open(archive_path, "rb") as archive:
+            actual_digest = "sha256:" + hashlib.file_digest(
+              archive, "sha256"
+            ).hexdigest()
+          if actual_digest != expected_digest:
+            raise SystemExit("typmark-cli release digest mismatch")
 
           extract_dir = "typmark-cli-bin"
           os.makedirs(extract_dir, exist_ok=True)
           with tarfile.open(archive_path, "r:gz") as tar:
-            tar.extractall(extract_dir)
+            tar.extractall(extract_dir, filter="data")
 
           binary_path = None
           for root, _, files in os.walk(extract_dir):
@@ -73,6 +84,55 @@ jobs:
             )
           print(f"Using TypMark {release_tag}")
           PY
+
+      - name: Install Typst figure dependencies
+        env:
+          TYPMARK_TYPST_PACKAGE_PATHS: ${{ runner.temp }}/typst-packages
+          TYPMARK_FONT_PATHS: ${{ runner.temp }}/typst-fonts/NotoSansJP.ttf
+        run: |
+          set -euo pipefail
+
+          install_package() {
+            name=$1
+            version=$2
+            checksum=$3
+            archive="$RUNNER_TEMP/$name-$version.tar.gz"
+            destination="$TYPMARK_TYPST_PACKAGE_PATHS/preview/$name/$version"
+
+            curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+              --location \
+              "https://packages.typst.org/preview/$name-$version.tar.gz" \
+              --output "$archive"
+            echo "$checksum  $archive" | sha256sum --check
+            mkdir -p "$destination"
+            tar --extract --gzip --file "$archive" --directory "$destination"
+          }
+
+          install_package cetz 0.3.2 \
+            6f26915b0629aa659139ed7884a7821497481ea9b64e03db05e8bbb742838f16
+          install_package cetz 0.3.4 \
+            4f4b5a8d311d519e749940a766fe50521e40c041129e1c91af0c42e61f307514
+          install_package cetz-plot 0.1.1 \
+            f057107e2c4bbfc92e2494054a22c90e146a22e0136ee04f68a7728347685d75
+          install_package fletcher 0.5.7 \
+            e1db0e39ccf7680005f166bda40ed6bd9dbcc1ee4ec465cf68238e11c0bc6994
+          install_package oxifmt 0.2.1 \
+            16fac2923032c59727de01e84d42cac45e8790da28df56effca49f4de41b09d9
+
+          font_repo=https://raw.githubusercontent.com/google/fonts
+          font_commit=352f6b7d9d6cc4fa9e242b931291d31b21a6dc84
+          font_file=ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf
+          font_checksum=c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f
+
+          mkdir -p "$(dirname "$TYPMARK_FONT_PATHS")"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+            --location "$font_repo/$font_commit/$font_file" \
+            --output "$TYPMARK_FONT_PATHS"
+          echo "$font_checksum  $TYPMARK_FONT_PATHS" | sha256sum --check
+
+          echo "TYPMARK_TYPST_PACKAGE_PATHS=$TYPMARK_TYPST_PACKAGE_PATHS" \
+            >> "$GITHUB_ENV"
+          echo "TYPMARK_FONT_PATHS=$TYPMARK_FONT_PATHS" >> "$GITHUB_ENV"
 
       - name: Render .tmd to HTML
         run: |
@@ -132,16 +192,34 @@ jobs:
               out_path = Path("site/blogs-content") / f"{out_rel}.html"
               out_path.parent.mkdir(parents=True, exist_ok=True)
 
-              html = subprocess.check_output(
+              rendered = subprocess.run(
                 [
                   "./typmark-cli",
                   "--render",
                   "--theme",
                   "dark",
+                  "--diagnostics",
+                  "pretty",
                   str(tmd_path),
-                ]
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
               )
-              out_path.write_bytes(html)
+              if rendered.returncode != 0 or rendered.stderr:
+                raise SystemExit(
+                  f"TypMark failed for {tmd_path}:\n"
+                  + rendered.stderr.decode("utf-8", errors="replace")
+                )
+
+              fallbacks = (
+                b'class="TypMark-math-inline--error',
+                b'class="TypMark-math-block--error',
+                b'<figure class="TypMark-typst-block TypMark-typst-error',
+              )
+              if any(marker in rendered.stdout for marker in fallbacks):
+                raise SystemExit(f"TypMark fallback in {tmd_path}")
+
+              out_path.write_bytes(rendered.stdout)
 
               pages.append({"slug": slug, "title": title, "path": out_rel})
 
@@ -182,7 +260,7 @@ jobs:
           fi
 
       - name: Checkout portfolio
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: miko-misa/portfolio
           token: ${{ secrets.PORTFOLIO_PUSH_TOKEN }}

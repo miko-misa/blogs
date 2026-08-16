@@ -1,3 +1,77 @@
+```typst {scope=preamble}
+#import "@preview/cetz:0.3.4"
+#import "@preview/fletcher:0.5.7": *
+#set page(fill: white, margin: 4pt)
+#set text(font: ("New Computer Modern", "Noto Sans JP"))
+#let tensor(content) = $bold(cal(content))$
+
+#let block_3d(
+  H: int, W: int, C: int,
+  origin_x: float,
+  origin_y: float,
+  origin_z: float,
+  color: black,
+  background: white,
+  width_size: 2pt,
+  is_braced: true,
+  text_H: "",
+  text_W: "",
+  text_C: "",
+  faces: "ftr",
+  top_rotate: 45deg,
+) = {
+  import cetz.draw: *
+  import cetz.decorations: *
+
+  let face_top = (
+    (origin_x, origin_y, origin_z),
+    (origin_x - W, origin_y, origin_z),
+    (origin_x - W, origin_y + C, origin_z),
+    (origin_x, origin_y + C, origin_z)
+  )
+
+  let face_front = (
+    (origin_x, origin_y, origin_z),
+    (origin_x, origin_y + C, origin_z),
+    (origin_x, origin_y + C, origin_z - H),
+    (origin_x, origin_y, origin_z - H)
+  )
+
+  let face_right = (
+    (origin_x, origin_y + C, origin_z),
+    (origin_x - W, origin_y + C, origin_z),
+    (origin_x - W, origin_y + C, origin_z - H),
+    (origin_x, origin_y + C, origin_z - H)
+  )
+
+  for face in faces.split(regex("")) {
+    if face == "f" {
+      line(..face_front, stroke: color, width: width_size, name: "face1", close: true, fill: background)
+    } else if face == "t" {
+      line(..face_top, stroke: color, width: width_size, name: "face1", close: true, fill: background)
+    } else if face == "r" {
+      line(..face_right, stroke: color, width: width_size, name: "face1", close: true, fill: background)
+    }
+  }
+
+
+  if true {
+    if text_W != "" {
+      flat-brace((origin_x, origin_y, origin_z), (origin_x - W, origin_y, origin_z), name: "input_W")
+      content("input_W", text_W, anchor: "south", padding: 0.2cm, angle: top_rotate)
+    }
+    if text_C != "" {
+      flat-brace((origin_x - W, origin_y, origin_z), (origin_x - W, origin_y + C, origin_z), name: "input_C")
+      content("input_C", text_C, anchor: "south", padding: 0.2cm)
+    }
+    if text_H != "" {
+      on-yz(flat-brace((origin_z, origin_y + C, W - origin_x),(origin_z - H, origin_y + C, W - origin_x), flip: true, name: "input_H"))
+      content("input_H", text_H, anchor: "south", padding: 0.2cm, angle: -90deg)
+    }
+  }
+}
+```
+
 # 畳み込みニューラルネットワーク
 
 ## 導入
@@ -5,10 +79,247 @@
 
 画像などの空間的な構造を持つデータに対しては、従来の全結合型のパーセプトロンではその空間構造を活かしにくい。なぜなら、パーセプトロンは特徴量の絶対位置に依存しやすいためである。畳み込み層では、局所受容野という考え方を導入する。データを局所的に切り取って処理することで、空間的な特徴を抽出することができる。さらに、それでは受容野ごとにパラメータを持ってしまうので、それらの処理を共有する重み共有の考え方を導入する。これにより、同じ特徴が異なる位置に現れても同じように処理されるようになる。
 
+{#fig-local-receptive-field}
+```typst {render=svg caption="局所受容野を持つ層の結合"}
+#align(center)[
+  #set text(size: 9pt, weight: 500)
+  #diagram(
+  node-stroke: black,
+  edge-corner-radius: none,
+  node-inset: 0pt,
+  spacing: (10pt, 24pt),
+  node-shape: "circle",
+
+  // Nodes
+  node((0,0), [$1$], name: <10>, width: 1.0cm),
+  node((0,1), [$2$], name: <11>, width: 1.0cm),
+  node((0,2), [$3$], name: <12>, width: 1.0cm),
+  node((0,3), [$dots.v$], name: <13>, width: 1.0cm, stroke: none),
+  node((0,4), [$n-2$], name: <14>, width: 1.0cm),
+  node((0,5), [$n-1$], name: <15>, width: 1.0cm),
+  node((0,6), [$n$], name: <16>, width: 1.0cm),
+
+  node((10,1), [$1$], name: <21>, width: 1.0cm),
+  node((10,2), [$2$], name: <22>, width: 1.0cm),
+  node((10,3), [$dots.v$], name: <23>, width: 1.0cm, stroke: none),
+  node((10,4), [$n-2$], name: <24>, width: 1.0cm),
+  node((10,5), [$n-1$], name: <25>, width: 1.0cm),
+
+  edge(<10>, <21>),
+  edge(<11>, <21>),
+  edge(<11>, <22>),
+  edge(<12>, <22>),
+  edge(<14>, <24>),
+  edge(<15>, <24>),
+  edge(<15>, <25>),
+  edge(<16>, <25>),
+  )
+]
+```
+
 画像はCNNでは複数のチャネルを持つ3次元テンソルで表現される。一般的に、画像は1ピクセルにつき複数のスカラー値を持つ。例えば、RGB画像は赤、緑、青の3チャネルを持ち、各チャネルはその色の強度を表すスカラー値を持つ。隠れ層の出力でも各ピクセルは多様な特徴を持つ。つまり、チャネル方向、縦方向、横方向の3次元テンソルで表現される。同様に、カーネルもチャネル方向、縦方向、横方向の3次元テンソルで表現され、一般的にそのチャネル数は入力のチャネル数と一致する。畳み込み演算は、入力$bold(X) in RR^(C times H times W)$中の受容野のカーネル$bold(K)^((k)) in RR^(C times U times V)$による重み付け和を計算することで1成分の計算を行う。受容野をスライドさせて全体を処理することで、チャネルが1の出力$bold(Y)^((k)) in RR^(1 times H' times W')$が得られる。スライド幅をストライドと呼び、縦と横についてそれぞれ$s_H, s_W$と表す。
 
 $$
  cal(Y)^((k))_(i, j) = sum_(c=0)^(C-1) sum_(u=0)^(U-1) sum_(v=0)^(V-1) cal(X)_(c, s_H i + u, s_W j + v) cal(K)^((k))_(c, u, v)
 $$
+
+{#fig-convolution}
+```typst {render=svg caption="3次元テンソルに対する畳み込み"}
+#align(center)[
+#cetz.canvas({
+  import cetz.draw: *
+  import cetz.decorations: *
+
+  set-transform(((-0.3, 1, 0, 0), (0.3, 0, -1, 0), (1, 0, 0, 0), (0, 0, 0, 1)))
+
+  block_3d(
+    H: 3.5, W: 3.8, C: 0.8,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 0,
+    is_braced: true,
+    text_H: $H$,
+    text_W: $W$,
+    text_C: $C_text("in")$,
+  )
+
+  content((0, 1, -4), text(size: 8pt)[入力$tensor(X)$])
+
+  line((-1.4, 1.9, -1.4), (-1.4, 3, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)))
+
+  block_3d(
+    H: 2.8, W: 3, C: 0.3,
+    origin_x: 0,
+    origin_y: 3.5,
+    origin_z: 0,
+    text_C: $1$
+  )
+
+  block_3d(
+    H: 2.8, W: 3, C: 0.3,
+    origin_x: 0,
+    origin_y: 4.0,
+    origin_z: 0,
+    text_C: $1$
+  )
+
+  content((-1.4, 4.9, -1.3), text(size: 16pt)[$dots$], fill: white)
+
+  block_3d(
+    H: 2.8, W: 3, C: 0.3,
+    origin_x: 0,
+    origin_y: 5.7,
+    origin_z: 0,
+    text_C: $1$
+  )
+
+  content((0, 5, -4), text(size: 8pt)[$tensor(Y)^((k))$])
+
+  flat-brace((0, 3.5, -2.8), (0, 6, -2.8), name: "stride_H", flip: true)
+  content("stride_H", [$C_text("out")$], anchor: "north", padding: 0.3)
+
+  line((-1.4, 7, -1.4), (-1.4, 9, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 1, "sum.end"), text(size: 7pt)[$C$方向に結合],anchor: "south", padding: 0.1)
+
+  block_3d(
+    H: 2.8, W: 3, C: 1.8,
+    origin_x: 0,
+    origin_y: 10,
+    origin_z: 0,
+    is_braced: true,
+    text_H: $H^prime$,
+    text_W: $W^prime$,
+    text_C: $C_text("out")$,
+  )
+
+  content((0, 11.2, -4), text(size: 8pt)[出力$tensor(Y)$])
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 0,
+    color: red,
+    width_size: 2pt,
+    background: red.transparentize(30%),
+  )
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: 0,
+    origin_y: -3,
+    origin_z: 1,
+    color: red,
+    width_size: 2pt,
+    background: red.transparentize(30%),
+    is_braced: true,
+    text_H: text(size: 8pt)[$f_H$],
+    text_W: text(size: 8pt)[$f_W$],
+    text_C: text(size: 8pt)[$C_text("in")$],
+  )
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: 0,
+    origin_y: -3,
+    origin_z: -0.2,
+    color: blue,
+    width_size: 2pt,
+    background: blue.transparentize(30%),
+  )
+
+  content((0, -2.4, -1.75), text(size: 16pt)[$dots.v$])
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: 0,
+    origin_y: -3,
+    origin_z: -2.7,
+    color: yellow,
+    width_size: 2pt,
+    background: yellow.transparentize(30%),
+  )
+
+
+  content((0, -2.4, -4.2), text(size: 8pt)[$C_text("out")$個のフィルター\ #set align(center)
+  $tensor(W)^((k))$])
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: -0.6,
+    origin_y: 0,
+    origin_z: 0,
+    color: red.transparentize(60%),
+    faces: "tr",
+    background: red.transparentize(60%),
+  )
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: -1.9,
+    origin_y: 0,
+    origin_z: -1.7,
+    color: blue,
+    faces: "r",
+    background: blue.transparentize(60%),
+  )
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: -0.7,
+    origin_y: 0,
+    origin_z: -2.3,
+    color: yellow,
+    faces: "r",
+    background: yellow.transparentize(60%),
+  )
+
+  block_3d(
+    H: 0.3, W: 0.32, C: 0.3,
+    origin_x: 0,
+    origin_y: 3.5,
+    origin_z: 0,
+    color: red,
+    background: red.transparentize(30%),
+  )
+  block_3d(
+    H: 0.3, W: 0.32, C: 0.3,
+    origin_x: -0.3,
+    origin_y: 3.5,
+    origin_z: 0,
+    color: red,
+    faces: "tr",
+    background: red.transparentize(60%),
+  )
+
+  block_3d(
+    H: 0.3, W: 0.32, C: 0.3,
+    origin_x: -1.7,
+    origin_y: 4.0,
+    origin_z: -1.7,
+    faces: "r",
+    color: blue,
+    background: blue.transparentize(30%),
+  )
+
+  block_3d(
+    H: 0.3, W: 0.32, C: 0.3,
+    origin_x: -0.7,
+    origin_y: 5.7,
+    origin_z: -2.1,
+    faces: "r",
+    color: yellow,
+    background: yellow.transparentize(30%),
+  )
+
+  line((0, -0.4, 0), (-1, -0.4, 0), mark: (end: "straight", xy-up: (0, 0, 1)), name: "stride_W")
+  content(("stride_W.start", 0.5, "stride_W.end"), text(size: 7pt)[$s_W$],anchor: "east", padding: 0.1)
+
+  line((0, 0.8, -0.83), (0, 3.5, -0.3), stroke: (paint: red, dash: "dotted"))
+  line((-0.93, 0.8, 0), (-0.32, 3.5, 0), stroke: (paint: red, dash: "dotted"))
+  // content((0, 5, -2.5), $times C_text("out")$)
+})
+]
+```
 
 ここで、異なる$K$個のカーネル$bold(K)^((1)), dots.c, bold(K)^((K))$について$bold(Y)^((1)), dots.c, bold(Y)^((K))$が得られるが、これをチャネル方向に連結することで、出力$bold(Y) in RR^(K times H' times W')$が得られる。ある1ピクセルに着目すると長さ$C$のベクトルを異なる$K$セットの長さ$C$のベクトルで重み付け和を取ることで、長さ$K$のベクトルが得られることになる。これは全結合層と似た計算である。

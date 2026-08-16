@@ -1,21 +1,9 @@
 ```typst {scope=preamble}
-#let panel(body, fill: rgb("#eef2ff")) = box(
-  inset: (x: 9pt, y: 6pt),
-  radius: 4pt,
-  fill: fill,
-  stroke: rgb("#64748b") + 0.7pt,
-  body,
-)
-#let stage(inputs, output, fill: rgb("#eef2ff")) = panel(
-  stack(
-    dir: ttb,
-    spacing: 3pt,
-    align(center, inputs),
-    align(center, [↓]),
-    align(center, output),
-  ),
-  fill: fill,
-)
+#import "@preview/cetz:0.3.4"
+#import "@preview/cetz-plot:0.1.1": plot
+#import "@preview/fletcher:0.5.7": *
+#set page(fill: white, margin: 4pt)
+#set text(font: ("New Computer Modern", "Noto Sans JP"))
 ```
 
 # 多層パーセプトロン
@@ -28,17 +16,38 @@
 
 {#fig-backprop}
 ```typst {render=svg caption="損失関数の傾きと最急降下法の更新方向"}
-#set align(center)
-#grid(
-  columns: (auto, 22pt, auto, 22pt, auto),
-  gutter: 5pt,
-  align: center,
-  panel([$theta_1$; slope $< 0$], fill: rgb("#dbeafe")),
-  [→],
-  panel([minimum $theta^*$], fill: rgb("#dcfce7")),
-  [←],
-  panel([$theta_2$; slope $> 0$], fill: rgb("#fee2e2")),
-)
+#let f(x) = (1 / x) * calc.sin((x - 10)) + calc.pow((x - 10),4) - 8 * calc.pow((x - 10),2) + 4 * (x - 10) + 40
+
+#align(center)[
+#cetz.canvas({
+  plot.plot(
+    size: (8, 3),
+    axis-style: "school-book",
+    x-min: 4,
+    x-label: [$p$],
+    y-label: [$cal(L)$],
+    x-max: 15,
+    y-min: -3,
+    y-max: 100,
+    x-tick-step: 6.5,
+    y-tick-step: none,
+    x-format: (v) => if v < 7 {
+      return $p_1$
+    } else {
+      return $p_2$
+    },
+    {
+      plot.add(domain: (1, 18),samples: 100, f, style: (stroke: 2pt + blue))
+      plot.add(((13,0),(13,f(13))), mark: none, style: (stroke:(
+        dash: "dotted",
+      )))
+      plot.add(((6.5,0),(6.5,f(6.5))), mark: none, style: (stroke:(
+        dash: "dotted",
+      )))
+    }
+  )
+})
+]
 ```
 
 @fig-backprop の例では$theta_1$における損失関数の傾きは負であるため、$theta$を増加させる方向に更新することが望ましい。一方で、$theta_2$における傾きは正であるため、$theta$を減少させる方向に更新することが望ましい。これを**最急降下法**（`Gradient Descent`; `GD`）といい、更新式は以下のようになる。
@@ -57,17 +66,34 @@ $$
 
 {#fig-backprop-tree}
 ```typst {render=svg caption="誤差逆伝播法の計算木"}
-#set align(center)
-#grid(
-  columns: (auto, 18pt, auto, 18pt, auto),
-  gutter: 4pt,
-  align: center,
-  stage([$x^(1)$ #h(10pt) $w^(1)$], [$y^(1)$]),
-  [→],
-  stage([$y^(1)$ #h(10pt) $w^(2)$], [$y^(2)$], fill: rgb("#dbeafe")),
-  [→],
-  stage([$y^(2)$ #h(10pt) $t$], [$cal(L)$], fill: rgb("#dcfce7")),
-)
+#align(center)[
+  #set text(size: 12pt, weight: 500)
+  #diagram(
+  node-stroke: none,
+  edge-corner-radius: none,
+  node-inset: 5pt,
+  spacing: (10pt, 15pt),
+  node-shape: "circle",
+
+  // Nodes
+  node((-1,0), [$x^((1))$], name: <x1>, width: 1.0cm),
+  node((-0.5,-1), [$w^((1))$], name: <w1>, width: 1.0cm),
+  node((2,0), [$y^((1))$], name: <y1>, width: 1.0cm),
+  node((3,0), [$x^((2))$], name: <x2>, width: 1.0cm),
+  node((3.5,-1), [$w^((2))$], name: <w2>, width: 1.0cm),
+  node((6,0), [$y^((2))$], name: <y2>, width: 1.0cm),
+  node((6.5,-1), [$t$], name: <t>, width: 1.0cm),
+  node((9,0), [$cal(L)$], name: <l>, width: 1.0cm),
+
+  edge(<x1>, <y1>, "|->"),
+  edge(<w1>, <y1>, "|->"),
+  edge(<y1>, <x2>, "="),
+  edge(<x2>, <y2>, "|->"),
+  edge(<w2>, <y2>, "|->"),
+  edge(<y2>, <l>, "|->"),
+  edge(<t>, <l>, "|->"),
+  )
+]
 ```
 
 このとき、$frac(partial cal(L), partial w^((1)))$を計算したいならば、チェーンルールを適用して
