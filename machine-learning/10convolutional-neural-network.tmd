@@ -73,14 +73,12 @@
 ```
 
 # 畳み込みニューラルネットワーク
+## 畳み込みへの導入
+ここまでのニューラルネットワークでは全結合層をメインに用いてきた。全結合層は、入力のすべての成分が出力のすべての成分に寄与する。入力次元$n$のデータに対して、出力次元$m$の全結合層を適応する場合、その時間計算量は$O(n m)$で、空間計算量は$O(n m + m)$である。これから扱うような画像データのような高次元データに対しては、全結合層は計算量が大きくなりすぎる。そこで、局所受容野と重み共有という工夫を通じて畳み込みという手法を導入する。
 
-## 導入
-**畳み込みニューラルネットワーク**（`Convolutional Neural Network`; `CNN`）は、画像や音声などの構造化されたデータを処理するためのニューラルネットワークのアーキテクチャである。CNNは、畳み込み層、プーリング層、全結合層などの層から構成される。
-
-画像などの空間的な構造を持つデータに対しては、従来の全結合型のパーセプトロンではその空間構造を活かしにくい。なぜなら、パーセプトロンは特徴量の絶対位置に依存しやすいためである。畳み込み層では、局所受容野という考え方を導入する。データを局所的に切り取って処理することで、空間的な特徴を抽出することができる。さらに、それでは受容野ごとにパラメータを持ってしまうので、それらの処理を共有する重み共有の考え方を導入する。これにより、同じ特徴が異なる位置に現れても同じように処理されるようになる。
-
-{#fig-local-receptive-field}
-```typst {render=svg caption="局所受容野を持つ層の結合"}
+### 局所受容野
+まず、空間的に相関を持つような空間データを考える.これまでの特徴量にはデータ内の位置に意味がないものとして扱っていた.つまり、$x_i$と$x_(i+1)$には隣である意味はなく、全結合層はそれらの空間的位置を無視して関係を学習していた。しかし、画像データが代表するような空間データでは、隣接する特徴量には相関がある。つまり、$x_i$と$x_(i+1)$が隣接していること自体に意味が存在する。そこで、特徴量を局所的に抽出することを考えることできるはずである.空間データの入力ベクトル$bold(x)$に対して次のようなニューロン結合を考える。
+```typst {render=svg caption="局所受容野を持つニューロン結合"}
 #align(center)[
   #set text(size: 9pt, weight: 500)
   #diagram(
@@ -116,15 +114,96 @@
   )
 ]
 ```
+図では少しわかりにくいが、入力$x_j$と$x_(j+1)$が$j$番目のニューロンに結合している。
 
-画像はCNNでは複数のチャネルを持つ3次元テンソルで表現される。一般的に、画像は1ピクセルにつき複数のスカラー値を持つ。例えば、RGB画像は赤、緑、青の3チャネルを持ち、各チャネルはその色の強度を表すスカラー値を持つ。隠れ層の出力でも各ピクセルは多様な特徴を持つ。つまり、チャネル方向、縦方向、横方向の3次元テンソルで表現される。同様に、カーネルもチャネル方向、縦方向、横方向の3次元テンソルで表現され、一般的にそのチャネル数は入力のチャネル数と一致する。畳み込み演算は、入力$bold(X) in RR^(C times H times W)$中の受容野のカーネル$bold(K)^((k)) in RR^(C times U times V)$による重み付け和を計算することで1成分の計算を行う。受容野をスライドさせて全体を処理することで、チャネルが1の出力$bold(Y)^((k)) in RR^(1 times H' times W')$が得られる。スライド幅をストライドと呼び、縦と横についてそれぞれ$s_H, s_W$と表す。
+全結合層では1つのニューロンは入力すべてと結合するが、局所受容野を持つ層では1つのニューロンは入力の一部（=局所受容野）としか結合しない。あるニューロンの出力$y_j$は局所受容野からの入力を受け取り、次のニューロンは別の局所受容野をスライドしてそこからの入力を受け取る。局所受容野の幅を$f$、局所受容野のスライド幅を$s$とする。入力長を$n$とすると出力数は$floor((n-f)/s)+1$であり、$(n-f)$が$s$で割り切れる場合は最後の局所受容野が入力の端に一致する。上の図では$(f,s)=(2,1)$である。すると
+$$
+  y_j &= hat(f)(x_(1 + s times (j - 1)),thin x_(2 + s times (j - 1)),thin dots, thin x_(f + s times (j - 1)))\
+$$
+と表せる。つまり、$y_j$は局所受容野の$x_(1 + s times (j - 1))$から$x_(f + s times (j - 1))$までの入力で計算される。
+
+### 重み共有
+局所受容野を用いて限定的なニューロン結合を行い、全結合層と同じ計算を採用すると次のように出力$y_j$を計算することになる。なお、活性化関数とバイアスは省略する。
+$$
+  y_j &= sum_(1 <= k <= f) w_(k + s times (j - 1) arrow j) thin x_(k + s times (j - 1))\
+$$
+このとき、重み$w$は単純に$display(f (floor((n-f)/s)+1))$個だけ準備することになる。さらにパラメータ数を減らすために全ての局所受容野で同じ重みを用いることにする。この重みは局所受容野の重みと呼ばれ、局所受容野から特徴量を正しく抽出するように学習される。つまり、重み共有を行うと、出力$y_j$は次のように表せる。
+$$
+  y_j &= sum_(1 <= k <= f) w_k thin x_(k + s times (j - 1))\
+$$
+重み共有を行うメリットは、パラメータ数が大幅に減ること以外にもデータの空間的なズレに対してロバストになるということだ。重み共有を行なわない層では例えば$x_i$と$x_(i+1)$のように少し位置がズレるだけで全く異なる重みを学習することになる。つまり、特徴量の内部表現的な意味はその位置に依存している。しかし、画像のような空間データに関してはそのようなズレを許容しないといけない。画像を少しズラしただけで大きく結果が変わってしまうと困るからである。重み共有をおこなうことで、局所受容野内の特徴量から新たな特徴量を抽出する術のみを学習し、局所受容野内の位置には依存こそすれど、空間データ内の位置には依存しないようにすることができる。局所受容野内および重み共有を採用した上のような計算を畳み込みという。また、畳み込みにおける局所受容野をカーネルあるいはフィルタと呼ぶ。
+
+## テンソルの導入
+畳み込みは、1次元のベクトルに対して行うことを考えてきた。しかし、画像データのような3次元のデータに対して畳み込みを行うことを考えたい。そのために、まずテンソルに話を拡張しよう。
+
+そもそも、画像データとは何次元のデータだろうか。全結合層はバッチを考えなければ、一次元データであるベクトルに対して適応されてきた。特徴量一つが一つの成分を表すベクトルである。すると画像は、ピクセルを縦横に並べた2次元のデータだろうか？一般的にはそうではない。画像は、ピクセルを縦横に並べた2次元の構造に加えて、1ピクセルが色の情報をベクトルで持つ。つまり、画像は3次元のデータである。例えば、RGB画像は、縦横のピクセルに加えて、色の情報を3成分のベクトルで持つ。つまり、画像は画像の横方向、縦方向、そして色方向の3次元である。これをテンソルと呼ぶ。テンソルは行列と同様に大きさが存在し、$a times b times c times dots$と表す。一般的に画像は$H times W times C$と表される。$H$は高さ、$W$は幅、$C$はチャンネル数である。RGB画像は$H times W times 3$で表される。（チャンネル軸を最初に置き$C times H times W$と表す流儀もあるが、ここでは$H times W times C$と表す。）グレースケール画像は$H times W times 1$で表される。テンソルは、行列やベクトルを一般化した概念であるが、本書では3次元以上のデータをテンソルと呼ぶことにする。$n$次元実数テンソル全体は$RR^(a_1 times a_2 times dots times a_n)$である。
+
+また、テンソルは添え字を指定することで行列やベクトルとして扱うこともできる。3次元テンソル$bold(cal(X)) in RR^(H times W times C)$に対して、
+$$
+  bold(x)_(i j *) &= (x_(i j 1), x_(i j 2), dots, x_(i j C)) in RR^C\
+  bold(X)_(i**) &= mat(
+  x_(i 1 1), x_(i 1 2), dots, x_(i 1 C);
+  x_(i 2 1), x_(i 2 2), dots, x_(i 2 C);
+  dots.v, dots.v, dots.down, dots.v;
+  x_(i W 1), x_(i W 2), dots, x_(i W C)
+  ) in RR^(W times C)\
+$$
+となる。特に、$bold(cal(X))$はベクトルの行列と同一視できることは重要である。
+$$
+  bold(cal(X)) &= mat(
+    bold(x)_(1 1 *), bold(x)_(1 2 *), dots, bold(x)_(1 W *);
+    bold(x)_(2 1*), bold(x)_(2 2*), dots, bold(x)_(2 W*);
+    dots.v, dots.v, dots.down, dots.v;
+    bold(x)_(H 1*), bold(x)_(H 2*), dots, bold(x)_(H W*)
+  )
+$$
+
+## 畳み込み層
+では畳み込みをテンソルに対して適応することを考える。まずは、純粋に拡張してみる。テンソル$bold(cal(X)) in RR^(H times W times C)$に対して畳み込みを適応し、出力$bold(cal(Y)) in RR^(H^prime times W^prime times C^prime)$を得ることを考える。カーネルの大きさ（=カーネルサイズ）を$f_H times f_W times f_C$、カーネルのスライド幅をそれぞれの軸について$s_H, s_W, s_C$とする。すると、カーネルの重みは$bold(cal(W)) in RR^(f_H times f_W times f_C)$となる。すると、出力は次のように表せる。
+$$
+  y_(i,j,k) &= sum_(1 <= h <= f_H) sum_(1 <= w <= f_W) sum_(1 <= c <= f_C) w_(h,w,c) thick x_(h + s_H times (i - 1), w + s_W times (j - 1), c + s_C times (k - 1))
+$$
+これで純粋な畳み込みが行える。しかし畳み込みニューラルネットワークで一般的に行われている畳み込みは少し異なる。まず、$H,W$方向と$C$方向で扱いが異なる。$C$方向には、1ピクセルの特徴量が含まれている。つまり、$C$方向については空間データではない。よって、$C$方向については畳み込みを行わないことにする。つまり、
+$$
+  f_C &= C
+$$
+とする。また、$s_C$は不要である。つまり、$C$方向をベクトルとして扱えることを思い出せば、
+$$
+  bold(y)_(i j) &= sum_(1 <= h <= f_H) sum_(1 <= w <= f_W) bold(w)_(h w*) dot bold(x)_(h + s_H times (i - 1), w + s_W times (j - 1),*)\
+$$
+と定式化できる。すると、出力の大きさはどうなるだろうか？カーネルが入力内に完全に収まる位置をストライドごとに数えると、出力の大きさは次のように表せる。
+$$
+  H^prime &= floor((H - f_H)/s_H) + 1\
+  W^prime &= floor((W - f_W)/s_W) + 1\
+  C^prime &= 1\
+$$
+ここで、$C$方向の大きさが$1$になっていることに着目すると、画像の1ピクセルの特徴量が1つに圧縮されていることがわかる。しかし、これはあまり望ましくない。なぜなら、1ピクセルの表現力が失われてしまうからである。また、この計算は$H,W$方向については畳み込みを、$C$方向についてはすべての成分に対して異なる重みを用いてその総和を計算していることから1ニューロンをもつ全結合層の計算を行っていると解釈できる。つまり、全結合層と同じようにニューロンを増やすことで表現力を増すことができる。そのためには、$C$方向の各成分について異なる重みを準備し、複数回変換を行う必要がある。よって、異なる$C^prime$個のカーネル$bold(cal(W))^((1)),bold(cal(W))^((2)),dots,bold(cal(W))^((C^prime))$を準備し、個々の出力$bold(cal(Y))^((1)),bold(cal(Y))^((2)),dots,bold(cal(Y))^((C^prime))$を得てみよう。
+$$
+  bold(cal(Y))^((k))_(i,j) &= sum_(1 <= h <= f_H) sum_(1 <= w <= f_W) bold(cal(W))^((k))_(h w*) dot bold(x)_(h + s_H times (i - 1), w + s_W times (j - 1),*)
+$$
+そして、この個々の出力は$C$方向が$1$のテンソルであり、これは$2$次元テンソルつまりは行列として扱える。これを失われた$C$方向に結合することで、真の出力$bold(cal(Y))$を得ることができる。
+$$
+  bold(cal(Y)) &= (bold(cal(Y))^((1)), bold(cal(Y))^((2)), dots, bold(cal(Y))^((C^prime)))\
+  bold(cal(Y))_(i,j,k) &= sum_(1 <= h <= f_H) sum_(1 <= w <= f_W) bold(cal(W))^((k))_(h w*) dot bold(x)_(h + s_H times (i - 1), w + s_W times (j - 1),*)
+$$
+このような計算により、入力テンソル$RR^(H times W times C)$に対して、出力テンソル$RR^(H^prime times W^prime times C^prime)$を得ることができる。$C^prime$は何枚のカーネルを用いるかを与えることになり、モデル設計の段階で決定する。ちょうど、全結合層における出力の次元数を決定するのと同じである。なので、ここで改めて入力チャンネル数$C_text("in")$と出力チャンネル数$C_text("out")$を定義する。また、入力$bold(cal(X))$と重み$bold(cal(W))^((k))$のストライド$(s_H,s_W)$による畳み込みを以下のように表すこととする。
+$$
+  bold(cal(Y))^((k)) &= bold(cal(X)) attach(ast.op, b: (s_H,s_W)) bold(cal(W))^((k))\
+$$
+
+さらに、バイアスについて考えてみよう。バイアスは、ニューロン1つが1つの値を持ち、入力を重みでスケールさせたのちに加えるスカラーであった。つまり、先ほどの出力$bold(cal(Y))^((k))$の全要素に同一のバイアス$b_k$を加えればよい。改めてその出力は、
+$$
+  bold(cal(X))&in& RR^(H times W times C_text("in")):& text("input") \
+  bold(cal(W))&in& RR^(f_H times f_W times C_text("in")):& text("weight") \
+  bold(cal(Y))&in& RR^(H^prime times W^prime times C_text("out")):& text("output")
+$$
 
 $$
- cal(Y)^((k))_(i, j) = sum_(c=0)^(C-1) sum_(u=0)^(U-1) sum_(v=0)^(V-1) cal(X)_(c, s_H i + u, s_W j + v) cal(K)^((k))_(c, u, v)
+  bold(cal(Y))^((k)) &= bold(cal(X)) attach(ast.op, b: (s_H,s_W)) bold(cal(W))^((k)) + (bold(1)_(H^prime) dot bold(1)_(W^prime)^top) b_k quad quad k = 1,2,dots,C_text("out")\
+   bold(cal(Y)) &= (bold(cal(Y))^((1)), bold(cal(Y))^((2)), dots, bold(cal(Y))^((C_text("out"))))\
 $$
-
-{#fig-convolution}
-```typst {render=svg caption="3次元テンソルに対する畳み込み"}
+である。これが、畳み込み層の順伝播である。下図はそのイメージを図示したものである。
+```typst {render=svg caption="入力・フィルター・出力テンソルの畳み込み"}
 #align(center)[
 #cetz.canvas({
   import cetz.draw: *
@@ -321,5 +400,881 @@ $$
 })
 ]
 ```
+## パディング
+ここまではカーネルが入力内に完全に収まる位置だけで畳み込みを行った。この場合、入力サイズとストライドの組み合わせによっては端に使われない領域が残り、出力サイズも入力サイズと異なる。まず、パディングを行わない場合の出力の大きさは次のように表せる。
+$$
+  H^prime &= floor((H - f_H)/s_H) + 1\
+  W^prime &= floor((W - f_W)/s_W) + 1\
+  C^prime &= C_text("out")\
+$$
+当然、このように出力を決めると、出力の大きさが入力と異なる。これ自体は問題にはならないが、出力のサイズが不安定になってしまう。ニューロンの大きさのように狙った大きさにしたいこともある。また、2の累乗や6の倍数といったわかりやすい大きさにすることが望ましい。そのような調整を可能にするため、パディングを導入する。パディングとは、入力の周りに対称になるように0を追加することである。このパディングを行った入力を用いて畳み込みを行うことで、出力の大きさを調整することができる。$H,W$方向のパディングの幅を$P_H,P_W$とすると、$H,W$軸それぞれ$2P_H,2P_W$だけ大きさが増えることになる。つまり、パディング後の入力に畳み込みを適用した出力の大きさは次のようになる。
+$$
+  H^prime &= floor((H + 2P_H - f_H)/s_H) + 1\
+  W^prime &= floor((W + 2P_W - f_W)/s_W) + 1\
+$$
+特に用いられるのがセームパディング（Same Padding）である。セームパディングは、出力の大きさについてフィルタの大きさによるズレを解消するようにパディングをおこなうことである。出力サイズは$H/s_H times W/s_W$となるようにする。$s_H,s_W$はそれぞれ$H,W$を割り切れる値であることは仮定しておく。このような$P_H$と$P_W$を計算してみよう。
+$$
+  H/s_H &= floor((H + 2P_H - f_H)/s_H) + 1\
+  <=> H/s_H -1 &<= (H + 2P_H - f_H)/s_H < H/s_H\
+  <=> H - s_H &<= H + 2P_H - f_H < H\
+  <=> f_H - s_H &<= 2P_H < f_H\
+  <=> (f_H - s_H)/2 &<= P_H < f_H/2\
+$$
+このような条件を満たす$P_H$ならばSame Paddingになるが、ストライドが1でカーネルサイズ$f_H$が偶数の場合、左右対称な整数の$P_H$は存在しない。そのため、左右対称なSame Paddingでは奇数のカーネルサイズを使うことが望ましい。$s_H>1$のときは
+$$
+P_H = max(0, ceil((f_H - s_H)/2)), quad P_W = max(0, ceil((f_W - s_W)/2))
+$$
+を使うことが多い。当然、$P_W$についても同様の議論が可能である。いくつかのライブラリでは左右非対称なパディングを行ってSame Paddingを実装している。が、ここでは議論しないことにする。
 
-ここで、異なる$K$個のカーネル$bold(K)^((1)), dots.c, bold(K)^((K))$について$bold(Y)^((1)), dots.c, bold(Y)^((K))$が得られるが、これをチャネル方向に連結することで、出力$bold(Y) in RR^(K times H' times W')$が得られる。ある1ピクセルに着目すると長さ$C$のベクトルを異なる$K$セットの長さ$C$のベクトルで重み付け和を取ることで、長さ$K$のベクトルが得られることになる。これは全結合層と似た計算である。
+## 畳み込みの高速化（img2col + GEMM）
+先程定義した畳み込みは、すべての受容野に対してフィルタの数$C_text("out")$だけ計算を行う必要がある。この場合、深いループが必要なことは明らかである。これを克服するために、img2colという手段を用いてテンソルを行列に変換し、畳み込みの演算を一般行列積（GEMM）として解釈するという手法をここでは議論したい。この議論はやや天下り的に行われるのでその正当化について重点的に議論する。具体的な議論に入る前に、感覚的な説明を行う。畳み込みでは重み共有を行っているという性質について、各受容野についておなじフィルタ演算を行っている。これは行列積においてある成分が演算に複数回用いられていることと対応している。また、各受容野では重みと成分の積の和を計算している。これは行列積においても同様であるのでこれは対応する。どうだろう、なんとなく行列積に変換できそうな気がしてきたのではないだろうか。では、実際にどのような変換を行うかを見てみよう。ここからの議論ではバイアスについて考えずに進める。なぜなら、バイアスは出力に対して加算を行うだけで適応できるからである。
+
+まず、入力$bold(cal(X))$と重み$bold(cal(W))^((k)) (k=1,dots,C_text("out"))$及び出力$bold(cal(Y))$を今までどおり定義する。大きさは以下のように定義する。
+
+$$
+  bold(cal(X))&in& RR^(H times W times C_text("in"))\
+  bold(cal(W))^((k))&in& RR^(f_H times f_W times C_text("in"))\
+  bold(cal(Y))&in& RR^(H^prime times W^prime times C_text("out"))
+$$
+
+ストライドを$(s_H,s_W)$とし、これらの値は適切なものとする。まず、各受容野---つまりは$bold(cal(X))$の一部を次のように改めて定義する。
+
+$$
+  bold(cal(X))^((i,j)) &colon = mat(
+    bold(x)_(1 + s_H times (i - 1), 1 + s_W times (j - 1), *), bold(x)_(1 + s_H times (i - 1), 2 + s_W times (j - 1), *), dots, bold(x)_(1 + s_H times (i - 1), f_W + s_W times (j - 1), *);
+    bold(x)_(2 + s_H times (i - 1), 1 + s_W times (j - 1), *), bold(x)_(2 + s_H times (i - 1), 2 + s_W times (j - 1), *), dots, bold(x)_(2 + s_H times (i - 1), f_W + s_W times (j - 1), *);
+    dots.v, dots.v, dots.down, dots.v;
+    bold(x)_(f_H + s_H times (i - 1), 1 + s_W times (j - 1), *), bold(x)_(f_H + s_H times (i - 1), 2 + s_W times (j - 1), *), dots, bold(x)_(f_H + s_H times (i - 1), f_W + s_W times (j - 1), *);
+  )\
+  &in RR^(f_H times f_W times C_text("in"))\
+$$
+ここで、$i,j$はそれぞれ出力の高さと幅の添え字である。つまり、$bold(cal(X))^((i,j))$は出力の$(i,j)$番目の成分に対応する受容野を表す。成分の書き下しではわかりにくいが、$H$方向に$i-1$回、$W$方向に$j-1$回スライドした受容野内の入力$bold(cal(X))$の成分である。この先、このテンソルの$(p, q, r)$要素を$x^((i,j))_(p,q,r)$と表記する。このテンソル内の要素ある順番で行ベクトル$bold(x)_text("i2c")^((i,j))$に並び替える。ここではこの順番を一般的な順番である$C, H, W$の順番で並び替えるとする。これは先に$C$でソートし各$C$内で$H$についてソートし、最後に各$C,H$内で$W$でソートする。要素をたどる方向は$W, H, C$の順である。実際にやってみよう。
+
+$$
+  bold(x)_text("i2c")^((i,j)) = (&x^((i,j))_(1,1,1), x^((i,j))_(1,2,1), dots, x^((i,j))_(1,f_W,1), x^((i,j))_(2,1,1), x^((i,j))_(2,2,1), dots, x^((i,j))_(2,f_W,1), dots, x^((i,j))_(f_H,f_W,1)\
+  &x^((i,j))_(1,1,2), x^((i,j))_(1,2,2), dots, x^((i,j))_(1,f_W,2), x^((i,j))_(2,1,2), x^((i,j))_(2,2,2), dots, x^((i,j))_(2,f_W,2), dots, x^((i,j))_(f_H,f_W,2)\
+  & dots\
+  &x^((i,j))_(1,1,C_text("in")), x^((i,j))_(1,2,C_text("in")), dots, x^((i,j))_(1,f_W,C_text("in")), x^((i,j))_(2,1,C_text("in")), x^((i,j))_(2,2,C_text("in")), dots, x^((i,j))_(2,f_W,C_text("in")), dots, x^((i,j))_(f_H,f_W,C_text("in")))\
+  in & RR^((f_H f_W C_text("in")))\
+$$
+
+このように、受容野を要素数$f_H times f_W times C_text("in")$の行ベクトルに変換することができた。$f_H times f_W times C_text("in")$は次元数ではなく要素数であることに注意が必要だ。これを全ての受容野について行うと、$H^prime times W^prime$個の行ベクトルが得られる。これらを並べて$bold(cal(X))$の行列表現である$bold(X)_text("i2c") in RR^((H^prime W^prime)times (f_H f_W C_text("in")))$を得る。なお、並べる順番は先程同様に決められるべきで、今回は$i, j$の順番で行ベクトルを行列の$H^prime W^prime$方向に追加していくことにする。つまり、
+
+$$
+  bold(X)_text("i2c") = mat(
+    bold(x)_text("i2c")^((1,1));
+    bold(x)_text("i2c")^((1,2));
+    dots.v;
+    bold(x)_text("i2c")^((1,W^prime));
+    bold(x)_text("i2c")^((2,1));
+    bold(x)_text("i2c")^((2,2));
+    dots.v;
+    bold(x)_text("i2c")^((2,W^prime));
+    dots.v;
+    dots.v;
+    bold(x)_text("i2c")^((H^prime,W^prime));
+  ) in RR^((H^prime W^prime)times (f_H f_W C_text("in")))
+$$
+となる。これで入力テンソルを行列に変換することができた。次にフィルタの行列表現を得る。まず、入力の各受容野を行ベクトルに変換したのと同様に、各フィルタ$bold(cal(W))^((k))$を列ベクトル$bold(w)_text("i2c")^((k))$に変換する。このとき、同じ方法で並び替えることが必要だ。
+$$
+  bold(w)_text("i2c")^((k)) = (&w^((k))_(1,1,1), w^((k))_(1,2,1), dots, w^((k))_(1,f_W,1), w^((k))_(2,1,1), w^((k))_(2,2,1), dots, w^((k))_(2,f_W,1), dots, w^((k))_(f_H,f_W,1), dots, w^((k))_(f_H,f_W,C_text("in")))^top
+  in & RR^((f_H f_W C_text("in")))
+$$
+このようにして、各フィルタを列ベクトルに変換することができた。これを全てのフィルタについて行うと、$C_text("out")$個の列ベクトルが得られる。これらを並べて$bold(W)_text("i2c") in RR^((f_H f_W C_text("in")) times C_text("out"))$を得る。なお、並べる順番は$k$の順番で列ベクトルを行列の$C_text("out")$方向に追加していくことにする。つまり、
+$$
+  bold(W)_text("i2c") = mat(
+    bold(w)_text("i2c")^((1)), bold(w)_text("i2c")^((2)), dots, bold(w)_text("i2c")^((C_text("out")))
+  ) in RR^((f_H f_W C_text("in")) times C_text("out"))
+$$
+である。これでフィルタの行列表現を得ることができた。この行列はすべての$C_text("out")$個のフィルタを内包していることに注意されたい。ここで$bold(X)_text("i2c")$と$bold(W)_text("i2c")$の行列積を考えよう。２つの行列の大きさが行列積の要件を満たしていることは明らかである。
+
+$$
+  bold(Y)_text("i2c") &= bold(X)_text("i2c") dot bold(W)_text("i2c")\
+  &in RR^((H^prime W^prime) times C_text("out"))\
+$$
+このとき、$bold(Y)$は次のように定義した行ベクトル$bold(y)^((i, j))_text("i2c")$を用いて書き下せる。
+$$
+  bold(y)^((i, j))_text("i2c") &= bold(x)_text("i2c")^((i, j)) dot bold(W)_text("i2c")\
+  &= bold(x)_text("i2c")^((i, j)) dot ( bold(w)_text("i2c")^((1)), bold(w)_text("i2c")^((2)), dots, bold(w)_text("i2c")^((C_text("out")))) in RR^(C_text("out"))\
+
+  bold(Y)_text("i2c") &= mat(
+    bold(y)_text("i2c")^((1,1));
+    bold(y)_text("i2c")^((1,2));
+    dots.v;
+    bold(y)_text("i2c")^((1,W^prime));
+    bold(y)_text("i2c")^((2,1));
+    bold(y)_text("i2c")^((2,2));
+    dots.v;
+    bold(y)_text("i2c")^((2,W^prime));
+    dots.v;
+    dots.v;
+    bold(y)_text("i2c")^((H^prime,W^prime));
+  )
+$$
+これは行列の定義より明らかである。最後にこれをテンソルに戻す。$bold(y)_text("i2c")^((i,j))$を出力テンソル$bold(cal(Y)) in RR^(H^prime times W^prime times C_text("out"))$の$(i, j , *)$成分とすると、以下のような出力が得られる。
+$$
+  bold(cal(Y)) = mat(
+    bold(y)_text("i2c")^((1,1)), bold(y)_text("i2c")^((1,2)), dots, bold(y)_text("i2c")^((1,W^prime));
+    bold(y)_text("i2c")^((2,1)), bold(y)_text("i2c")^((2,2)), dots, bold(y)_text("i2c")^((2,W^prime));
+    dots.v, dots.v, dots.down, dots.v;
+    bold(y)_text("i2c")^((H^prime,1)), bold(y)_text("i2c")^((H^prime,2)), dots, bold(y)_text("i2c")^((H^prime,W^prime));
+  )
+$$
+ではこの正当化について議論しよう。畳み込みの定義から以下のことが言える。
+$$
+  y_(i,j,k) &= sum_(1 <= h <= f_H) sum_(1 <= w <= f_W) sum_(1 <= c <= C_text("in")) w^((k))_(h,w, c) times x_(h + s_H times (i - 1), w + s_W times (j - 1), c)\
+$$
+ここで、$y_(i,j,k)$は定義に沿った出力の成分であり、現在議論したいのはこれがimg2colを用いた出力の行列表示$bold(Y)_text("i2c")$において$[bold(y)^((i, j))_text("i2c")]_k$と一致することである。
+
+さて、先程の式の右辺は、まさに$bold(x)_text("i2c")^((i,j))$と$bold(w)_text("i2c")^((k))$の標準内積である。または、前者が行ベクトルで後者が列ベクトルであることを思い出せば、行列積とも解釈できる。行ベクトル$bold(y)^((i, j))_text("i2c")$の定義を思い出せば
+$$
+  [bold(y)^((i, j))_text("i2c")]_k &= [bold(x)_text("i2c")^((i, j)) dot bold(W)_text("i2c")]_k\
+  &= bold(x)_text("i2c")^((i, j)) dot bold(w)_text("i2c")^((k)) = y_(i,j,k)\
+$$
+以上の議論からimg2colによって得られた行列表示を適切に変換したものが畳み込みの出力であることがわかる。よって、img2colを用いて畳み込みを行うことは正当化される。
+ここで、再びバイアスを適応することを考えれば
+$$
+  y_(i,j,k) &= b_k + sum_(1 <= h <= f_H) sum_(1 <= w <= f_W) sum_(1 <= c <= C_text("in")) w^((k))_(h,w, c) times x_(h + s_H times (i - 1), w + s_W times (j - 1), c)\
+$$
+となるように変えれば良い。すなわち、$bold(x)_text("i2c")^((i, j)) dot bold(w)_text("i2c")^((k))$を
+$$
+  bold(x)_text("i2c")^((i, j)) dot bold(w)_text("i2c")^((k)) + b_k\
+$$
+に変えれば良い。すなわち、
+$$
+  &bold(y)^((i, j))_text("i2c") = bold(x)_text("i2c")^((i, j)) dot bold(W)_text("i2c") + bold(b)\
+  <=> &bold(Y)_text("i2c") = bold(X)_text("i2c") dot bold(W)_text("i2c") + bold(1)_(H^prime W^prime) dot bold(b)\
+$$
+という計算にすることでバイアスを適用することができる。以下に、このアルゴリズムにおけるテンソルと行列の変換を図示する。
+```typst {render=svg caption="img2colによる受容野の行列化"}
+#align(center)[
+#cetz.canvas({
+  import cetz.draw: *
+  import cetz.decorations: *
+
+  set-transform(((-0.3, 1, 0, 0), (0.3, 0, -1, 0), (1, 0, 0, 0), (0, 0, 0, 1)))
+
+  block_3d(
+    H: 3.5, W: 3.8, C: 0.8,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 0,
+    is_braced: true,
+    text_H: $H$,
+    text_W: $W$,
+    text_C: $C_text("in")$,
+  )
+  content((0, 1, -4), text(size: 8pt)[入力$tensor(X)$])
+  content((0, 11.2, -4), text(size: 8pt)[行列表現$bold(X)_text("i2c")$])
+
+  block_3d(
+    H: 0.3, W: 8, C: 0.3,
+    origin_x: 2,
+    origin_y: 5,
+    origin_z: -3,
+    color: black,
+  )
+
+  block_3d(
+    H: 0.3, W: 8, C: 0.3,
+    origin_x: 2,
+    origin_y: 5,
+    origin_z: 0.5,
+    color: black,
+    background: gray.transparentize(50%),
+  )
+
+  block_3d(
+    H: 0.3, W: 8, C: 0.3,
+    origin_x: 2,
+    origin_y: 5,
+    origin_z: 1,
+    text_W: $f_H times f_W times C_text("in")$,
+    text_H: $1$,
+    text_C: $1$,
+    color: black,
+    width_size: 2pt,
+    background: gray,
+  )
+
+   block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: -0.6,
+    origin_y: 0,
+    origin_z: 0,
+    color: gray.transparentize(50%),
+    width_size: 2pt,
+    background: gray.transparentize(50%),
+  )
+
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 0,
+    color: black,
+    width_size: 2pt,
+    background: gray.transparentize(20%),
+  )
+
+  block_3d(
+    H: 5, W: 8, C: 0.3,
+    origin_x: 2,
+    origin_y: 10,
+    origin_z: 1.5,
+    text_W: $f_H times f_W times C_text("in")$,
+    text_H: $H^prime times W^prime$,
+    color: black,
+    width_size: 2pt,
+  )
+
+  content((-1.4, 5.5, -0.8), text(size: 16pt)[$dots.v$], fill: white)
+  content((-1.4, 5.5, -1.4), text(size: 16pt)[$dots.v$], fill: white)
+
+  line((-1.4, 2, -1.4), (-1.4, 4, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 0.9, "sum.end"), text(size: 7pt)[受容野毎に展開], anchor: "north", padding: 0.1)
+
+  line((-1.4, 6.7, -1.4), (-1.4, 8.7, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 1, "sum.end"), text(size: 7pt)[列方向に結合], anchor: "north", padding: 0.1)
+
+  content((2, 5, 0.8), text(size: 8pt)[$bold(x)_text("i2c")^((1,1))$], anchor: "east", padding: 0.1)
+  content((2, 5, 0.3), text(size: 8pt)[$bold(x)_text("i2c")^((1,2))$], anchor: "east", padding: 0.1)
+  content((2, 5, -3.2), text(size: 8pt)[$bold(x)_text("i2c")^((H^prime,W^prime))$], anchor: "east", padding: 0.1)
+})
+]
+```
+```typst {render=svg caption="複数フィルターの行列化"}
+#align(center)[
+#cetz.canvas({
+  import cetz.draw: *
+  import cetz.decorations: *
+
+  set-transform(((-0.3, 1, 0, 0), (0.3, 0, -1, 0), (1, 0, 0, 0), (0, 0, 0, 1)))
+
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 1,
+    color: red,
+    width_size: 2pt,
+    background: red.transparentize(30%),
+    is_braced: true,
+    text_H: text(size: 8pt)[$f_H$],
+    text_W: text(size: 8pt)[$f_W$],
+    text_C: text(size: 8pt)[$C_text("in")$],
+  )
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: -0.2,
+    color: blue,
+    width_size: 2pt,
+    background: blue.transparentize(30%),
+  )
+
+  content((0, 0.6, -1.75), text(size: 16pt)[$dots.v$])
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.8,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: -2.7,
+    color: yellow,
+    width_size: 2pt,
+    background: yellow.transparentize(30%),
+  )
+
+  content((0, 0.6, -4.2), text(size: 8pt)[$C_text("out")$個のフィルター\ #set align(center)
+  $tensor(W)^((k))$])
+
+  block_3d(
+    H: 5, W: 0.3, C: 0.3,
+    origin_x: -4.2,
+    origin_y: 4.5,
+    origin_z: 1,
+    color: yellow,
+    width_size: 2pt,
+    background: yellow.transparentize(30%),
+    text_H: $f_H times f_W times C_text("in")$,
+    text_W: $1$,
+    text_C: $1$,
+  )
+
+  content((-4.3, 4.7, -4.4), text(size: 9pt)[$bold(w)_text("i2c")^((C_text("out")))$])
+  content((-2.1, 4.7, -4.6), text(size: 9pt)[$bold(w)_text("i2c")^((2))$])
+  content((-0.4, 4.7, -4.5), text(size: 9pt)[$bold(w)_text("i2c")^((1))$])
+
+  block_3d(
+    H: 5, W: 0.3, C: 0.3,
+    origin_x: -0.8,
+    origin_y: 4.5,
+    origin_z: 1,
+    color: blue,
+    width_size: 2pt,
+    background: blue.transparentize(30%),
+  )
+
+  block_3d(
+    H: 5, W: 0.3, C: 0.3,
+    origin_x: 0,
+    origin_y: 4.5,
+    origin_z: 1,
+    width_size: 2pt,
+    background: white,
+  )
+
+  block_3d(
+    H: 5, W: 0.3, C: 0.3,
+    origin_x: 0,
+    origin_y: 4.5,
+    origin_z: 1,
+    color: red,
+    width_size: 2pt,
+    background: red.transparentize(30%),
+  )
+
+  content((-2.2, 4.6, -1.8), text(size: 16pt)[$dots$], fill: white, angle: 50deg)
+  content((-3.5, 4.55, -1.8), text(size: 16pt)[$dots$], fill: white, angle: 50deg)
+
+  block_3d(
+    H: 5, W: 5, C: 0.3,
+    origin_x: 0,
+    origin_y: 10,
+    origin_z: 1.5,
+    text_H: $f_H times f_W times C_text("in")$,
+    text_W: $C_text("out")$,
+  )
+
+  content((0, 11, -4.2), text(size: 8pt)[行列表現$bold(W)_text("i2c")$])
+
+  line((-1.4, 1.2, -1.4), (-1.4, 3.7, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 1.1, "sum.end"), text(size: 7pt)[フィルター毎に展開], anchor: "north", padding: 0.1)
+
+  line((-1.4, 6.7, -1.4), (-1.4, 9, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 1.1, "sum.end"), text(size: 7pt)[行方向に結合], anchor: "north", padding: 0.1)
+})
+]
+```
+```typst {render=svg caption="行列積の出力をテンソルへ戻す変換"}
+#align(center)[
+#cetz.canvas({
+  import cetz.draw: *
+  import cetz.decorations: *
+
+  set-transform(((-0.3, 1, 0, 0), (0.3, 0, -1, 0), (1, 0, 0, 0), (0, 0, 0, 1)))
+
+  block_3d(
+    H: 5, W: 5, C: 0.3,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 0.8,
+    is_braced: true,
+    text_H: $H^prime times W^prime$,
+    text_W: $C_text("out")$,
+  )
+
+  block_3d(
+    H: 0.3, W: 5, C: 0.3,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 0.8,
+    background: gray,
+  )
+
+  block_3d(
+    H: 0.3, W: 5, C: 0.3,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 0.5,
+    background: gray.transparentize(50%),
+    faces: "fr"
+  )
+  block_3d(
+    H: 0.3, W: 5, C: 0.3,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: -3.9,
+    background: gray.transparentize(100%),
+    faces: "fr"
+  )
+
+  content((0, 1.5, -4), text(size: 8pt)[行列表現$bold(Y)_text("i2c")$])
+  content((0, 11.2, -4), text(size: 8pt)[出力$tensor(Y)$])
+
+  block_3d(
+    H: 0.3, W: 5, C: 0.3,
+    origin_x: 0,
+    origin_y: 5,
+    origin_z: -3.5,
+    color: black,
+  )
+
+  block_3d(
+    H: 0.3, W: 5, C: 0.3,
+    origin_x: 0,
+    origin_y: 5,
+    origin_z: 0.5,
+    color: black,
+    background: gray.transparentize(50%),
+  )
+
+  block_3d(
+    H: 0.3, W: 5, C: 0.3,
+    origin_x: 0,
+    origin_y: 5,
+    origin_z: 1,
+    text_W: $C_text("out")$,
+    text_H: $1$,
+    text_C: $1$,
+    color: black,
+    width_size: 2pt,
+    background: gray,
+  )
+
+  block_3d(
+    H: 3, W: 4, C: 2,
+    origin_x: 2,
+    origin_y: 10,
+    origin_z: 1,
+    text_W: $W^prime$,
+    text_H: $H^prime$,
+    text_C: $C_text("out")$,
+    color: black,
+    width_size: 2pt,
+  )
+
+  block_3d(
+    H: 0.3, W: 0.4, C: 2,
+    origin_x: 2,
+    origin_y: 10,
+    origin_z: 1,
+    background: gray
+  )
+  block_3d(
+    H: 0.3, W: 0.4, C: 2,
+    origin_x: 1.6,
+    origin_y: 10,
+    origin_z: 1,
+    background: gray.transparentize(50%),
+    faces: "tr"
+  )
+
+  block_3d(
+    H: 0.3, W: 0.4, C: 2,
+    origin_x: -1.6,
+    origin_y: 10,
+    origin_z: -1.7,
+    background: gray.transparentize(100%),
+    faces: "r"
+  )
+
+  content((-1.4, 5.5, -1), text(size: 16pt)[$dots.v$], fill: white)
+  content((-1.4, 5.5, -1.6), text(size: 16pt)[$dots.v$], fill: white)
+
+  line((-1.4, 2.2, -1.4), (-1.4, 4.2, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 0.9, "sum.end"), text(size: 7pt)[行ごとに分離], anchor: "north", padding: 0.1)
+
+  line((-1.4, 6.7, -1.4), (-1.4, 8.7, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 1, "sum.end"), text(size: 7pt)[$W$軸を$C$軸に], anchor: "south", padding: 0.1)
+  content(("sum.start", 1, "sum.end"), text(size: 7pt)[画像へ], anchor: "north", padding: 0.1)
+
+  content((0, 5, 0.8), text(size: 8pt)[$bold(y)_text("i2c")^((1,1))$], anchor: "east", padding: 0.1)
+  content((0, 5, 0.3), text(size: 8pt)[$bold(y)_text("i2c")^((1,2))$], anchor: "east", padding: 0.1)
+  content((0, 5, -3.6), text(size: 8pt)[$bold(y)_text("i2c")^((H^prime,W^prime))$], anchor: "east", padding: 0.1)
+})
+]
+```
+## 定義による畳み込み層の逆伝播
+ここまでで、畳み込み層の順伝播を見てきた。畳み込み層も深層学習の一部であるためにはやはり逆伝播が必要である。畳み込み層では学習可能なパラメータとしてフィルターの重み$bold(cal(W))^((k))$とバイアス$bold(b)$がある。加えてより上位の層へ伝播する勾配を考えると、$(partial cal(L))/(partial bold(cal(X))), (partial cal(L))/(partial bold(cal(W))^((k))), (partial cal(L))/(partial bold(b))$を求める必要がある。ここでは、img2colの力を借りずに定義に基づいた逆伝播を導出してみよう。
+
+まず、重み$bold(cal(W))^((k))$の逆伝播を考える。畳み込みの定義から
+$$
+  y_(i,j,k) = y^((k))_(i,j) &= sum_(1 <= h <= f_H) sum_(1 <= w <= f_W) sum_(1 <= c <= C_text("in")) w^((k))_(h,w, c) times x_(h + s_H times (i - 1), w + s_W times (j - 1), c)\
+$$
+である。ここで、$bold(cal(W))^((k))$の各成分は$bold(cal(Y))^((k))$にのみ寄与し、他の$bold(cal(Y))^((k^prime)) (k eq.not k^prime)$には寄与しない。よって、
+$$
+  (partial y^((k))_(i,j))/(partial w^((k))_(p,q,r)) &= x_(p + s_H times (i - 1), q + s_W times (j - 1), r)\
+$$
+である。また、$w^((k))_(p,q,r)$は任意の$(i,j)$について$y^((k))_(i,j)$に寄与するので、
+$$
+  (partial cal(L))/(partial w^((k))_(p,q,r)) &= sum_(i,j) (partial cal(L))/(partial y^((k))_(i,j)) times (partial y^((k))_(i,j))/(partial w^((k))_(p,q,r))\
+  &= sum_(i,j) (partial cal(L))/(partial y^((k))_(i,j)) times x_(p + s_H times (i - 1), q + s_W times (j - 1), r)\
+  &= sum_(1<=i<=H^prime) sum_(1<=j<=W^prime) [(partial cal(L))/(partial bold(Y)^((k)))]_(i,j) times x_(p + s_H times (i - 1), q + s_W times (j - 1), r)\
+$$
+が成り立つ。見かけは非常に畳み込みににているが、この処理は純粋な畳み込みとは言えない。下にこの演算の図を示す。
+```typst {render=svg caption="定義に基づく重み勾配の計算"}
+#align(center)[
+#cetz.canvas({
+  import cetz.draw: *
+  import cetz.decorations: *
+
+  set-transform(((-0.5, 1, 0, 0), (0.3, 0, -1, 0), (1, 0, 0, 0), (0, 0, 0, 1)))
+
+  block_3d(
+    H: 3.5, W: 3.8, C: 0.3,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 0,
+    is_braced: true,
+    text_H: $H$,
+    text_W: $W$,
+    text_C: $1$,
+  )
+
+  for i in (1, 2, 3, 4) {
+    for j in (1, 2, 3) {
+      block_3d(
+        H: 0.3, W: 0.3, C: 0.3,
+        origin_x: -0.4 - 0.9 * (i - 1),
+        origin_y: 0,
+        origin_z: -0.4 - 1.1 * (j - 1),
+        faces: "r",
+        background: gray.transparentize(50%),
+      )
+    }
+  }
+
+  block_3d(
+    H: 3, W: 3.2, C: 0.3,
+    origin_x: 0,
+    origin_y: 4.5,
+    origin_z: 0,
+    is_braced: true,
+    text_H: $H^prime$,
+    text_W: $W^prime$,
+    text_C: $1$,
+    background: gray.transparentize(50%),
+  )
+
+  block_3d(
+    H: 3, W: 3.2, C: 0.3,
+    origin_x: 0,
+    origin_y: 8,
+    origin_z: 0,
+    is_braced: true,
+    text_H: $H^prime$,
+    text_W: $W^prime$,
+    text_C: $1$,
+    color: black,
+    background: black.transparentize(30%),
+  )
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.3,
+    origin_x: -1,
+    origin_y: 12,
+    origin_z: -1,
+    color: red,
+    width_size: 2pt,
+    is_braced: true,
+    text_H: text(size: 8pt)[$f_H$],
+    text_W: text(size: 8pt)[$f_W$],
+    text_C: text(size: 8pt)[$1$],
+  )
+
+  block_3d(
+    H: 0.3, W: 0.3, C: 0.3,
+    origin_x: -1.3,
+    origin_y: 12,
+    origin_z: -1.2,
+    color: red,
+    background: red.transparentize(30%),
+    faces: "r",
+  )
+
+  content((0, 1.5, -4), text(size: 10pt)[入力$bold(X)_(*,*,r)$])
+  content((0, 9.3, -4), text(size: 10pt)[勾配$display((partial cal(L))/(partial bold(Y)^((k))))$])
+  content((0, 13, -4), text(size: 10pt)[#align(center)[重みの勾配の断片\ $display((partial cal(L))/(partial bold(W)^((k))_(*,*,r)))$]])
+
+  line((-1.4, 1.8, -1.4), (-1.4, 3.7, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 0.9, "sum.end"), text(size: 7pt)[抜き出す], anchor: "north", padding: 0.1)
+
+  content((-1.4, 6.5, -1.4), text(size: 16pt)[$times$], fill: white)
+  content((-1.4, 6.5, -1.8), text(size: 8pt)[要素積], fill: white)
+
+  line((-1.4, 10, -1.4), (-1.4, 11.3, -1.4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 0.6, "sum.end"), text(size: 7pt)[総和], anchor: "north", padding: 0.1)
+})]
+```
+重要なのは入力の、すべての成分ではなくストライド$(s_H, s_W)$を幅とする飛び飛びの値について抜き出して$display((partial cal(L))/(partial bold(Y)^((k))))$の対応する（つまり異なる）成分との要素積をとっていることである。この一見奇妙な操作は、Dilating拡張を用いると畳み込み演算に帰着できる。
+
+この演算が奇妙なのは$display((partial cal(L))/(partial bold(Y)^((k))))$では一つ隣の成分に対応する成分が$display(bold(X)_(*,*,r))$ではストライドだけ離れた成分だからである。よって、$display((partial cal(L))/(partial bold(Y)^((k))))$の各成分間にそれぞれ、$H$方向なら$s_H-1$個、$W$方向なら$s_W-1$個の$0$を挿入する。数式的定義は以下のようになる。
+$$
+  [tilde((partial cal(L))/(partial bold(Y)^((k))))]_(i, j) colon&= cases(
+    display([(partial cal(L))/(partial bold(Y)^((k)))]_((i - 1)/s_H + 1, (j - 1)/s_W + 1)) & text("if") (i - 1) mod s_H = 0 and (j - 1) mod s_W = 0\
+    0 & text("otherwise")
+  )\
+  tilde((partial cal(L))/(partial bold(Y)^((k)))) &= mat(
+    display((partial cal(L))/(partial y^((k))_(1,1))), 0, dots, 0,
+    display((partial cal(L))/(partial y^((k))_(1,2))), 0, dots, 0,
+    dots, dots, display((partial cal(L))/(partial y^((k))_(1,W^prime)));
+    0, 0, dots, 0, 0, 0, dots, 0,
+    dots, dots, 0;
+    dots.v, dots.v, dots.down, dots.v, dots.v, dots.v, dots.down, dots.v, , , dots.v;
+    0, 0, dots, 0, 0, 0, dots, 0,
+    dots, dots, 0;
+    display((partial cal(L))/(partial y^((k))_(2,1))), 0, dots, 0, display((partial cal(L))/(partial y^((k))_(2,2))), 0, dots, 0,
+    dots, dots, display((partial cal(L))/(partial y^((k))_(2,W^prime)));
+    0, 0, dots, 0, 0, 0, dots, 0,
+    dots, dots, 0;
+    dots.v, dots.v, , dots.v, dots.v, dots.v,, dots.v, dots.down, , dots.v;
+    dots.v, dots.v, , dots.v, dots.v, dots.v, , dots.v, , dots.down, dots.v;
+    display((partial cal(L))/(partial y^((k))_(H^prime,1))), 0, dots, 0, display((partial cal(L))/(partial y^((k))_(H^prime,2))), 0, dots, 0,
+    dots, dots, display((partial cal(L))/(partial y^((k))_(H^prime,W^prime)))
+  ) in RR^((H - f_H + 1) times (W - f_W + 1))
+$$
+
+なお、この行列の大きさについては$H^prime$と$W^prime$の定義により求められる。このように工夫すると、
+$$
+  (partial cal(L))/(partial bold(W)^((k))_(*,*,r)) = bold(X)_(*,*,r) *_((1, 1)) tilde((partial cal(L))/(partial bold(Y)^((k))))
+$$
+が成立する。つまり、入力とDilating拡張を行った勾配のストライド$(1,1)$の畳み込みにより、重みの勾配を求められた。以下にその図を示す。
+```typst {render=svg caption="Dilating拡張を用いた重み勾配の畳み込み"}
+#align(center)[
+#cetz.canvas({
+  import cetz.draw: *
+  import cetz.decorations: *
+
+  set-transform(((-0.5, 1, 0, 0), (0.3, 0, -1, 0), (1, 0, 0, 0), (0, 0, 0, 1)))
+
+  block_3d(
+    H: 3.8, W: 6, C: 0.3,
+    origin_x: 1.5,
+    origin_y: 0,
+    origin_z: 0,
+    is_braced: true,
+    text_H: $H$,
+    text_W: $W$,
+    text_C: $1$,
+  )
+
+  block_3d(
+    H: 3.6, W: 5.1, C: 0.3,
+    origin_x: 1.2,
+    origin_y: 5,
+    origin_z: 0,
+    is_braced: true,
+    text_H: $H-f_H+1$,
+    text_W: $W-f_W+1$,
+    text_C: $1$,
+    top_rotate: 35deg,
+  )
+
+  block_3d(
+    H: 3, W: 3.2, C: 0.3,
+    origin_x: 0,
+    origin_y: 0,
+    origin_z: 5.5,
+    is_braced: true,
+    text_H: $H^prime$,
+    text_W: $W^prime$,
+    text_C: $1$,
+    color: black,
+    background: black.transparentize(30%),
+  )
+
+  for i in (1, 2, 3, 4, 5) {
+    for j in (1, 2, 3, 4) {
+      block_3d(
+        H: 0.3, W: 0.3, C: 0.3,
+        origin_x: 1.2 - 1.2 * (i - 1),
+        origin_y: 5,
+        origin_z: 6.5 - 1.1 * (j - 1),
+        faces: "tfr",
+        background: black.transparentize(50%),
+      )
+    }
+  }
+
+  for i in (1, 2, 3, 4, 5) {
+    for j in (1, 2, 3, 4) {
+      block_3d(
+        H: 0.3, W: 0.3, C: 0.3,
+        origin_x: 1.2 - 1.2 * (i - 1),
+        origin_y: 5,
+        origin_z:  - 1.1 * (j - 1),
+        faces: {
+          let res = "r"
+          if (i == 1) {
+            res += "f"
+          }
+          if (j == 1) {
+            res += "t"
+          }
+          res
+        },
+        background: black.transparentize(50%),
+      )
+    }
+  }
+
+  flat-brace(
+    (-0.3, 5, 6.5),
+    (-1.2, 5, 6.5),
+    name: "brace",
+  )
+  content("brace", [$f_W$], anchor: "south", padding: 0.2cm, angle: 45deg)
+
+  on-yz(
+      flat-brace(
+        (6.2, 5, -1.2),
+        (5.4, 5, -1.2),
+        name: "brace",
+      )
+  )
+  content("brace", [$f_H$], anchor: "south", padding: 0.2cm, angle: 90deg)
+
+  block_3d(
+    H: 0.85, W: 1, C: 0.3,
+    origin_x: -1,
+    origin_y: 10,
+    origin_z: -1,
+    color: red,
+    width_size: 2pt,
+    is_braced: true,
+    text_H: text(size: 8pt)[$f_H$],
+    text_W: text(size: 8pt)[$f_W$],
+    text_C: text(size: 8pt)[$1$],
+    background: red.transparentize(30%),
+  )
+
+  content((0, 1.5, -4), text(size: 10pt)[入力$bold(X)_(*,*,r)$])
+  content((0, 1.5, 2.2), text(size: 10pt)[勾配$display((partial cal(L))/(partial bold(Y)^((k))))$])
+  content((0, 6.3, -4), text(size: 10pt)[$display(tilde((partial cal(L))/(partial bold(Y)^((k)))))$])
+
+  line((-1.4, 1.8, 4), (-1.4, 3.7, 4), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 0.9, "sum.end"), text(size: 7pt)[要素を分離], anchor: "north", padding: 0.1)
+
+  line((0.3, 6, 3), (0.3, 6, 1.5), mark: (end: "straight", xy-up: (1, 0, 0)), name: "sum")
+  content(("sum.start", 0.6, "sum.end"), text(size: 7pt)[間を$0$で埋める], anchor: "west", padding: 0.1)
+
+  content((-1.4, 3, -1.4), text(size: 16pt)[$*_(#text(size: 11pt)[(1,1)])$], fill: white)
+
+  content((-1.4, 8.5, -1.4), text(size: 16pt)[$=$], fill: white)
+
+  content((0, 11, -4), text(size: 10pt)[#align(center)[重みの勾配の断片\ $display((partial cal(L))/(partial bold(W)^((k))_(*,*,r)))$]])
+})]
+```
+さて、次に入力に対する逆伝播を考えよう。再び畳み込みの定義から始めよう。
+$$
+  y_(i,j,k) &= sum_(1 <= h <= f_H) sum_(1 <= w <= f_W) sum_(1 <= c <= C_text("in")) w^((k))_(h,w, c) times x_(h + s_H times (i - 1), w + s_W times (j - 1), c)\
+$$
+ある入力の成分$x_(p,q,r)$が寄与する出力の成分は、$(i,j)$が
+$$
+&cases(
+1+s_H (i-1) <= p <= f_H + s_H (i-1)\
+1+s_W (j-1) <= q <= f_W + s_W (j-1)
+)\
+  <=> &cases(
+    (p-f_H)/s_H + 1 <= i <= (p-1)/s_H + 1\
+    (q-f_W)/s_W + 1 <= j <= (q-1)/s_W + 1
+  )
+$$
+を満たしている必要がある。そもそも、$1<=i<=H^prime, 1<=j<=W^prime$なので、$x_(p,q,r)$が寄与する出力の成分の範囲は
+$$
+  cases(
+    max(1, (p-f_H)/s_H + 1) <= i <= min(H^prime, (p-1)/s_H + 1)\
+    max(1, (q-f_W)/s_W + 1) <= j <= min(W^prime, (q-1)/s_W + 1)\
+    k = 1\, 2\, dots\, C_text("out")
+  )
+$$
+である。この条件を満たす$(i,j,k)$について
+$$
+  (partial y^((k))_(i,j))/(partial x_(p,q,r)) &= w^((k))_(p - s_H times (i - 1), q - s_W times (j - 1), r)\
+$$
+が成り立つ。先ほど示したすべての$i,j,k$についてこれが成り立つので
+$$
+  (partial cal(L))/(partial x_(p,q,r)) &= sum_(i,j,k) (partial cal(L))/(partial y^((k))_(i,j)) times (partial y^((k))_(i,j))/(partial x_(p,q,r))\
+  &= sum_(i,j,k) (partial cal(L))/(partial y^((k))_(i,j)) times w^((k))_(p - s_H times (i - 1), q - s_W times (j - 1), r)\
+  &= sum_(1 <= k <= C_text("out")) sum_(i,j) [(partial cal(L))/(partial bold(Y)^((k)))]_(i,j) times w^((k))_(p - s_H times (i - 1), q - s_W times (j - 1), r)\
+$$
+となる。ここで以下のようにあらためて$i,j$を決める。
+$$
+  i <- p - s_H times (i - 1)\
+  j <- q - s_W times (j - 1)\
+$$
+すると、
+$$
+  (partial cal(L))/(partial x_(p,q,r)) &= sum_(k=1)^(C_text("out")) sum_(i=1)^(f_H) sum_(j=1)^(f_W) w^((k))_(i,j,r) times [(partial cal(L))/(partial bold(Y)^((k)))]_((p-i)/s_H+1,(q-j)/s_W+1)
+$$
+となる。
+つぎに、再び$i,j$を以下のように置き換える。
+$$
+  i <- f_H - i + 1\
+  j <- f_W - j + 1\
+$$
+すると、
+$$
+  (partial cal(L))/(partial x_(p,q,r)) &= sum_(k=1)^(C_text("out")) sum_(i=1)^(f_H) sum_(j=1)^(f_W) w^((k))_(f_H - i + 1, f_W - j + 1, r) times [(partial cal(L))/(partial bold(Y)^((k)))]_((p - (f_H - i + 1))/s_H + 1, (q - (f_W - j + 1))/s_W + 1)\
+$$
+と変形できる。ただし、ここで$(partial cal(L))/(partial bold(Y)^((k)))$の添字が整数でない場合や範囲外である場合は$0$であるとする。
+$bold(cal(W))^((*))_(*,*,r)$の成分と対応する$(partial cal(L))/(partial bold(cal(Y)))$の成分との積の和になっている。加えて、$bold(cal(W))^((*))_(*,*,r)$はすべての成分が演算に使われている。よって非常に畳み込みに似ている。
+
+いくつか修正して畳み込み演算できるようにしよう。まず、$bold(cal(W))^((*))_(*,*,r)$の添字が、$i,j$を増加させると減少する一方で、$(partial cal(L))/(partial bold(cal(Y)))$の添字は増加するという違いがある。これは$bold(cal(W))$を$H,W$方向についてフリップ（180°回転）させたものを使うことで解決できる。
+$$
+  tilde(w)^((k))_(i,j,r) &= w^((k))_(f_H - i + 1, f_W - j + 1, r)\
+  tilde(bold(cal(W)))^((k))_(*,*,r) &= mat(
+    w^((k))_(f_H, f_W, r), dots, dots, w^((k))_(f_H, 1, r);
+    dots.v, dots.down, , dots.v;
+    dots.v, , dots.down, w^((k))_(2, 1, r);
+    w^((k))_(1, f_W, r), dots, w^((k))_(1, 2, r), w^((k))_(1, 1, r);
+  )
+$$
+次に、$(partial cal(L))/(partial bold(cal(Y)))$の添字について修正を行う。$i,j$を1ずつ増やしても$s_H,s_W$で割り算を行っているため、全体としては小数のままになっている。つまり、間に$0$を挿入するDilating拡張を行う必要がある。また、画像の端と内側では順伝播の時点で寄与する成分の数が異なっている。なので、添字が範囲外になる可能性が存在している。これに対する解決策はパディングである。具体的には成分間に$H$方向に$s_H-1$個、$W$方向に$s_W-1$個の$0$を挿入する。さらに$r_H = (H-f_H) mod s_H$、$r_W = (W-f_W) mod s_W$とおき、上側と左側にそれぞれ$f_H-1$、$f_W-1$個、下側と右側にそれぞれ$f_H-1+r_H$、$f_W-1+r_W$個の$0$を追加する。
+$$
+  [tilde((partial cal(L))/(partial bold(Y)^((k))))]_(i,j) colon&= cases(
+    0 & text("if") i < f_H or f_H + (H^prime - 1) s_H < i or j < f_W or f_W + (W^prime - 1) s_W < j\
+    display([(partial cal(L))/(partial bold(Y)^((k)))]_((i - f_H)/s_H + 1,(j - f_W)/s_W + 1)) & text("else if") (i - f_H) mod s_H = 0 and (j - f_W) mod s_W = 0\
+    0 & text("otherwise")
+  )\
+  tilde((partial cal(L))/(partial bold(Y)^((k))))&in RR^((H + f_H - 1) times (W + f_W - 1))\
+$$
+このように定義することで
+$$
+  (partial cal(L))/(partial bold(X)_(*,*,r)) &= tilde((partial cal(L))/(partial bold(cal(Y)))) *_((1,1)) tilde(bold(W))^((*))_(*,*,r)\
+$$
+が成り立つ。つまり、Dilating拡張とパディングを行った入力とフリップした重みのストライド$(1,1)$の畳み込みにより、入力の勾配を求めることができる。
+
+## img2colによる畳み込み層の逆伝播
+img2colを用いれば、畳み込みを行列積の計算で行えることを示した。img2colを用いて畳み込みを行う場合、逆伝播も同様の方法で行う方が効率的である。ここでは、逆伝播を行列積で表せることを示すのではなく、img2colのアルゴリズムから逆伝播を導出してみよう。まず、img2colの順伝播は以下の式で表せた。
+$$
+  bold(Y)_text("i2c") = bold(X)_text("i2c") dot bold(W)_text("i2c") + bold(1)_(H^prime W^prime) dot bold(b)
+$$
+この式はAffine層の順伝播と同様の計算になっている。よって、同様の議論によって$display((partial cal(L))/(partial bold(Y)_text("i2c")))$を用いて$display((partial cal(L))/(partial bold(X)_text("i2c")))$や$display((partial cal(L))/(partial bold(W)_text("i2c")))$を求めることが可能である。一方でAffine層と違うのは、それぞれがデータの「行列表現」となっている部分である。つまり、$display((partial cal(L))/(partial bold(cal(Y))))$から$display((partial cal(L))/(partial bold(Y)_text("i2c")))$への変換や$display((partial cal(L))/(partial bold(X)_text("i2c")))$から$display((partial cal(L))/(partial bold(cal(X))))$への変換が必要である。
+
+なお、$bold(W)_text("i2c")$については順伝播や逆伝播においても変換は必要ない。なぜなら、順伝播でも逆伝播でも$bold(W)_text("i2c")$という形でしか用いず、$bold(cal(W))^((k))$というテンソルの形では利用しない。対して、$bold(cal(X))$や$bold(cal(Y))$は画像を表しているべきで、$bold(X)_text("i2c")$は$bold(cal(X))$のピクセルを重複して保持しており適さず、$bold(Y)_text("i2c")$はピクセルの空間的距離が保存されておらず適さない。また、$display((partial cal(L))/(partial bold(X)_text("i2c")))$は上層の畳み込み層の$display((partial cal(L))/(partial bold(Y)_text("i2c")))$になり得ない。
+
+では、まずは行列積計算の逆伝播を考えよう。Affine層での議論をそのまま行うことで以下が示せる。
+$$
+  (partial cal(L))/(partial bold(W)_text("i2c")) &= bold(X)_text("i2c")^top dot (partial cal(L))/(partial bold(Y)_text("i2c"))\
+  (partial cal(L))/(partial bold(X)_text("i2c")) &= (partial cal(L))/(partial bold(Y)_text("i2c")) dot bold(W)_text("i2c")^top\
+  (partial cal(L))/(partial bold(b)) &= sum_(1<=i<=H^prime W^prime) [(partial cal(L))/(partial bold(Y)_text("i2c"))]_(i,*)
+$$
+次に$display((partial cal(L))/(partial bold(cal(Y))))$から$display((partial cal(L))/(partial bold(Y)_text("i2c")))$の変換を考えよう。これは、順伝播で行った変換の逆を素直に行えば良い。
+$$
+  [(partial cal(L))/(partial bold(cal(Y)))]_(i,j,*) -> [(partial cal(L))/(partial bold(Y)_text("i2c"))]_(W^prime times (i - 1) + j, *)
+$$
+これは、ベクトルの向きと位置を組み直せば簡単に行える。しかし、$display((partial cal(L))/(partial bold(X)_text("i2c")))$の$display((partial cal(L))/(partial bold(cal(X))))$への変換は成分の入れ替えでは済まない。なぜなら、$bold(X)_text("i2c")$は$bold(cal(X))$の成分を重複して保存しているからである。逆伝播ではこれをどのように扱えばいいだろうか。順伝播にて重複して保存しているという事象は、元の成分の$1$倍を異なる成分に寄与させているというように解釈できる。例えば$bold(cal(X))$の$i,j,k$が$bold(X)_text("i2c")$の$p,q$成分と$p^prime, q^prime$成分に重複して保存されているとすると当然
+$$
+  [bold(X)_text("i2c")]_(p,q) &= [bold(cal(X))]_(i,j,k)\
+  [bold(X)_text("i2c")]_(p^prime,q^prime) &= [bold(cal(X))]_(i,j,k)
+$$
+であるので、
+$$
+  [(partial cal(L))/(partial bold(cal(X)))]_(i,j,k) = [(partial cal(L))/(partial bold(X)_text("i2c"))]_(p,q) + [(partial cal(L))/(partial bold(X)_text("i2c"))]_(p^prime,q^prime)\
+$$
+となる。つまり、対応する成分のすべての和になる。これを定式化することは非常に難しいので複数ステップに分けて行う。
+1. $display((partial cal(L))/(partial bold(cal(X))))$をすべて0で初期化する。
+
+2. $display((partial cal(L))/(partial bold(X)_text("i2c")))$から1行取得する。
+3. img2colで行った「局所受容野のベクトルへの変換」の逆を行う。
+4. 対応する$display((partial cal(L))/(partial bold(cal(X))))$の局所受容野に3で求めた値を加える。
+5. $display((partial cal(L))/(partial bold(X)_text("i2c")))$の次の行を考える。$display((partial cal(L))/(partial bold(cal(X))))$の局所受容野についてストライドだけずらす。
+6. 2に戻る。$display((partial cal(L))/(partial bold(X)_text("i2c")))$の次の行がない場合は終了。
+
+つまり、img2colで行っていた変換の逆の操作を行い、重なった部分の和をとる。これにより、$display((partial cal(L))/(partial bold(X)_text("i2c")))$から$display((partial cal(L))/(partial bold(cal(X))))$を求めることができた。
