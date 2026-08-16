@@ -1,0 +1,117 @@
+# 生成モデルの評価指標
+
+## インセプションスコア（IS）
+**インセプションスコア**（`Inception Score`; `IS`）は、生成されたデータが多様であることと、生成されたデータが特定のクラスに属することを評価するための指標である。ISは、生成されたデータを事前学習された分類器（例えば、Inception v3モデル）に入力し、その出力分布を用いて計算される。 この分類機は生成されたデータ$bold(x) ~ p_"gen"$をクラス$y$に分類するものであるとする。その際、どのクラスに属するかという条件付き分布$p(y|bold(x))$が得られ、画像全体のクラス分布$p(y)$は、
+
+$$
+ p(y) = EE_(bold(x) ~ p_"gen") [p(y|bold(x))]
+$$
+
+で表される。ここで、個々の生成されたデータが分類器に入力されることによって得られた分布と全体の分布の差をKLダイバージェンスで測りその全体の生成データについて平均を取ることでISが定義される。
+
+$$
+ "IS" = exp(EE_(bold(x) ~ p_"gen") [D_("KL") (p(y|bold(x)) || p(y))])
+$$
+
+分類器は生成モデルと関係ないタスクで事前学習されているとき、クラス分類自体にはそれほど意味はない。$p(y)$は例えると、生成タスクが分類器にとって平均的にどのようなタスクなのかを表しており、ISはある意味で生成されたデータ分布の"ばらつき"を表しているとも言える。また、ISは相互情報量であると解釈できる。実際、
+
+$$
+ "IS" = exp(I(bold(X); Y))
+$$
+
+である。つまり、$bold(X)$を知っている状態で$Y$の不確実性が減るほどISは高くなる。生成データが、鮮明にラベル付けされ、かつ多様なクラスに分布しているほどISは高くなる。
+
+しかし、一方でISは評価に元々の生成タスクの教師データ（実データ）を用いないので元々のタスクに合致しているかどうかを評価することができない。また、Inceptionモデルに依存しているため、Inceptionモデルが特定のクラスに対して過剰に自信を持つようにデータを生成することで結果をハックすることができる。Inceptionモデルの学習したラベル空間に依存するという限界もある。
+
+## フレシェ・インセプション距離（FID）
+**フレシェ・インセプション距離**（`Fréchet Inception Distance`; `FID`）は、ISの弱点の一部を補うための指標である。 実データと生成されたデータをInceptionネットワークの特徴空間にマッピングし、その特徴空間における実データと生成されたデータの分布の距離を測ることで、生成されたデータが実データにどれだけ近いかを評価する。
+
+Inceptionモデルはクラス分類のために学習されているが、その出力ではなく途中の特徴量について実データを入力した場合の分布$p_r$と、生成されたデータを入力した場合の分布$p_g$を比較する。その際、その分布を多変量ガウス分布で近似する。すなわち、
+
+$$
+ p_r approx cal(N)(bold(mu)_r, bold(Sigma)_r), quad p_g approx cal(N)(bold(mu)_g, bold(Sigma)_g)
+$$
+
+である。この二つの確率分布の距離としてKLダイバージェンスなどではなくWasserstein-2距離$W_2$を用いる。これは、一方の分布を"土の山"、もう一方の分布を"大地に開いた穴"と見立てたときに、土を穴に入れるために必要な最低限の仕事量であると解釈されている。
+
+$$
+ W_2(p_r, p_g) = sqrt(inf_(gamma in Gamma(p_r, p_g)) EE_((bold(x), bold(y)) ~ gamma) [ ||bold(x) - bold(y)||_2^2])
+$$
+
+ここで、$Gamma(p_r, p_g)$は、$p_r$と$p_g$の周辺確率分布を持つすべての結合分布の集合である。つまり、$Gamma$は
+
+$$
+ p_r (bold(x)) = integral gamma(bold(x), bold(y)) d bold(y), quad p_g (bold(y)) = integral gamma(bold(x), bold(y)) d bold(x)
+$$
+
+を満たす$gamma$の全体である。この際$gamma$は、"土を動かす戦略"であると解釈される。$gamma$の中で、土を動かすための仕事量が最小になるものを選ぶことで、二つの分布の距離を測ることができる。多変量ガウス分布に対しては、Wasserstein-2距離の2乗は以下のように計算できる。
+
+$$
+ "FID" := W_2^2(p_r, p_g) = ||bold(mu)_r - bold(mu)_g||_2^2 + tr(bold(Sigma)_r + bold(Sigma)_g - 2 (bold(Sigma)_r^(1 slash 2) bold(Sigma)_g bold(Sigma)_r^(1 slash 2))^(1 slash 2))
+$$
+
+FIDは、実データの確率分布との差を直接測るという点でISよりも優れているとされている。加えて、生成データをそのまま指標に用いているのではなくInceptionモデルの特徴空間にマッピングしているため、データのMSEよりはデータの意味のような抽象的な特徴を加味して評価することができる。また、計算もある程度効率的である。
+
+しかし、実際の計算では有限のサンプルで分布を近似しているため、強いバイアスをもち、サンプルサイズに依存するという問題がある。加えて、前処理や実装の差に敏感で、リサイズや圧縮の違いで大きく値が変わることがある。さらに、Inceptionモデルの特徴空間をガウス分布で近似することの妥当性も疑問視されている。なので、モデルの実装や訓練時のモデル選択に使われることが多い。
+
+## カーネル・インセプション距離（KID）
+**カーネル・インセプション距離**（`Kernel Inception Distance`; `KID`）は、FIDの問題のいくつかを解決するための指標である。 KIDは、Inceptionモデルの特徴空間における実データと生成されたデータの分布の距離を測る点ではFIDと同じであるが、分布の距離を測るためにWasserstein-2距離ではなく、最大平均差異（`Maximum Mean Discrepancy`; `MMD`）を用いる。MMDは、二つの分布の距離をよく見分けるカーネル関数を用いて、二つの分布の距離を測るものである。すなわち、
+
+$$
+ "MMD"[cal(F), p_r, p_g] = sup_(f in cal(F)) (EE_(bold(x) ~ p_r) [f(bold(x))] - EE_(bold(y) ~ p_g) [f(bold(y))])
+$$
+
+である。ここで、$cal(F)$は、カーネル関数を用いて定義される関数空間---つまり関数の集合---である。ここで、$cal(F)$として[再生核ヒルベルト空間](/blogs/machine-learning/A03-kernel-methods-rkhs)の単位球を用いる。 すると、再生性により
+
+$$
+ "MMD"[cal(F), p_r, p_g] &= sup_(f in cal(F)) (EE_(bold(x) ~ p_r) [chevron.l f, k(bold(x), dot.c) chevron.r] - EE_(bold(y) ~ p_g) [chevron.l f, k(bold(y), dot.c) chevron.r])\
+ &= sup_(f in cal(F)) (chevron.l f, EE_(bold(x) ~ p_r) [k(bold(x), dot.c)] chevron.r - chevron.l f, EE_(bold(y) ~ p_g) [k(bold(y), dot.c)] chevron.r) \
+ &= sup_(f in cal(F)) (chevron.l f, EE_(bold(x) ~ p_r) [k(bold(x), dot.c)] - EE_(bold(y) ~ p_g) [k(bold(y), dot.c)] chevron.r)
+$$
+
+となる。ここで、$mu_r = EE_(bold(x) ~ p_r) [k(bold(x), dot.c)], mu_g = EE_(bold(y) ~ p_g) [k(bold(y), dot.c)]$とおく。これらは関数であることに注意する。すると、$f$は単位球の要素であるため、Cauchy-Schwarzの不等式から
+
+$$
+ chevron.l f, EE_(bold(x) ~ p_r) [k(bold(x), dot.c)] - EE_(bold(y) ~ p_g) [k(bold(y), dot.c)] chevron.r &= chevron.l f, mu_r - mu_g chevron.r\
+ &<= ||f|| ||mu_r - mu_g||\
+ &<= ||mu_r - mu_g||
+$$
+
+となる。ここで、$f$と$mu_r - mu_g$が同じ方向を向いており、$||f|| = 1$であるような$f$があるはずであるため、等号成立する場合が最大で、
+
+$$
+ "MMD"[cal(F), p_r, p_g] = ||mu_r - mu_g||
+$$
+
+となる。次に$"MMD"^2$を考えると
+
+$$
+ "MMD"^2[cal(F), p_r, p_g] &= ||mu_r - mu_g||^2\
+ &= chevron.l mu_r - mu_g, mu_r - mu_g chevron.r\
+ &= chevron.l mu_r, mu_r chevron.r + chevron.l mu_g, mu_g chevron.r - 2 chevron.l mu_r, mu_g chevron.r\
+ &= EE_(bold(x), bold(x') ~ p_r) [k(bold(x), bold(x'))] + EE_(bold(y), bold(y') ~ p_g) [k(bold(y), bold(y'))] - 2 EE_(bold(x) ~ p_r, bold(y) ~ p_g) [k(bold(x), bold(y))]
+$$
+
+KIDの原論文では$k$として、3次多項式カーネル
+
+$$
+ k(bold(x), bold(y)) = ((bold(x)^top bold(y)) / d + 1)^3 = ((bold(x)^top bold(y)) / d)^3 + 3 ((bold(x)^top bold(y)) / d)^2 + 3 ((bold(x)^top bold(y)) / d) + 1
+$$
+
+を用いている。ここで、$d$は特徴空間の次元である。展開した式からも分かるように、3次の項があることで平均や共分散だけでなく、より高次の相互作用にも感度を持ちうるようになっている。
+
+実際に計算する際には有限のサンプルで分布を近似するためこのままこれを計算してしまうとバイアスが生じる。そこで、KIDでは以下の不偏推定量$hat("MMD")^2$を用いる。
+
+$$
+ hat("MMD")^2 = 1/(m(m-1)) sum_(i != j) k(bold(x)_i, bold(x)_j) + 1/(n(n-1)) sum_(i != j) k(bold(y)_i, bold(y)_j) - 2/(m n) sum_(i, j) k(bold(x)_i, bold(y)_j)
+$$
+
+ここで、$bold(x)_1, ..., bold(x)_m$は実データのサンプル、$bold(y)_1, ..., bold(y)_n$は生成データのサンプルである。これは、不偏推定量である。 つまり
+
+$$
+ EE_(bold(x)_(1:m) ~ p_r, bold(y)_(1:n) ~ p_g)[hat("MMD")^2] = "MMD"^2
+$$
+
+加えて、KIDはInceptionモデルの特徴空間をガウス分布で近似する必要がなく、3次多項式カーネルによって平均や共分散だけでなく、より高次の相互作用にも感度を持ちうる。さらに、不偏推定量$hat("MMD")^2$は、対立仮説の下では漸近的正規性（ asymptotic normality ）を持つため、信頼区間などの統計的な扱いがしやすい。
+
+しかし、KIDもInceptionモデルの特徴空間に依存しているという問題やカーネル関数の選択に依存しているという問題がある。また、KIDは分布の全てを考慮しているわけではないため、生成されたデータが実データに近いかどうかを完全に評価することはできない。

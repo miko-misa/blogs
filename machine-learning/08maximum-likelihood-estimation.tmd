@@ -1,0 +1,361 @@
+# 最尤推定と確率モデル
+
+## 導入
+パラメータ$theta$によってパラメータ化された確率分布$p_theta (x)$があるとする。この確率分布からi.i.d.にデータセット$cal(D) = {x_i}_(i=1)^N$が得られたとする。このデータセットが得られる確率を**尤度**（likelihood）と呼び、以下のように定義される。尤度にもとづく統計的推定の基礎はFisherによって整理された。
+
+$$
+L(theta) = p_theta (x_(1:N)) = product_(i=1)^N p_theta (x_i)
+$$
+
+これはi.i.d.の仮定に基づいている。今回、この$cal(D)$が得られたのは稀なことではなく自然なことであると考えると、この尤度を最大化するようなパラメータ$theta$を見つけることが重要である。これを**最尤推定**（maximum likelihood estimation）と呼ぶ。数値計算上、尤度の対数を取ることが一般的である。これを**対数尤度**（log-likelihood）と呼び、以下のように定義される。
+
+$$
+ell(theta) = log L(theta) = sum_(i=1)^N log p_theta (x_i)
+$$
+
+対数関数は単調増加関数であるため、対数尤度を最大化することは尤度を最大化することと同値である。
+
+## Bernoulli分布の最尤推定
+さて、例としてBernoulli分布を考える。Bernoulli分布は、確率$theta$で1を、確率$1 - theta$で0を生成する分布である。データセット$cal(D) = {x_i}_(i=1)^N$がBernoulli分布から得られたとする。このとき、1回の観測$x_i$に対して
+
+$$
+ p_theta (x_i) = theta^(x_i) (1 - theta)^(1 - x_i)
+$$
+
+となる。したがって、データセット全体の対数尤度は
+
+$$
+ell(theta) &= sum_(i=1)^N log p_theta (x_i)\
+&= sum_(i=1)^N [x_i log theta + (1 - x_i) log (1 - theta)]\
+&= log theta sum_(i=1)^N x_i + log (1 - theta) sum_(i=1)^N (1 - x_i)
+$$
+
+となる。ここで、$theta$に対してこの対数尤度の停留点を求めるために、対数尤度を$theta$で微分して$0$と置く。
+
+$$
+&frac(d ell(theta), d theta) = frac(sum_(i=1)^N x_i, theta) - frac(sum_(i=1)^N (1 - x_i), 1 - theta) = 0\
+
+<=> &(1-theta) sum_(i=1)^N x_i = theta N - theta sum_(i=1)^N x_i\
+<=> &sum_(i=1)^N x_i = theta N\
+therefore &hat(theta) = 1/N sum_(i=1)^N x_i
+$$
+
+この$hat(theta)$が$theta$の最尤推定量である。ただし、上の微分による議論は$0 < theta < 1$の内部解を仮定している。全ての観測が$0$または$1$の場合は停留点が内部に存在せず、最尤推定値は境界$hat(theta) = 0$または$hat(theta) = 1$になる。上の式は標本平均として、この境界の場合も含んでいる。実際には停留点が全域で最大値であることも確認する必要がある。
+
+## 正規分布の最尤推定
+次に、Gaussian分布を考える。Gaussian分布は、$bold(mu), bold(Sigma)$によってパラメータ化された分布で、以下のような確率密度関数を持つ。ここでは多次元Gaussian分布を考え、その次元を$d$とする。共分散行列$bold(Sigma)$は対称正定値行列である。
+
+$$
+p(bold(x) | bold(mu), bold(Sigma)) = cal(N)(bold(mu), bold(Sigma)) = frac(1, (2pi)^(d slash 2) |bold(Sigma)|^(1 slash 2)) exp(-1/2 (bold(x) - bold(mu))^top bold(Sigma)^(-1) (bold(x) - bold(mu)))
+$$
+
+$bold(mu) in RR^d$は平均ベクトル、$bold(Sigma) in RR^(d times d)$は共分散行列である。いま、i.i.d.なデータセット$cal(D) = {bold(x)^((i))}_(i=1)^N$がGaussian分布から得られたとする。このとき、データセット全体の対数尤度は
+
+$$
+ell(bold(mu), bold(Sigma)) &= sum_(i=1)^N log p(bold(x)^((i)) | bold(mu), bold(Sigma))\
+&= sum_(i=1)^N [-1/2 log((2pi)^d |bold(Sigma)|) - 1/2 (bold(x)^((i)) - bold(mu))^top bold(Sigma)^(-1) (bold(x)^((i)) - bold(mu))]\
+&= -N/2 log((2pi)^d |bold(Sigma)|) - 1/2 sum_(i=1)^N (bold(x)^((i)) - bold(mu))^top bold(Sigma)^(-1) (bold(x)^((i)) - bold(mu))\
+&= -(d N)/2 log(2pi) - N/2 log |bold(Sigma)| - 1/2 sum_(i=1)^N (bold(x)^((i)) - bold(mu))^top bold(Sigma)^(-1) (bold(x)^((i)) - bold(mu))
+$$
+
+となる。ここで、$bold(mu), bold(Sigma)$に対してこの対数尤度の停留点を求めるために、対数尤度をそれぞれ$bold(mu), bold(Sigma)$で微分して$0$と置く。まずは$bold(mu)$について考える。
+
+$$
+ bold(z)_i &:= bold(x)^((i)) - bold(mu)\
+ frac(partial, partial bold(mu)) (bold(z)_i^top bold(Sigma)^(-1) bold(z)_i) &= -2 bold(Sigma)^(-1) bold(z)_i quad (because bold(Sigma)^(-1) = (bold(Sigma)^(-1))^top)
+$$
+
+なので、対数尤度を$bold(mu)$で微分すると
+
+$$
+frac(partial ell(bold(mu), bold(Sigma)), partial bold(mu)) &= -1/2 sum_(i=1)^N frac(partial, partial bold(mu)) ((bold(x)^((i)) - bold(mu))^top bold(Sigma)^(-1) (bold(x)^((i)) - bold(mu)))\
+&= sum_(i=1)^N bold(Sigma)^(-1) (bold(x)^((i)) - bold(mu)) = 0\
+<=> sum_(i=1)^N (bold(x)^((i)) - bold(mu)) &= bold(0)\
+$$
+
+となる。最後の変形では$bold(Sigma)$が正則であることを用いて左から掛けた。したがって、$bold(mu)$の最尤推定量は
+
+$$
+hat(bold(mu)) = frac(1, N) sum_(i=1)^N bold(x)^((i))
+$$
+
+である。次に、$bold(Sigma)$について考える。以降の行列微分は、スカラー関数の微分を変数と同じ形の行列で並べる記法（分母レイアウト; denominator layout）で書く。行列微分ではレイアウトの規約によって転置の現れ方が変わるため、規約を意識する必要がある。 そもそも一般的な行列$bold(A)$の行列式$|bold(A)|$の微分をまず考える。$|bold(A)|$は$(i, k)$要素の余因子$c_(i k)$を用いて
+
+$$
+|bold(A)| = sum_(k=1)^n a_(i k) c_(i k)
+$$
+
+である。これは第$i$行の余因子展開である。これをある成分$a_(i j)$で微分すると
+
+$$
+frac(partial |bold(A)|, partial a_(i j)) = c_(i j)
+$$
+
+である。したがって、$|bold(A)|$の微分は
+
+$$
+frac(partial |bold(A)|, partial bold(A)) = mat(
+ c_(1 1), c_(1 2), dots.c, c_(1 n);
+ c_(2 1), c_(2 2), dots.c, c_(2 n);
+ dots.v, dots.v, dots.down, dots.v;
+ c_(n 1), c_(n 2), dots.c, c_(n n);
+) = bold(C)
+$$
+
+となる。ここで、$bold(C)$は余因子$c_(i j)$を同じ$(i, j)$位置に並べた行列である。随伴行列を$op("adj")(bold(A)) = bold(C)^top$と書けば、逆行列の公式は$bold(A)^(-1) = frac(1, |bold(A)|) op("adj")(bold(A)) = frac(1, |bold(A)|) bold(C)^top$である。したがって、
+
+$$
+frac(partial log |bold(A)|, partial bold(A)) = frac(1, |bold(A)|) frac(partial |bold(A)|, partial bold(A)) = frac(1, |bold(A)|) bold(C) = (bold(A)^(-1))^top
+$$
+
+とできる。次に二次形式の部分$bold(z)^top bold(Sigma)^(-1) bold(z)$の微分を考える。ここで、$bold(z) = bold(x)^((i)) - bold(mu)$である。これはスカラーであるので、
+
+$$
+frac(partial, partial bold(Sigma)) (bold(z)^top bold(Sigma)^(-1) bold(z)) &= frac(partial, partial bold(Sigma)) tr(bold(z)^top bold(Sigma)^(-1) bold(z))\
+&= frac(partial, partial bold(Sigma)) tr(bold(Sigma)^(-1) bold(z) bold(z)^top) quad (because tr(A B C) = tr(C A B) = tr(B C A))\
+$$
+
+となる。ここで、$Sigma$の$(i, j)$成分$sigma_(i j)$について微分すると、
+
+$$
+frac(partial, partial sigma_(i j)) tr(bold(Sigma)^(-1) bold(z) bold(z)^top) &= tr(frac(partial, partial sigma_(i j)) bold(Sigma)^(-1) bold(z) bold(z)^top)\
+&= tr(- bold(Sigma)^(-1) frac(partial bold(Sigma), partial sigma_(i j)) bold(Sigma)^(-1) bold(z) bold(z)^top)quad &&because frac(partial bold(A)^(-1), partial x) = - bold(A)^(-1) frac(partial bold(A), partial x) bold(A)^(-1)\
+&= tr(- bold(Sigma)^(-1) E_(i j) bold(Sigma)^(-1) bold(z) bold(z)^top) quad &&because frac(partial bold(Sigma), partial sigma_(i j)) = E_(i j)\
+&= - tr(E_(i j) bold(Sigma)^(-1) bold(z) bold(z)^top bold(Sigma)^(-1) ) quad &&because tr(A B) = tr(B A)\
+&= - (bold(Sigma)^(-1) bold(z) bold(z)^top bold(Sigma)^(-1))_(j i) quad &&because tr(E_(i j) bold(A)) = a_(j i)
+$$
+
+であるが、$bold(Sigma)^(-1) bold(z) bold(z)^top bold(Sigma)^(-1)$は対称行列であるので、$(j, i)$成分は$(i, j)$成分と等しい。したがって、
+
+$$
+frac(partial, partial bold(Sigma)) (bold(z)^top bold(Sigma)^(-1) bold(z)) = - bold(Sigma)^(-1) bold(z) bold(z)^top bold(Sigma)^(-1)
+$$
+
+となる。これらを用いて、対数尤度を$bold(Sigma)$で微分し、零行列とすると
+
+$$
+frac(partial ell(bold(mu), bold(Sigma)), partial bold(Sigma)) &= -N/2 frac(partial log |bold(Sigma)|, partial bold(Sigma)) - 1/2 sum_(i=1)^N frac(partial, partial bold(Sigma)) ((bold(x)^((i)) - bold(mu))^top bold(Sigma)^(-1) (bold(x)^((i)) - bold(mu)))\
+&= -N/2 (bold(Sigma)^(-1))^top + 1/2 sum_(i=1)^N bold(Sigma)^(-1) (bold(x)^((i)) - bold(mu)) (bold(x)^((i)) - bold(mu))^top bold(Sigma)^(-1) = bold(O)\
+<=> N (bold(Sigma)^(-1))^top &= sum_(i=1)^N bold(Sigma)^(-1) (bold(x)^((i)) - bold(mu)) (bold(x)^((i)) - bold(mu))^top bold(Sigma)^(-1)\
+<=> N bold(I) &= sum_(i=1)^N (bold(x)^((i)) - bold(mu)) (bold(x)^((i)) - bold(mu))^top bold(Sigma)^(-1) quad because bold(Sigma)^(-1) = (bold(Sigma)^(-1))^top\
+<=> N bold(Sigma) &= sum_(i=1)^N (bold(x)^((i)) - bold(mu)) (bold(x)^((i)) - bold(mu))^top\
+<=> hat(bold(Sigma)) &= frac(1, N) sum_(i=1)^N (bold(x)^((i)) - hat(bold(mu))) (bold(x)^((i)) - hat(bold(mu)))^top
+$$
+
+である。以上で、Gaussian分布の平均ベクトル$bold(mu)$と共分散行列$bold(Sigma)$の最尤推定量は
+
+$$
+hat(bold(mu)) = frac(1, N) sum_(i=1)^N bold(x)^((i)), quad hat(bold(Sigma)) = frac(1, N) sum_(i=1)^N (bold(x)^((i)) - hat(bold(mu))) (bold(x)^((i)) - hat(bold(mu)))^top
+$$
+
+であることがわかった。
+
+## 正規混合モデル
+Gaussian分布の混合モデルは、$K$個のGaussian分布の線形結合で表される分布である。すなわち、$bold(x) in RR^d$に対する確率密度関数は
+
+$$
+p(bold(x) | bold(pi), bold(mu)_(1:K), bold(Sigma)_(1:K)) = sum_(k=1)^K pi_k cal(N)(bold(x) | bold(mu)_k, bold(Sigma)_k)
+$$
+
+と表される。ここで、$bold(pi) = (pi_1, dots, pi_K)$は混合係数と呼ばれるベクトルで、$pi_k >= 0$かつ$sum_(k=1)^K pi_k = 1$を満たす。正規混合の考え方はPearsonによる二つの正規曲線の分解に遡り、混合分布の最尤推定とEMアルゴリズムによる扱いはRedner and Walkerに整理されている。 $bold(mu)_(1:K) = (bold(mu)_1, dots, bold(mu)_K)$は平均ベクトルの集合、$bold(Sigma)_(1:K) = (bold(Sigma)_1, dots, bold(Sigma)_K)$は共分散行列の集合である。いま、i.i.d.なデータセット$cal(D) = {bold(x)^((i))}_(i=1)^N$がGaussian分布の混合モデルから得られたとする。このとき、最尤推定は解析解を持たない。なぜなら、対数尤度を考えると対数内に積ではなく和があるためである。また、勾配法を用いた最適化も困難である。例えば、データセットのデータ点$bold(x)^((1))$に対し、1つのGaussian分布が極めて小さい分布をもちデータ点に分布が集中するように設定できる。
+
+$$
+ cal(N)(bold(x) | bold(mu)_1, bold(Sigma)_1) approx delta(bold(x) - bold(x)^((1)))
+$$
+
+こうすると、そのGaussian分布の共分散を$bold(0)$に近づけることで、データセットに対する尤度を任意に大きくできる。したがって、制約なしの正規混合では尤度が上に有界でない場合があり、大域的な最尤推定量が通常の意味で存在しないことがある。この点は、初期値に依存した局所解が多いという問題とは区別する必要がある。
+
+## EMアルゴリズム
+そこで、Gaussian分布の混合モデルの最尤推定には、**EMアルゴリズム**（Expectation-Maximization Algorithm）が用いられることが多い。EMアルゴリズムは、隠れ変数を導入して対数尤度を最大化する反復的な手法である。 一般にあるパラメータ$theta$によってパラメータ化された確率分布$p_theta (x, z)$があるとする。ここで、$x$は観測変数、$z$は隠れ変数である。もし手元に隠れ変数$z$の値があれば、対数尤度は
+
+$$
+ell(theta) = log p_theta (x, z)
+$$
+
+となる。隠れ変数$z$の個々の値は観測されないため、この完全データの対数尤度を$z$について平均する。真のパラメータはまだ分からないので、現在のパラメータ$theta^(("old"))$から得られる事後分布$p_(theta^(("old"))) (z | x)$を用いる。したがって、対数尤度の$z$についての期待値は
+
+$$
+Q(theta, theta^(("old"))) = EE_(z ~ p_(theta^(("old"))) (z | x)) [log p_theta (x, z)]
+$$
+
+となる。この$Q$関数は、$theta$というパラメータを現在のパラメータ$theta^(("old"))$に対して評価する関数である。EMアルゴリズムは、$Q$関数を最大化するような$theta$を見つけることを繰り返すことで、対数尤度を最大化することを目指す。
+
+$$
+ theta^(("new")) = op("argmax",limits: #true)_(theta) Q(theta, theta^(("old")))
+$$
+
+EMアルゴリズムではこれを2つのステップに分けて考える。
+
+1. **Eステップ**（Expectation Step）: $Q$関数を計算するステップである。すなわち、$theta^(("old"))$を用いて$z$の確率分布$p_(theta^(("old"))) (z | x)$を計算し、その分布に基づいて$Q(theta, theta^(("old"))) = EE_(z ~ p_(theta^(("old"))) (z | x)) [log p_theta (x, z)]$を計算する。
+2. **Mステップ**（Maximization Step）: $Q$関数を最大化する$theta$を見つけるステップである。すなわち、$theta^(("new")) = op("argmax",limits: #true)_(theta) Q(theta, theta^(("old")))$を計算する。
+
+このアルゴリズムによって、対数尤度は単調に増加することが保証されている。$z$の確率分布$q(z)$を用いると
+
+$$
+ log p_theta (x) &= log (integral p_theta (x, z) d z)\
+&= log (integral q(z) (p_theta (x, z))/q(z) d z)\
+&>= integral q(z) log ((p_theta (x, z))/q(z)) d z quad &&because "Jensen's inequality"\
+&= integral q(z) log p_theta (x, z) d z - integral q(z) log q(z) d z\
+&:= cal(L) (q, theta)
+$$
+
+となる。ここで、$cal(L) (q, theta)$は、変分下界(ELBO)と呼ばれる関数になる。EMアルゴリズムをこの下界の交互最大化として見る立場は、Neal and Hintonによっても整理されている。 対数尤度と変分下界の差は、
+
+$$
+ log p_theta (x) - cal(L) (q, theta) &= integral q(z) log p_theta (x) d z - integral q(z) log ((p_theta (x, z))/q(z)) d z \
+ &= integral q(z) log ((p_theta (x) q(z)) / (p_theta (x, z))) d z \
+ &= integral q(z) log (q(z) / (p_theta (z | x))) d z \
+ &:= "KL"(q(z) || p_theta (z | x)) >= 0
+$$
+
+となり、対数尤度はELBOとKLダイバージェンスの和で表されることがわかる。KLダイバージェンスは二つの確率分布の差を測る情報量として導入された。
+
+$$
+ log p_theta (x) = cal(L) (q, theta) + "KL"(q(z) || p_theta (z | x))
+$$
+
+さて、この式に$theta^(("old"))$を代入したものを考える。$theta^(("old"))$が固定なら式の左辺は定数であるので、$cal(L)$を最大化する$q$はKLダイバージェンスを最小化する$q$である。これは明らかに
+
+$$
+q^ast (z) = p_(theta^(("old"))) (z | x)
+$$
+
+である。したがって、Eステップは$Q$関数を計算するステップであると同時に、ELBOを最大化する$q^ast$を見つけるステップでもある。次に$q^ast$に固定すると$cal(L)$は
+
+$$
+ cal(L) (q^ast, theta) &= integral q^ast (z) log p_theta (x, z) d z - integral q^ast (z) log q^ast (z) d z\
+ &= integral p_(theta^(("old"))) (z | x) log p_theta (x, z) d z - integral q^ast (z) log q^ast (z) d z\
+ &= Q(theta, theta^(("old"))) - integral q^ast (z) log q^ast (z) d z
+$$
+
+となる。第2項は$theta$に依存しない定数である。したがって、Mステップは$Q$関数を最大化する$theta$を見つけるステップであると同時に、ELBOを最大化する$theta$を見つけるステップでもある。以上より、EMアルゴリズムは以下のように再解釈できる。
+
+1. Eステップ: ELBOを最大化する$q$を見つけるステップ（$q = q^ast$）
+2. Mステップ: ELBOを最大化する$theta$を見つけるステップ（$theta = theta^(("new"))$）
+
+## 正規混合モデルへの適用
+これをGaussian分布の混合モデルに適用してみる。Gaussian分布の混合モデルは$K$個のGaussian分布の線形結合で表される分布であったが、あるデータ$bold(x)^((i))$がある一つのGaussian分布から生成されたと仮定することができ、これを隠れた確率変数$bold(z)^((i)) in RR^K$で表す。$bold(z)^((i))$はいわゆるonehotベクトルであり、生成元のインデックス$k$について第$k$成分が1、他の成分が0である。このとき、データセット$cal(D) = {bold(x)^((i))}_(i=1)^N$がGaussian分布の混合モデルから得られたとすると、完全データ（隠れ変数が$cal(D)$と同時に観測される状態）の尤度（同時確率）は
+
+$$
+ p_theta (bold(x)^((i)), bold(z)^((i))) = p(bold(x)^((i)), bold(z)^((i)) | bold(pi), bold(mu)_(1:K), bold(Sigma)_(1:K)) = product_(k=1)^K [pi_k cal(N)(bold(x)^((i)) | bold(mu)_k, bold(Sigma)_k)]^(z_k^((i)))
+$$
+
+と表せ、全データセットの完全データの対数尤度は
+
+$$
+ell(bold(pi), bold(mu)_(1:K), bold(Sigma)_(1:K)) = log p_theta (bold(x)^((1:N)), bold(z)^((1:N))) = sum_(i=1)^N sum_(k=1)^K z_k^((i)) [log pi_k + log cal(N)(bold(x)^((i)) | bold(mu)_k, bold(Sigma)_k)]
+$$
+
+となる。ここでパラメータは$bold(pi), bold(mu)_(1:K), bold(Sigma)_(1:K)$である。
+
+さて、現在パラメータ$theta^(("old"))$として$bold(pi^(("old"))), bold(mu)_(1:K)^(("old")), bold(Sigma)_(1:K)^(("old"))$が存在する。このとき、Eステップでは$p_(theta^(("old"))) (bold(z)^((1:N)) | bold(x)^((1:N)))$を計算する。あるデータが第$k$番目のGaussian分布から生成された確率は、ベイズの定理を用いて
+
+$$
+q^ast (z_k^((i)) = 1) = p_(theta^(("old"))) (z_k^((i)) = 1 | bold(x)^((i))) &= frac(p_(theta^(("old"))) (bold(x)^((i)), z_k^((i)) = 1), sum_(j=1)^K p_(theta^(("old"))) (bold(x)^((i)), z_j^((i)) = 1))\
+&= frac(pi_k^(("old")) cal(N)(bold(x)^((i)) | bold(mu)_k^(("old")), bold(Sigma)_k^(("old"))), sum_(j=1)^K pi_j^(("old")) cal(N)(bold(x)^((i)) | bold(mu)_j^(("old")), bold(Sigma)_j^(("old"))))\
+&=: gamma_k^((i))
+$$
+
+と表される。分母は全てのGaussian分布についてそこから生成された確率の和であり、分子は第$k$番目のGaussian分布から生成された確率である。これを$gamma_k^((i))$としておく。これは**負担率**（responsibility）と呼ばれるものである。したがって、Q関数は
+
+$$
+ EE_(q^ast) [log p_theta (bold(x)^((1:N)), bold(z)^((1:N)))] &= sum_(i=1)^N sum_(k=1)^K EE_(q^ast) [z_k^((i))] [log pi_k + log cal(N)(bold(x)^((i)) | bold(mu)_k, bold(Sigma)_k)]\
+$$
+
+であり、
+
+$$
+ E_(q^ast) [z_k^((i))] = q^ast (z_k^((i)) = 1) times 1 + q^ast (z_k^((i)) = 0) times 0 = q^ast (z_k^((i)) = 1)= gamma_k^((i))
+$$
+
+である。したがって、Q関数は
+
+$$
+Q( underbracket( (bold(pi), bold(mu)_(1:K), bold(Sigma)_(1:K)), theta), underbracket((bold(pi^(("old"))), bold(mu)_(1:K)^(("old")), bold(Sigma)_(1:K)^(("old"))), theta^(("old")))) = sum_(i=1)^N sum_(k=1)^K gamma_k^((i)) [log pi_k + log cal(N)(bold(x)^((i)) | bold(mu)_k, bold(Sigma)_k)]
+$$
+
+となり、元々の対数尤度の式の隠れ変数を現在のパラメータとあるデータ点で計算した負担率で置き換えたものに一致する。
+
+さて、MステップではこのQ関数を最大化する$bold(pi), bold(mu)_(1:K), bold(Sigma)_(1:K)$を見つける必要がある。$Q$を分解すると以下のようになる。
+
+$$
+ Q = sum_(i=1)^N sum_(k=1)^K gamma_k^((i)) log pi_k + sum_(i=1)^N sum_(k=1)^K gamma_k^((i)) log cal(N)(bold(x)^((i)) | bold(mu)_k, bold(Sigma)_k)
+$$
+
+第1項は$bold(pi)$にのみ依存し、第2項は$bold(mu)_(1:K), bold(Sigma)_(1:K)$にのみ依存する。したがって、$Q$を最大化する$bold(pi), bold(mu)_(1:K), bold(Sigma)_(1:K)$は、それぞれ第1項と第2項を最大化する$bold(pi)$と$bold(mu)_(1:K), bold(Sigma)_(1:K)$である。第1項を最大化することをまず考える。$sum_(i=1)^N gamma_k^((i)) = N_k$とおくと
+
+$$
+ bold(pi)^(("new")) = op("argmax",limits: #true)_(bold(pi)) sum_(k=1)^K N_k log pi_k quad "subject to" quad sum_(k=1)^K pi_k = 1,thin thin pi_k >= 0
+$$
+
+である。ラグランジュの未定乗数法を用いて、ラグランジュ関数を
+
+$$
+ cal(L) (bold(pi), lambda) = sum_(k=1)^K N_k log pi_k + lambda (sum_(k=1)^K pi_k - 1)
+$$
+
+と定義する。これを$bold(pi)$で微分して$0$と置くと
+
+$$
+ frac(partial cal(L) (bold(pi), lambda), partial pi_k) = frac(N_k, pi_k) + lambda = 0\
+<=> pi_k = - frac(N_k, lambda)
+$$
+
+となる。さらに、$bold(pi)$が確率ベクトルであることから$bold(pi)^(("new"))_k$が求まる。
+
+$$
+ sum_(k=1)^K pi_k = - frac(1, lambda) sum_(k=1)^K N_k = 1 <=> lambda = - sum_(k=1)^K N_k = - N\
+ therefore bold(pi)^(("new"))_k = frac(N_k, N)
+$$
+
+次に、第2項を最大化する$bold(mu)_(1:K), bold(Sigma)_(1:K)$を見つけることを考える。第2項は$K$個の項の和であるが、各項は異なる$bold(mu)_k, bold(Sigma)_k$に依存している。したがって、各項を独立に最大化すればよい。すなわち、以下の問題を考える。
+
+$$
+ (bold(mu)_k^(("new")), bold(Sigma)_k^(("new"))) = op("argmax",limits: #true)_(bold(mu)_k, bold(Sigma)_k) underbracket(sum_(i=1)^N gamma_k^((i)) log cal(N)(bold(x)^((i)) | bold(mu)_k, bold(Sigma)_k), L)
+$$
+
+この問題は、データセット$cal(D) = {bold(x)^((i))}_(i=1)^N$がGaussian分布から得られたときのGaussian分布の最尤推定の問題と同じ形をしている。異なるのは、データ点$bold(x)^((i))$が重み$gamma_k^((i))$をもっていることであるが、これは些細な違いである。
+
+$$
+ sum_(i=1)^N gamma_k^((i)) log cal(N)(bold(x)^((i)) | bold(mu)_k, bold(Sigma)_k) &= sum_(i=1)^N gamma_k^((i)) [-d/2 log(2pi) - 1/2 log |bold(Sigma)_k| - 1/2 (bold(x)^((i)) - bold(mu)_k)^top bold(Sigma)_k^(-1) (bold(x)^((i)) - bold(mu)_k)]\
+&= - (N_k d)/2 log(2pi) - N_k/2 log |bold(Sigma)_k| - 1/2 sum_(i=1)^N gamma_k^((i)) (bold(x)^((i)) - bold(mu)_k)^top bold(Sigma)_k^(-1) (bold(x)^((i)) - bold(mu)_k )
+$$
+
+なので、$bold(mu)_k, bold(Sigma)_k$に対してこの式の停留点を求めるために、式をそれぞれ$bold(mu)_k, bold(Sigma)_k$で微分して$0$と置く。
+
+$$
+ frac(partial L, partial bold(mu)_k) &= sum_(i=1)^N gamma_k^((i)) bold(Sigma)_k^(-1) (bold(x)^((i)) - bold(mu)_k) = 0\
+&<=> sum_(i=1)^N gamma_k^((i)) (bold(x)^((i)) - bold(mu)_k) = bold(0)\
+&<=> sum_(i=1)^N gamma_k^((i)) bold(x)^((i)) = bold(mu)_k sum_(i=1)^N gamma_k^((i))\
+&<=> bold(mu)_k^(("new")) = frac(1, N_k) sum_(i=1)^N gamma_k^((i)) bold(x)^((i))
+$$
+
+$$
+
+ frac(partial L, partial bold(Sigma)_k) &= -N_k/2 (bold(Sigma)_k^(-1))^top + 1/2 sum_(i=1)^N gamma_k^((i)) bold(Sigma)_k^(-1) (bold(x)^((i)) - bold(mu)_k) (bold(x)^((i)) - bold(mu)_k)^top bold(Sigma)_k^(-1) = bold(O)\
+&<=> N_k (bold(Sigma)_k^(-1))^top = sum_(i=1)^N gamma_k^((i)) bold(Sigma)_k^(-1) (bold(x)^((i)) - bold(mu)_k) (bold(x)^((i)) - bold(mu)_k)^top bold(Sigma)_k^(-1)\
+&<=> N_k bold(I) = sum_(i=1)^N gamma_k^((i)) (bold(x)^((i)) - bold(mu)_k) (bold(x)^((i)) - bold(mu)_k)^top bold(Sigma)_k^(-1) quad because bold(Sigma)_k^(-1) = (bold(Sigma)_k^(-1))^top\
+&<=> N_k bold(Sigma)_k = sum_(i=1)^N gamma_k^((i)) (bold(x)^((i)) - bold(mu)_k) (bold(x)^((i)) - bold(mu)_k)^top\
+&<=> bold(Sigma)_k^(("new")) = frac(1, N_k) sum_(i=1)^N gamma_k^((i)) (bold(x)^((i)) - bold(mu)_k^(("new"))) (bold(x)^((i)) - bold(mu)_k^(("new")))^top
+$$
+
+したがって、Gaussian分布の混合モデルのEMアルゴリズムは以下のようになる。
+
+1. Eステップ\
+
+ $$
+ gamma_k^((i)) = frac(pi_k^(("old")) cal(N)(bold(x)^((i)) | bold(mu)_k^(("old")), bold(Sigma)_k^(("old"))), sum_(j=1)^K pi_j^(("old")) cal(N)(bold(x)^((i)) | bold(mu)_j^(("old")), bold(Sigma)_j^(("old"))))
+ $$
+
+ を計算する。
+
+2. Mステップ:
+
+ $$
+ &pi_k^(("new")) = frac(N_k, N)\
+ &bold(mu)_k^(("new")) = frac(1, N_k) sum_(i=1)^N gamma_k^((i)) bold(x)^((i))\
+ &bold(Sigma)_k^(("new")) = frac(1, N_k) sum_(i=1)^N gamma_k^((i)) (bold(x)^((i)) - bold(mu)^(("new"))_k) (bold(x)^((i)) - bold(mu)^(("new"))_k)^top
+ $$
+
+ を計算する。ここで、$N_k = sum_(i=1)^N gamma_k^((i))$である。
+3. $theta^(("old")) <- theta^(("new"))$と置いて、1に戻る。実際には対数尤度やパラメータの変化が十分小さくなった時点で停止する。

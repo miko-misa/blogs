@@ -1,38 +1,5 @@
-# 微分積分学
-## 1変数スカラー関数
-関数$f: RR -> RR$は高校数学から馴染みのある関数で、入力も出力も実数値を取る。このような関数に対する微分は、多くの場合以下のように定義されてきた。
-$$
-f^prime (x) = lim_(h->0) frac(f(x+h) - f(x), h)
-$$
-しかし、多変数に拡張するにあたりより一般的な性質である**一次近似**を用いて定義することが望ましい。一次近似とは、関数$f$が点$x$の近傍で線形関数で近似できることを意味する。
-
-すなわち、ある$r>0$が存在し、$|h| < r$の全ての$h$に対して、関数$f$が以下のように表せるとき、関数$f$は点$x$で一次近似可能であると言う。
-$$
-f(x+h) = f(x) + A h + epsilon(h)
-$$
-ここで、$A$は定数であり、$epsilon(h) = cal(o)(|h|) thin (h -> 0)$を満たす関数である。$cal(o)$はランダウの小記号で、以下のように定義される。
-
-::: box 【定義】ランダウの記号
-関数$f, g: RR -> RR$に対して、$f(x) = cal(o)(g(x)) thick thin (x -> a)$は、
-$$
-lim_(x->a) frac(f(x), g(x)) = 0
-$$
-であることを言う。
-:::
-
-この定義において、$A$は関数$f$の点$x$における微分係数であると定義される。すなわち、
-$$
-f^prime (x) = frac(d f(x), d x) = A
-$$
-である。この定義は、関数$f$が点$x$の近傍で線形関数で近似できることを意味しており、分の概念をより一般的な形で捉えることができるようになる。
-
-## 多変数関数
-以下で定義するベクトルを入力と出力に用いることで、関数$bold(f): RR^n -> RR^m$を定義することができる。ここで、$n$は入力の次元数、$m$は出力の次元数である。ここでは、このような関数を多変数ベクトル値関数と呼ぶことにする。$bold(f)$を以下のようにして分解し、$f_1, f_2, ..., f_m: RR^n -> RR$を$bold(f)$の成分関数と呼ぶことにする。
-$$
-bold(f)(bold(x)) = (f_1(bold(x)), f_2(bold(x)), ..., f_m (bold(x)))^top
-$$
-
-### ベクトル
+# ベクトル
+## ベクトル
 ここではベクトルをここで当たり障りない範囲で定義する。本来であれば数学的にはより抽象的な概念であるが、ここでは実用的な範囲で定義することにする。
 
 実数を$n$個集めた順序付きの組を$n$次元ベクトルと呼ぶことにする。数の組は下のように縦に並べて表すこととする。
@@ -47,7 +14,78 @@ $n$次元ベクトル全体の集合を$RR^n$と表すことにし、$n$次元�
 
 また、標準基底として$bold(e)_i thick (i = 1,2, dots.c, n)$を定義する。これは、$i$番目の成分が1で、他の成分が0であるベクトルである。
 
-### ノルム
+## ベクトル空間
+ベクトル空間とはいくつかの基底ベクトル$bold(e)_i$を用いてその線形結合
+$$
+bold(v) = alpha_1 bold(e)_1 + alpha_2 bold(e)_2 + dots.c + alpha_n bold(e)_n
+$$
+で表される全てのベクトルの集合である。
+$$
+V = { bold(v) in RR^n | bold(v) = alpha_1 bold(e)_1 + alpha_2 bold(e)_2 + dots.c + alpha_n bold(e)_n }
+$$
+これを下のような表記を用いて表す。
+$$
+V = "span"({bold(e)_1, bold(e)_2, dots.c, bold(e)_n}) = "span"{bold(e)_1, bold(e)_2, dots.c, bold(e)_n}
+$$
+
+注意すべきなのは、ベクトルの集合全てがベクトル空間ではない。ベクトル空間はその和とスカラー倍について閉じている。
+
+- **和**: $bold(v_1) + bold(v_2) in V => bold(v_1 + v_2) in V$
+- **スカラー倍**: $bold(v) in V, alpha in RR => alpha bold(v) in V$
+
+何方かと言えばこれこそが定義であるのだがここでは議論しないでおこう。たとえば、以下のような幾つかのベクトルを集めた集合はベクトル空間ではない。
+$$
+V = { vec(1, 2), vec(3, 4) }
+$$
+
+## 基底
+あるベクトル空間$V$の基底とは、$V$の元で以下の条件を満たすベクトル集合${bold(e)_1, bold(e)_2, dots.c, bold(e)_n}$のうち、その数が最小であるものをいう。
+
+- 線型独立である。つまり
+  $$
+    alpha_1 bold(e)_1 + alpha_2 bold(e)_2 + dots.c + alpha_n bold(e)_n = bold(0) => alpha_1 = alpha_2 = dots.c = alpha_n = 0
+  $$
+  である。
+- 全域性を持つ。つまり、全ての$bold(v) in V$に対して、
+  $$
+    bold(v) = alpha_1 bold(e)_1 + alpha_2 bold(e)_2 + dots.c + alpha_n bold(e)_n
+  $$
+  でただ1通りに表される。
+
+## 次元
+ベクトル空間$V$の基底が${bold(e)_1, bold(e)_2, dots.c, bold(e)_n}$であるとき、$V$の次元$dim V$は
+$$
+dim V = n
+$$
+である。ある同じベクトル空間$V$の次元はその基底の取り方によらず一定である。
+
+::: box 【定理】次元と規定の取り方
+
+#### 主張
+ベクトル空間$V$の異なる基底が${bold(e)_1, bold(e)_2, dots.c, bold(e)_n}$および${bold(e)'_1, bold(e)'_2, dots.c, bold(e)'_m}$であるとき、$n = m$である。
+
+#### 証明
+$bold(e)'_i in V$なので、
+$$
+bold(e)'_i = alpha_1^((i)) bold(e)_1 + alpha_2^((i)) bold(e)_2 + dots.c + alpha_n^((i)) bold(e)_n
+$$
+となる、$alpha^((i))_j$が全ての$i = 1,2, dots.c, m$について成り立つ。ここで、次のような$x_i thick (i=1,2,dots.c,m)$を考えると、
+$$
+&sum_(i=1)^m x_i bold(e)'_i = bold(0)\
+<=> &sum_(i=1)^m x_i (sum_(j=1)^n alpha^((i))_j bold(e)_j) = bold(0)\
+<=> &sum_(j=1)^n (sum_(i=1)^m x_i alpha^((i))_j) bold(e)_j = bold(0)
+$$
+
+${bold(e)_1, bold(e)_2, dots.c, bold(e)_n}$は線型独立であるので、
+$$
+sum_(i=1)^m x_i alpha^((i))_j = 0quad (j = 1,2, dots.c, n)
+$$
+が成り立つ。これは$m$元連立方程式であり、$n<m$のとき非自明な解をもつ。それは$display(sum_(i=1)^m x_i bold(e)'_i = bold(0))$が非自明な解をもつことを意味し${bold(e)'_1, bold(e)'_2, dots.c, bold(e)'_m}$が線形独立であることに矛盾する。よって$n>=m$が必要である。
+
+この議論を二つの基底を入れ替えて行うことで$m >= n$も導ける。よって、$n=m$である。
+:::
+
+## ノルム
 
 ベクトル間の距離を定義するために、ベクトル空間$RR^n$にノルム$||dot.c||: RR^n -> RR$を好きに定義することにする。ノルムは以下の条件を満たすものである。
 - **非負性**: $||bold(x)|| >= 0$
@@ -149,7 +187,7 @@ $$
 
 この定理は、全てのノルムで同じように収束・発散・連続などのノルムを使った議論が可能であるということを示している。ノルムの値は違くてもその増減は同期している。
 
-### 内積
+## 内積
 ベクトル空間$RR^n$に内積を定義することもできる。内積$chevron.l thin dot.c thin , thin dot.c thin chevron.r: RR^n times RR^n -> RR$は、以下の条件を満たす関数である。
 - **線形性**: 任意のベクトル$bold(x), bold(y), bold(z) in RR^n$と任意の実数$alpha$に対して、$chevron.l alpha bold(x) + bold(y), bold(z) chevron.r = alpha chevron.l bold(x), bold(z) chevron.r + chevron.l bold(y), bold(z) chevron.r$が成り立つ。
 - **対称性**: 任意のベクトル$bold(x), bold(y) in RR^n$に対して、$chevron.l bold(x), bold(y) chevron.r = chevron.l bold(y), bold(x) chevron.r$が成り立つ。
@@ -164,7 +202,232 @@ $$
 chevron.l bold(x), bold(y) chevron.r = bold(x) dot.c bold(y) = bold(x)^top bold(y)
 $$
 
-### 偏微分
+## 核
+線形写像$bold(f)(bold(x)) = bold(A) bold(x)$について核$ker(bold(A)) = ker(bold(f))$を次のように定義する。
+$$
+ker(bold(A)) = ker(bold(f)) = { bold(x) in RR^n | bold(f)(bold(x)) = bold(A) bold(x) = bold(0) }
+$$
+ただし、$bold(A) in RR^(m times n)$である。
+
+## 像
+写像$bold(f)(bold(x)) = bold(A) bold(x)$について像$im(bold(A)) = im(bold(f))$を次のように定義する。
+$$
+im(bold(A)) = im(bold(f)) = { bold(y) in RR^m | exists bold(x) in RR^n thick "s.t." thick bold(f)(bold(x)) = bold(A) bold(x) = bold(y) }
+$$
+ただし、$bold(A) in RR^(m times n)$である。
+
+像は行列$bold(A)$の各列ベクトルで張られたベクトル空間になる。
+
+::: box 【定理】像のベクトル空間
+
+#### 主張
+行列$bold(A) in RR^(m times n)$について、以下のように分割してベクトル$bold(a)_1, bold(a)_2, ..., bold(a)_n$を決める。
+$$
+bold(A) = mat(bold(a)_1, bold(a)_2, dots.c, bold(a)_n)
+$$
+このとき、
+$$
+im(bold(A)) = "span"{bold(a)_1, bold(a)_2, dots.c, bold(a)_n}
+$$
+である。
+
+#### 証明
+ベクトル$bold(x)$を$(x_1, x_2, ..., x_n)^top$とおくと、
+$$
+bold(A) bold(x) = mat(bold(a)_1, bold(a)_2, dots.c, bold(a)_n) vec(x_1, x_2, dots.v, x_n) = x_1 bold(a)_1 + x_2 bold(a)_2 + dots.c + x_n bold(a)_n
+$$
+となる。これは、$bold(a)_1, bold(a)_2, ..., bold(a)_n$の線形結合であるから、どんな$bold(x)$に対しても$bold(A)bold(x) in "span"{bold(a)_1, bold(a)_2, dots.c, bold(a)_n}$である。つまり、$im(bold(A)) subset "span"{bold(a)_1, bold(a)_2, dots.c, bold(a)_n}$である。
+
+逆に、$bold(y) in "span"{bold(a)_1, bold(a)_2, dots.c, bold(a)_n}$であるとき、
+$$
+bold(y) = alpha_1 bold(a)_1 + alpha_2 bold(a)_2 + dots.c + alpha_n bold(a)_n
+$$
+となる実数$alpha_1, alpha_2, dots.c, alpha_n$が存在する。これを集めたベクトル$bold(x) = (alpha_1, alpha_2, ..., alpha_n)^top$とおくと、$bold(A) bold(x) = bold(y)$となるので、$bold(y) in im(bold(A))$である。どんな$bold(y) in "span"{bold(a)_1, bold(a)_2, dots.c, bold(a)_n}$に対しても成り立つので、$"span"{bold(a)_1, bold(a)_2, dots.c, bold(a)_n} subset im(bold(A))$である。
+
+2つの議論より$im(bold(A)) = "span"{bold(a)_1, bold(a)_2, dots.c, bold(a)_n}$が成り立つ。
+:::
+
+## ランク・ヌルティ
+$bold(A) in RR^(m times n)$とする。
+線形写像$bold(f)(bold(x)) = bold(A) bold(x)$の像$im(bold(A))$の次元を、行列$bold(A)$の**ランク**と呼ぶ。すなわち、
+$$
+"rank"(bold(A)) = dim(im(bold(A)))
+$$
+である。線形写像$bold(f)(bold(x)) = bold(A) bold(x)$の核$ker(bold(A)) = ker(bold(f))$の次元を、行列$bold(A)$の**ヌルティ**と呼ぶ。すなわち、
+$$
+"nullity"(bold(A)) = dim(ker(bold(A)))
+$$
+である。
+
+線型写像のランクはその行列の列ベクトルについて以下の性質が存在する。
+
+::: box 【定理】ランクと行列の列ベクトル
+
+#### 主張
+$bold(A) in RR^(m times n)$について線型写像$bold(f)(bold(x)) = bold(A) bold(x)$を考える。また、$bold(A)$の列ベクトル$bold(a)_1, bold(a)_2, ..., bold(a)_n$を決める。
+$$
+bold(A) = mat(bold(a)_1, bold(a)_2, dots.c, bold(a)_n)
+$$
+この写像のランクが$r <= n$であるとき、$bold(a)_1, bold(a)_2, dots.c, bold(a)_n$から$r$個選んで$bold(a)_j_1, bold(a)_j_2, ..., bold(a)_j_r$を取り$im(bold(A))$の基底とすることができる。
+
+#### 証明
+まず、
+$$
+V := im(bold(A)) = "span"{bold(a)_1, bold(a)_2, ..., bold(a)_n}
+$$
+を置く。次に以下の2の手続きを$j$を$1$から$n$まで順に繰り返して得られる$S_n$を$S$とする。
+
+1. $S_0 = emptyset$である。
+2. $a_j in.not "span"(S_(j-1))$なら$S_j = S_(j-1) union {a_j}$とする。そうでないなら$S_j = S_(j-1)$とする。
+
+この$S$は線形独立であることを証明する。$S_0$は自明に線形独立。$S_(j-1)$が線形独立であると仮定して、$S_j$も線形独立であることを示す。$S_j = S_(j-1)$のときそのまま線型独立性が維持される。$S_j = S_(j-1) union {a_j}$のとき、つまり$a_j in.not "span"(S_(j-1))$のときを考える。以下の式を考える。
+$$
+sum_(bold(v) in S_(j-1)) alpha_bold(v) bold(v) + beta bold(a)_j = bold(0)
+$$
+これは$S_j$の線形結合であり、その$bold(v) in S_(j-1)$に対応する係数が$alpha_bold(v)$で$bold(a)_j$に対応する係数が$beta$である。$beta eq.not 0$と仮定するとこのとき、
+$$
+bold(a)_j = -1/beta sum_(bold(v) in S_(j-1)) alpha_bold(v) bold(v)
+$$
+となる。つまり、$bold(a)_j$は$S_(j-1)$の線形結合で表すことができる。しかし、$a_j in.not "span"(S_(j-1))$であるから、これは矛盾する。つまり、$beta = 0$である。これを代入すれば
+$$
+sum_(bold(v) in S_(j-1)) alpha_bold(v) bold(v) = bold(0)
+$$
+となる。$S_(j-1)$は線型独立であるから$alpha_bold(v) = 0 quad (bold(v) in S_(j-1))$である。以上より、$S_j$の線形結合が$bold(0)$であるとき、各係数は$0$であり、$S_j$は線型独立である。数学的帰納法より$S_n = S$は線型独立である。
+
+次に、全ての$j$で$"span"(S_j) = "span"{bold(a)_1, bold(a)_2, ..., bold(a)_j}$であることを示す。$S_0 = emptyset$より$"span"(S_0) = "span"(emptyset)$であることは自明である。次に$"span"(S_(j-1)) = "span"{bold(a)_1, bold(a)_2, ..., bold(a)_(j-1)}$が成り立つことを仮定する。
+1. $bold(a)_j in.not "span"(S_(j-1))$のとき、$S_j = S_(j-1) union {a_j}$なので
+    $$
+    "span"(S_j) = "span"(S_(j-1) union {a_j})
+    $$
+    である。$bold(x) in "span"(S_j)$であるとき、
+    $$
+    bold(x) = underbracket(sum_(bold(v) in S_(j-1)) alpha_bold(v) bold(v), bold(u)) + beta bold(a)_j
+    $$
+    と表せる。$bold(u) in "span"(S_(j-1))$であり、仮定から$"span"(S_(j-1)) = "span"{bold(a)_1, bold(a)_2, ..., bold(a)_(j-1)}$なので$bold(u)$は${bold(a)_1, bold(a)_2, ..., bold(a)_(j-1)}$の線形結合で表せる。
+    $$
+    bold(u) = sum_(i=1)^(j-1) gamma_i bold(a)_i
+    $$
+    すると、
+    $$
+    bold(x) = sum_(i=1)^(j-1) gamma_i bold(a)_i + beta bold(a)_j
+    $$
+    となる。これは、${bold(a)_1, bold(a)_2, ..., bold(a)_j}$の線形結合であり、$"span"{bold(a)_1, bold(a)_2, ..., bold(a)_j}$の要素である。したがって、$"span"(S_j) subset "span"{bold(a)_1, bold(a)_2, ..., bold(a)_j}$が成り立つ。逆に$bold(x) in "span"{bold(a)_1, bold(a)_2, ..., bold(a)_j}$を仮定し$display(bold(x) = sum_(i=1)^(j-1) gamma_i bold(a)_i + beta bold(a)_j)$と表せることから逆向きに議論することで$"span"{bold(a)_1, bold(a)_2, ..., bold(a)_j} subset "span"(S_j)$が成立する。よって$"span"{bold(a)_1, bold(a)_2, ..., bold(a)_j} = "span"(S_j)$が示せた。
+
+2. $bold(a)_j in "span"(S_(j-1))$のとき、仮定より$bold(a)_j in "span"{bold(a)_1, bold(a)_2, ..., bold(a)_(j-1)}$であるので
+    $$
+    bold(a)_j = sum_(i=1)^(j-1) gamma_i bold(a)_i
+    $$
+    $bold(x) in "span"{bold(a)_1, bold(a)_2, ..., bold(a)_j}$のとき、
+    $$
+    bold(x) &= sum_(i=1)^(j-1) alpha_i bold(a)_i + beta bold(a)_j\
+    &= sum_(i=1)^(j-1)( alpha_i + beta gamma_i) bold(a)_i
+    $$
+    より$bold(x) in "span"{bold(a)_1, bold(a)_2, ..., bold(a)_(j-1)}$である。$"span"{bold(a)_1, bold(a)_2, ..., bold(a)_(j-1)} = S_(j-1) = S_j$より$"span"{bold(a)_1, bold(a)_2, ..., bold(a)_j} subset "span"(S_j)$が示せた。
+
+    逆に、$bold(x) in "span"(S_j)$のとき、仮定より$"span"(S_j) = "span"(S_(j-1)) = "span"{bold(a)_1, bold(a)_2, ..., bold(a)_(j-1)}$なので
+    $$
+    bold(x) = sum_(i=1)^(j-1) alpha'_i bold(a)_i
+    $$
+    と表せる。これは、
+    $$
+    bold(x) &= sum_(i=1)^(j-1) (alpha'_i - gamma_i) bold(a)_i + sum_(i=1)^(j-1) gamma_i bold(a)_i\
+    &= sum_(i=1)^(j-1) (alpha'_i - gamma_i) bold(a)_i + bold(a)_j
+    $$
+    と変形でき、$bold(x) in "span"{bold(a)_1, bold(a)_2, ..., bold(a)_j}$がいえる。よって、$"span"(S_j) subset "span"{bold(a)_1, bold(a)_2, ..., bold(a)_j}$が示せ、$"span"{bold(a)_1, bold(a)_2, ..., bold(a)_j} = "span"(S_j)$である。
+
+以上から、いづれの場合にも$"span"{bold(a)_1, bold(a)_2, ..., bold(a)_j} = "span"(S_j)$が成り立ち、数学的帰納法から$S_n = S$は$"span"(S) = "span"{bold(a)_1, bold(a)_2, ..., bold(a)_n}$である。
+
+これら2つの証明から$S$は線形独立性と全域性を持つことから$"span"{bold(a)_1, bold(a)_2, ..., bold(a)_n}$の基底である。より言えば$im(bold(A))$の基底である。ランクの定義からこの基底$S$は$r$個のベクトルからできているはずであるので証明は終了した。
+
+:::
+
+ランクとヌルティに関して以下の重要な定理が存在する。
+
+::: box 【定理】rank-nullity定理
+
+#### 主張
+線形写像$bold(f)(bold(x)) = bold(A) bold(x)$について、$bold(A) in RR^(m times n)$であるとき、
+$$
+"rank"(bold(A)) + "nullity"(bold(A)) = n
+$$
+が成り立つ。
+
+#### 証明
+$"nullity"(bold(A)) = dim(ker(bold(A))) = k$とおく。つまり、$ker(bold(A))$の次元は$k$であり、その基底を${bold(v)_1, bold(v)_2, dots.c, bold(v)_k}$とする。$bold(f): RR^n -> RR^m$なので、$ker(bold(A)) in RR^n$であり、$k<=n$である。つまり適当な$bold(u)_1, bold(u)_2, ..., bold(u)_(n-k)$を取ると${bold(v)_1, bold(v)_2, dots.c, bold(v)_k, bold(u)_1, bold(u)_2, ..., bold(u)_(n-k)}$は$RR^n$の基底とすることができる。
+
+さて、ある$bold(y) in im(bold(A))$について、$bold(y) = bold(A) bold(x)$を満たす$bold(x) in RR^n$が存在する。これは、先ほどの基底を用いて
+$$
+bold(x) = alpha_1 bold(v)_1 + alpha_2 bold(v)_2 + dots.c + alpha_k bold(v)_k + beta_1 bold(u)_1 + beta_2 bold(u)_2 + dots.c + beta_(n-k) bold(u)_(n-k)
+$$
+と1通りに表せる。両辺に左から$bold(A)$をかけると、
+$$
+bold(y) = alpha_1 (bold(A) bold(v)_1) + alpha_2 (bold(A) bold(v)_2) + dots.c + alpha_k (bold(A) bold(v)_k) + beta_1 (bold(A) bold(u)_1) + beta_2 (bold(A) bold(u)_2) + dots.c + beta_(n-k) (bold(A) bold(u)_(n-k))
+$$
+となるが、$bold(v)_i in ker(bold(A))$より$bold(A) bold(v)_i = bold(0) thick (i = 1, 2, ..., k)$ であるから、
+$$
+bold(y) = beta_1 (bold(A) bold(u)_1) + beta_2 (bold(A) bold(u)_2) + dots.c + beta_(n-k) (bold(A) bold(u)_(n-k))
+$$
+となる。これは、$bold(A) bold(u)_i$ ($i = 1, 2, ..., n-k$) の線形結合でどんな$bold(y) in im(bold(A))$も表すことができることを表している。つまり、$im(bold(A))$は${bold(A) bold(u)_1, bold(A) bold(u)_2, ..., bold(A) bold(u)_(n-k)}$の線形結合で表される。このとき、$beta_j$の取り方は1通りであったので線形結合の係数は1通りである。
+
+そして、これが基底となるには線型独立性が必要であるのでそれを示す。
+$$
+ beta_1 (bold(A) bold(u)_1) + beta_2 (bold(A) bold(u)_2) + dots.c + beta_(n-k) (bold(A) bold(u)_(n-k)) = bold(0)
+$$
+であるときを考える。これは
+$$
+bold(A)underbracket((beta_1 bold(u)_1 + beta_2 bold(u)_2 + dots.c + beta_(n-k) bold(u)_(n-k)), bold(x)') = bold(0)
+$$
+と変形できるので、$bold(x)' in ker(bold(A))$である。設定した基底を用いれば
+$$
+&beta_1 bold(u)_1 + beta_2 bold(u)_2 + dots.c + beta_(n-k) bold(u)_(n-k) = gamma_1 bold(v)_1 + gamma_2 bold(v)_2 + dots.c + gamma_k bold(v)_k\
+<=> & -gamma_1 bold(v)_1 - gamma_2 bold(v)_2 - dots.c - gamma_k bold(v)_k + beta_1 bold(u)_1 + beta_2 bold(u)_2 + dots.c + beta_(n-k) bold(u)_(n-k) = bold(0)
+$$
+がいえる。これは線型独立な基底の線形結合なので
+$$
+-gamma_1 = -gamma_2 = dots.c = -gamma_k = beta_1 = beta_2 = dots.c = beta_(n-k) = 0
+$$
+が成り立つ。仮定と結果だけ見れば
+$$
+beta_1 (bold(A) bold(u)_1) + beta_2 (bold(A) bold(u)_2) + dots.c + beta_(n-k) (bold(A) bold(u)_(n-k)) = bold(0) => beta_1 = beta_2 = dots.c = beta_(n-k) = 0
+$$
+であり、これは${bold(A) bold(u)_1, bold(A) bold(u)_2, ..., bold(A) bold(u)_(n-k)}$が線型独立であることの証明である。全域性は先ほど示したので、$im(bold(A))$は${bold(A) bold(u)_1, bold(A) bold(u)_2, ..., bold(A) bold(u)_(n-k)}$を基底にもち、その数は$n - k$である。よって、$"rank"(bold(A)) = dim(im(bold(A))) = n - k = n - "nullity"(bold(A))$が示された。
+
+:::
+
+# 多変数関数
+以上で定義したベクトルを入力と出力に用いることで、関数$bold(f): RR^n -> RR^m$を定義することができる。ここで、$n$は入力の次元数、$m$は出力の次元数である。ここでは、このような関数を多変数ベクトル値関数と呼ぶことにする。$bold(f)$を以下のようにして分解し、$f_1, f_2, ..., f_m: RR^n -> RR$を$bold(f)$の成分関数と呼ぶことにする。
+$$
+bold(f)(bold(x)) = (f_1(bold(x)), f_2(bold(x)), ..., f_m (bold(x)))^top
+$$
+
+## 1変数スカラー関数
+まず、高校範囲で考えてきたスカラー値関数について復習しておこう。関数$f: RR -> RR$は高校数学から馴染みのある関数で、入力も出力も実数値を取る。このような関数に対する微分は、多くの場合以下のように定義されてきた。
+$$
+f^prime (x) = lim_(h->0) frac(f(x+h) - f(x), h)
+$$
+しかし、多変数に拡張するにあたりより一般的な性質である**一次近似**を用いて定義することが望ましい。一次近似とは、関数$f$が点$x$の近傍で線形関数で近似できることを意味する。
+
+すなわち、ある$r>0$が存在し、$|h| < r$の全ての$h$に対して、関数$f$が以下のように表せるとき、関数$f$は点$x$で一次近似可能であると言う。
+$$
+f(x+h) = f(x) + A h + epsilon(h)
+$$
+ここで、$A$は定数であり、$epsilon(h) = cal(o)(|h|) thin (h -> 0)$を満たす関数である。$cal(o)$はランダウの小記号で、以下のように定義される。
+
+::: box 【定義】ランダウの記号
+関数$f, g: RR -> RR$に対して、$f(x) = cal(o)(g(x)) thick thin (x -> a)$は、
+$$
+lim_(x->a) frac(f(x), g(x)) = 0
+$$
+であることを言う。
+:::
+
+この定義において、$A$は関数$f$の点$x$における微分係数であると定義される。すなわち、
+$$
+f^prime (x) = frac(d f(x), d x) = A
+$$
+である。この定義は、関数$f$が点$x$の近傍で線形関数で近似できることを意味しており、分の概念をより一般的な形で捉えることができるようになる。
+
+## 偏微分
 
 まず、多変数スカラー値関数について**偏微分**を定義する。偏微分は一見すると1変数関数における微分の拡張のように見えるが、実際にはそうではない。偏微分は、関数$f: RR^n -> RR$の点$bold(x)$において、ある特定の変数$x_i$に関する微分を定義するものである。
 
@@ -249,7 +512,7 @@ $$
 :::
 
 
-### 微分（全微分）
+## 微分（全微分）
 偏微分は特定の変数に関する一次近似であり、1変数関数の微分の拡張とは言えない。全変数に関する一次近似を用いて、関数$f: RR^n -> RR$の点$bold(x)$における微分を定義する。これを偏微分と区別して**全微分**と呼ぶこともある。
 
 関数$bold(f): RR^n -> RR^m$が点$bold(x)$の近傍で微分可能であるとは、ある$r>0$が存在し、$||bold(h)|| < r$の全ての$bold(h) in RR^n$に対して、関数$bold(f)$が以下のように表せるときである。
@@ -264,7 +527,7 @@ $$
 
 $bold(f)$は$m$次元ベクトルであるので、当然$A bold(h)$も$m$次元ベクトルでなければならない。$bold(h)$は$n$次元ベクトルであるので、$A$は$m times n$行列でなければならない。すなわち、$A in RR^(m times n)$である。したがって、関数$bold(f): RR^n -> RR^m$の点$bold(x)$における微分係数は$m times n$行列であると定義される。
 
-### ヤコビ行列（ヤコビアン）
+## ヤコビ行列（ヤコビアン）
 関数$bold(f)$のヤコビ行列（ヤコビアン）$J_bold(f) (bold(x))$は、以下のように定義される。
 $$
 J_bold(f) (bold(x)) := mat(
@@ -291,7 +554,7 @@ D bold(f) (bold(x)) = J_bold(f) (bold(x))
 $$
 である。
 
-#### 証明
+##### 証明
 関数$bold(f)$の点$bold(x)$において微分可能であるので、ある$r>0$が存在し、$||bold(h)|| < r$の全ての$bold(h) in RR^n$に対して、関数$bold(f)$が以下のように表せる。
 $$
 bold(f)(bold(x) + bold(h)) = bold(f)(bold(x)) + D bold(f) (bold(x)) bold(h) + bold(epsilon)(bold(h))
@@ -339,7 +602,7 @@ $$
 :::
 
 
-### ナブラ
+## ナブラ
 今まで考えてきた微分、偏微分はある関数に対する作用素$display(frac(partial, partial x_i)), display(frac(d, d x))$を作用させることで表してきた。作用素は演算子とも呼ばれ$+$や$-$などの演算子と同じように、それ単体では意味を持たないものである。これらの作用素は右側に関数を取ることで、微分や偏微分を表すことができる。例えば、関数$f$の点$x$における微分は、作用素$display(frac(d, d x))$を関数$f$に作用させることで表すことができる。
 
 さて、新たな作用素として、**ナブラ**を定義しておこう。$RR^n$上のナブラは以下のように定義される。
@@ -356,7 +619,7 @@ nabla dot.c bold(v) = nabla^top bold(v) = frac(partial, partial x_1) v_1 + frac(
 $$
 このように、ナブラは形式的にベクトルのような演算を与えることができるが、あくまで作用素の集まりであることに注意する必要がある。
 
-### "偽の"微分係数
+## "偽の"微分係数
 "真の"微分係数のままでは、数値計算上不便なことがある。なので以下のように"偽の"微分係数を定義し、それを用いて導関数を定義する。関数$bold(f): RR^n -> RR^m$の点$bold(x)$の"偽の"微分係数は、以下のように定義される。
 
 $$
@@ -386,7 +649,7 @@ $$
 
 微分係数を定義域全体またはその一部で定義できるとき、$display(frac(partial bold(f), partial bold(x)))$は引数$bold(x)$をとる関数として定義できる。これを**導関数**と呼ぶことにする。
 
-## 微分規則
+# 微分規則
 
 ここでは導関数の規則について以下を説明する。
 
@@ -394,11 +657,11 @@ $$
   $$
   frac(partial bold(c), partial bold(x)) = bold(O)
   $$
-- **行列変換**
+- **線形結合**
   $$
   frac(partial (bold(A) bold(x)), partial bold(x)) = bold(A)^top
   $$
-- **線型結合**
+- **線形結合**
   $$
   frac(partial (alpha bold(f) + beta bold(g)) (bold(x)), partial bold(x)) = alpha frac(partial bold(f) (bold(x)), partial bold(x)) + beta frac(partial bold(g) (bold(x)), partial bold(x))
   $$
@@ -411,7 +674,7 @@ $$
   frac(partial (bold(u)^top bold(v)) (bold(x)), partial bold(x)) = frac(bold(u) (bold(x)), partial bold(x)) bold(v) (bold(x)) + frac(partial bold(v) (bold(x)), partial bold(x)) bold(u) (bold(x))
   $$
 
-### 定数
+## 定数
 
 ::: box 【定理】依存しないベクトルの微分
 
@@ -452,9 +715,9 @@ $$
 
 :::
 
-### 行列変換
+## 線型写像
 
-::: box 【定理】行列変換の微分
+::: box 【定理】線型写像の微分
 
 #### 主張
 関数$bold(f): RR^n -> RR^m$が$bold(f) (bold(x)) = bold(A) bold(x)$と表されるとする。なお$bold(A) in RR^(m times n)$は定数とする。このとき、
@@ -498,7 +761,7 @@ frac(partial bold(x), partial bold(x)) = bold(I)
 $$
 がある。これは$bold(f)(bold(x)) = bold(I) bold(x)$とすれば$bold(I)^top = bold(I)$から明らかである。
 
-### 線型結合
+## 線形結合
 
 ::: box 【定理】和の微分
 
@@ -568,7 +831,7 @@ $$
 :::
 
 
-### 連鎖律
+## 連鎖律
 1変数スカラー値関数$f,g$についてその合成関数$h = f compose g = f(g(x))$を考える。このとき$h$の導関数は
 $$
 frac(d h(x), d x) = frac(d h(g), d g) frac(d g(x), d x)
@@ -694,7 +957,7 @@ $$
 のように表現できる。証明は完了した。
 :::
 
-### 標準内積（積）
+## 標準内積（積）
 
 ::: box 【定理】標準内積の微分
 
@@ -753,4 +1016,83 @@ frac(partial f (bold(x)), partial bold(x)) &= D bold(u) (bold(x))^top bold(v) (b
 &= frac(partial bold(u) (bold(x)), partial bold(x)) bold(v) (bold(x)) + frac(partial bold(v) (bold(x)), partial bold(x)) bold(u) (bold(x))
 $$
 となる。証明は完了した。
+:::
+
+# ラグランジュ未定乗数法
+ここではラグランジュ未定乗数法について理解、証明を行うために様々な内容を準備し最終的にKKT条件を導く。
+
+## 制約付き局所最小
+ラグランジュ未定乗数法ではある制限された範囲で最小を見つけることを目的としている。この制限された範囲とは制約集合とよばれ、まずは
+$$
+M := { bold(x) in RR^n | g_i (bold(x)) = 0, i = 1, 2, ..., m }
+$$
+を考えることにしよう。$g_i: RR^n -> RR$をまとめることで$bold(g): RR^n -> RR^m$と表すことができる。
+$$
+M = { bold(x) in RR^n | g(bold(x)) = bold(0) }
+$$
+$bold(g)$は暗黙に$C^1$級であることを仮定しておこう。
+次に、$bold(x)^ast$が$f$で局所最小とは$M$上の近傍$U$で
+$$
+f(bold(x)^ast) <= f(bold(x)) quad (forall bold(x) in U)
+$$
+であることを指す。関数$f: RR^n -> RR$は最小化の対象の関数である。
+
+## 接空間
+$bold(d)$が$bold(x)$における接ベクトルであるとは、ある$epsilon > 0$と$C^1$級の関数（曲線）$bold(gamma): (-epsilon, epsilon) -> M$が存在して
+$$
+bold(gamma)(0) = bold(x) and bold(gamma)'(0) = bold(d)
+$$
+が成立することである。このような$bold(d)$は$bold(x)$を固定すればいくつもあり、それを集めたものを接空間といい
+$$
+T_bold(x)M := { bold(gamma)'(0) | bold(gamma): (-epsilon, epsilon) -> M, bold(gamma)(0) = bold(x) and bold(gamma) in C^1 }
+$$
+と表すことにする。本来であればこれは接ベクトルの集合であり、基底を線形結合したベクトル空間ではない。しかし、後述の正則性条件よりこれはベクトル空間を構成する。
+
+## 正則点・正則値
+任意の制約についてラグランジュ未定乗数法が使えるわけではない。何種類かの条件が必要である。ここでは正則性として
+$$
+"rank"(D bold(g)(bold(x)^ast)) = m
+$$
+を仮定することにする。これは$D bold(g)(bold(x)^ast)$が全射であることと同値である。これは、$bold(x)^ast$が正則点であると表される。
+
+::: box 【定理】全射と微分係数のrank
+#### 主張
+線形写像$bold(f): RR^n -> RR^m$について以下の2つは同値である。
+
+- $bold(f)$は全射である。
+- $"rank"(bold(f)) = m$
+
+#### 証明
+全射の定義より、$im(bold(f)) = RR^m$である。$dim(RR^m) = m$であるから、$bold(f)$が全射なら$"rank"(bold(f)) = m$。
+
+$"rank"(bold(f)) = m$は$dim(im(bold(f))) = m$と同値である。$im(bold(f)) subset RR^m$である。$RR^m$の部分空間でランクが$m$であるものは基底を考えれば$RR^m$しか考えられない。つまり$im(bold(f)) = RR^m$である。つまり全射。
+:::
+
+さらに、$bold(g)$の多価の逆関数を$bold(g)^(-1)$と表す。
+$$
+bold(g)^(-1)(bold(y)) = { bold(x) in RR^n | bold(g)(bold(x)) = bold(y) }
+$$
+$c in RR^m$が$bold(g)$の正則値であるとは、$bold(x) in bold(g)^(-1)(c)$である全ての$bold(x)$が正則点であることをいう。さて、これについて以下の定理がある。
+
+::: box 【定理】正則レベル集合定理
+
+#### 主張
+$bold(g): RR^m -> RR^n$が$C^1$級であり、$bold(c)$が$bold(g)$の正則値であるならば、正則レベル集合$M := bold(g)^(-1)(bold(c))$について、
+$$
+T_(bold(x)^ast)M = ker(D bold(g)(bold(x)^ast)) quad (bold(x)^ast in M)
+$$
+が成り立つ。
+
+
+#### 証明
+まず、$T_(bold(x)^ast)M subset ker(D bold(g)(bold(x)^ast))$を示す。任意の$bold(d) in T_(bold(x)^ast)M$について、定義よりある$gamma in C^1: (-epsilon, epsilon) -> M$が存在し$gamma(0) = bold(x)^ast$かつ$gamma'(0) = bold(d)$である。このとき、$gamma(t) in M = bold(g)^(-1)(bold(c))$であるから、$bold(g)(gamma(t)) = bold(c)$が成り立つ。両辺を$t$で微分すると、連鎖律から
+$$
+underbracket(D bold(g)(gamma(t)), m times n) thin underbracket(D gamma(t), n times 1) = bold(0)
+$$
+である。$t=0$とすれば、
+$$
+D bold(g)(bold(x)^ast) thin bold(d) = bold(0)
+$$
+であり、核の定義より$bold(d) in ker(D bold(g)(bold(x)^ast))$。どんな$bold(d) in T_(bold(x)^ast)M$についても同様である。したがって、$T_(bold(x)^ast)M subset ker(D bold(g)(bold(x)^ast))$である。
+
 :::

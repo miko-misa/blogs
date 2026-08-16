@@ -11,7 +11,9 @@ jobs:
 
     steps:
       - name: Checkout blogs
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          persist-credentials: false
 
       - name: Download typmark-cli
         run: |
@@ -19,10 +21,14 @@ jobs:
           import json
           import os
           import shutil
+          import subprocess
           import tarfile
           import urllib.request
 
-          api_url = "https://api.github.com/repos/miko-misa/typmark/releases/latest"
+          api_url = (
+            "https://api.github.com/repos/"
+            "miko-misa/typmark/releases/latest"
+          )
           with urllib.request.urlopen(api_url) as resp:
             data = json.load(resp)
 
@@ -56,6 +62,16 @@ jobs:
 
           shutil.copy2(binary_path, "./typmark-cli")
           os.chmod("./typmark-cli", 0o755)
+
+          release_tag = data.get("tag_name")
+          version = subprocess.check_output(
+            ["./typmark-cli", "--version"], text=True
+          ).strip()
+          if release_tag != f"v{version}":
+            raise SystemExit(
+              f"Latest release {release_tag} contains CLI version {version}"
+            )
+          print(f"Using TypMark {release_tag}")
           PY
 
       - name: Render .tmd to HTML
@@ -154,10 +170,6 @@ jobs:
             index["folders"][folder_key]["folders"] = sorted(
               children, key=lambda item: item["display"].lower()
             )
-            index["folders"][folder_key]["pages"] = sorted(
-              index["folders"][folder_key]["pages"],
-              key=lambda item: item["title"].lower(),
-            )
 
           Path("site/blogs-index.json").write_text(
             json.dumps(index, ensure_ascii=False, indent=2),
@@ -170,7 +182,7 @@ jobs:
           fi
 
       - name: Checkout portfolio
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
         with:
           repository: miko-misa/portfolio
           token: ${{ secrets.PORTFOLIO_PUSH_TOKEN }}
@@ -195,6 +207,8 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/blogs-content public/blogs/assets public/blogs-index.json
+          git add public/blogs-content \
+            public/blogs/assets \
+            public/blogs-index.json
           git commit -m "Update blogs from blogs repo"
           git push

@@ -1,0 +1,27 @@
+# 再生核ヒルベルト空間
+
+## ヒルベルト空間
+再生核ヒルベルト空間（`Reproducing Kernel Hilbert Space`; `RKHS`）は、カーネル関数を用いて定義される関数空間である。 そもそもヒルベルト空間とは以下の条件を満たす空間である。
+
+- 内積空間である。\
+ 空間の要素$a$と$b$に対して、内積$chevron.l a, b chevron.r$が定義されている。これによって自然にノルム$||a|| = sqrt(chevron.l a\, a chevron.r)$も定義される。内積の定義は以下の通りである。
+
+ - 正定値である。\
+ 任意の要素$a$に対して、$chevron.l a, a chevron.r >= 0$が成り立ち、さらに$chevron.l a, a chevron.r = 0$ならば$a$は零ベクトルである。
+ - 共役対称である。\
+ 任意の要素$a$と$b$に対して、$chevron.l a, b chevron.r = overline(chevron.l b\, a chevron.r)$が成り立つ。
+ - 線形である。\
+ 任意の要素$a,b,c$と任意のスカラー$alpha$に対して、$chevron.l a + b, c chevron.r = chevron.l a, c chevron.r + chevron.l b, c chevron.r$、$chevron.l alpha a, b chevron.r = alpha chevron.l a, b chevron.r$、$chevron.l a, alpha b chevron.r = overline(alpha) chevron.l a, b chevron.r$が成り立つ。
+
+- 完備である。\
+ すべての Cauchy 列が、その空間内の元に収束する。
+
+## 再生性
+そのうち、空間の要素が関数であり、各点$bold(x)$に対する評価$f |-> f(bold(x))$が有界であるようなヒルベルト空間を再生核ヒルベルト空間と呼ぶ。 このとき、カーネル関数$k(bold(x), bold(y))$が存在し、空間内の任意の関数$f$と任意の点$bold(x)$に対して、以下の再生性が成り立つ。
+
+$$
+ f(bold(x)) = chevron.l f, k(bold(x), dot.c) chevron.r
+$$
+
+## 単位球
+また、その単位球とは、ノルムが1以下の関数の集合である。

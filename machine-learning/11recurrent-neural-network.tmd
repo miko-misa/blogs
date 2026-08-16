@@ -1,0 +1,31 @@
+# 系列モデルとLSTM
+
+## 長短期記憶（LSTM）
+**長短期記憶**（`Long Short-Term Memory`; `LSTM`）は、長期依存関係を扱いにくいリカレントニューラルネットワーク（`Recurrent Neural Network`; `RNN`）を改善するために提案されたアーキテクチャである。 現在広く使われる実装は、元のLSTMに忘却ゲートを加えた形であり、以下ではその標準的な記法で説明する。 前の隠れ状態$bold(h)_(t-1)$と入力$bold(x)_t$から、入力ゲート$bold(i)_t$、忘却ゲート$bold(f)_t$、候補セル状態$bold(g)_t$、出力ゲート$bold(o)_t$を計算する。
+
+$$
+ bold(i)_t & = sigma(W_i [bold(h)_(t-1), bold(x)_t] + b_i) \
+ bold(f)_t & = sigma(W_f [bold(h)_(t-1), bold(x)_t] + b_f) \
+ bold(g)_t & = tanh(W_g [bold(h)_(t-1), bold(x)_t] + b_g) \
+ bold(o)_t & = sigma(W_o [bold(h)_(t-1), bold(x)_t] + b_o) \
+$$
+
+なお、$[dot.c,dot.c]$はベクトルの連結を表す。正確には$W [bold(h)_(t-1), bold(x)_t]$は
+
+$$
+ W [bold(h)_(t-1), bold(x)_t] = W_h bold(h)_(t-1) + W_x bold(x)_t
+$$
+
+という線形変換の和であり、上式では別にバイアスを加えている。LSTMは記憶セル$bold(c)_t$を保持しこれを更新する。入力ゲートは新しい情報をどれだけセル状態に加えるかを制御し、忘却ゲートは前のセル状態からどれだけ情報を残すかを制御し、出力ゲートはセル状態からどれだけ情報を出力するかを制御する。つまり、
+
+$$
+ bold(c)_t & = bold(f)_t dot.o bold(c)_(t-1) + bold(i)_t dot.o bold(g)_t \
+$$
+
+と表される。そして、出力は
+
+$$
+ bold(h)_t = bold(o)_t dot.o tanh(bold(c)_t)
+$$
+
+である。LSTMは、自然言語処理や音声認識などの系列データを扱うタスクで広く用いられてきた。

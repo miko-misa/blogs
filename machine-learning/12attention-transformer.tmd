@@ -1,0 +1,115 @@
+# 注意機構とTransformer
+
+## 注意機構
+**注意機構**（`Attention`）は、クエリとキーの適合度にもとづいてバリューの重み付き和を計算し、モデルが入力のどの部分を参照すべきかを動的に決める仕組みである。
+ここではTransformerで使われる**scaled dot-product attention**を説明する。 3つの行列$bold(Q) in RR^(M times d_k)$、$bold(K) in RR^(N times d_k)$、$bold(V) in RR^(N times d_v)$を用意する。これらはそれぞれクエリ、キー、バリューと呼ばれる。クエリ$bold(Q)$は各位置が「何を探しているか」を、キー$bold(K)$は各位置が「どのような情報を持つか」を、バリュー$bold(V)$は実際に集約される情報を表す。
+
+![Scaled Dot-Product Attentionの計算手順](/blogs/assets/machine-learning/attention.png)
+
+*Scaled Dot-Product Attentionの計算手順（Vaswani et al., 2017）*
+
+Attentionの出力は
+
+$$
+"Attention"(bold(Q), bold(K), bold(V)) = "softmax"(frac(bold(Q) bold(K)^top, sqrt(d_k))) bold(V)
+$$
+
+である。3つの行列を以下のように分割する。
+
+$$
+ bold(Q) = mat(bold(q)_1^top; bold(q)_2^top; dots.v; bold(q)_M^top) quad bold(K) = mat(bold(k)_1^top; bold(k)_2^top; dots.v; bold(k)_N^top) quad bold(V) = mat(bold(v)_1^top; bold(v)_2^top; dots.v; bold(v)_N^top)
+$$
+
+まず、各クエリが各キーとどれだけ適合するかを内積で計算する。すなわち、クエリ$bold(q)_i$とキー$bold(k)_j$の類似度は$bold(q)_i dot.c bold(k)_j in RR$である。これを全てのクエリと全てのキーの組み合わせについて計算すると、類似度行列$bold(Q) bold(K)^top in RR^(M times N)$が得られる。
+
+$$
+ bold(Q) bold(K)^top = mat(bold(q)_1 dot.c bold(k)_1, bold(q)_1 dot.c bold(k)_2, dots.h, bold(q)_1 dot.c bold(k)_N; bold(q)_2 dot.c bold(k)_1, bold(q)_2 dot.c bold(k)_2, dots.h, bold(q)_2 dot.c bold(k)_N; dots.v, dots.v, dots.down, dots.v; bold(q)_M dot.c bold(k)_1, bold(q)_M dot.c bold(k)_2, dots.h, bold(q)_M dot.c bold(k)_N)
+$$
+
+この行列に対して次元の大きさに応じたスケーリングを行い、さらにソフトマックス関数を適用することで、注意重み行列$bold(W)$が得られる。
+
+$$
+ bold(W) = "softmax"(frac(bold(Q) bold(K)^top, sqrt(d_k))) = mat(w_11, w_12, dots.h, w_(1N); w_21, w_22, dots.h, w_(2N); dots.v, dots.v, dots.down, dots.v; w_(M 1), w_(M 2), dots.h, w_(M N))
+$$
+
+これは各行の総和が1になる行列であり、$w_(i j)$はクエリ$bold(q)_i$がキー$bold(k)_j$にどれだけ注意を向けるべきかを表す。ある$i$番目の行について考えると、以下のように$i$番目の出力$bold(z)_i$が得られる。
+
+$$
+ bold(z)_i = sum_(j=1)^N w_(i j) bold(v)_j
+$$
+
+つまり適合度を重みとしてバリューの線形結合をとることで、クエリ$bold(q)_i$に対するAttentionの出力が得られる。これを全てのクエリについて行うことで、Attentionの出力が得られる。これは正しく$bold(W)$と$bold(V)$の行列積で表される。
+
+$$
+ "Attention"(bold(Q), bold(K), bold(V)) = mat(
+ w_11, w_12, dots.h, w_(1N); w_21, w_22, dots.h, w_(2N); dots.v, dots.v, dots.down, dots.v; w_(M 1), w_(M 2), dots.h, w_(M N)
+ ) vec(bold(v)_1, bold(v)_2, dots.v, bold(v)_N) = bold(W) bold(V)
+$$
+
+これによって、各クエリが必要とする情報を全てのバリューから集約することができるようになる。Attentionは、自然言語処理や画像認識などのタスクで広く利用されている。
+
+## Transformer
+**Transformer**は、RNNやCNNに頼らず、Attention機構を中心に系列を処理するエンコーダ・デコーダ型のモデルである。各ブロックは、Multi-Head Attention、位置ごとのFeed-Forward Network、Residual Connection、Layer Normalizationから構成される。 エンコーダは入力列から文脈表現を生成し、デコーダはその文脈と既に生成した出力を用いて次のトークンを予測する。
+
+![Transformerのエンコーダ・デコーダ構造](/blogs/assets/machine-learning/transformer.png)
+
+*Transformerの構造（Vaswani et al., 2017）*
+
+### Self-AttentionとCross-Attention
+Transformerのエンコーダとデコーダのブロックには、Self-AttentionとCross-Attentionの二種類のAttentionが存在する。Self-AttentionはAttentionの入力であったクエリ、キー、バリューが全て同じ入力$bold(X)$から生成される。
+
+$$
+ bold(Q) = bold(X) bold(W)_Q quad bold(K) = bold(X) bold(W)_K quad bold(V) = bold(X) bold(W)_V
+$$
+
+Self-Attentionは、入力$bold(X)$の各トークン位置どうしの関係を見ながら表現を更新するためのもので、エンコーダとデコーダの両方で用いられる。 一方で、Cross-Attentionはクエリが入力$bold(X)$とは異なる入力$bold(Y)$から生成される。
+
+$$
+ bold(Q) = bold(Y) bold(W)_Q quad bold(K) = bold(X) bold(W)_K quad bold(V) = bold(X) bold(W)_V
+$$
+
+Cross-Attentionは、クエリを生成した入力$bold(Y)$を用いて、$bold(X)$の情報を集約するためのもので、デコーダがエンコーダ出力を参照しながら次のトークンを生成するために使われる。
+
+### マルチヘッドAttention
+TransformerのAttentionは、単一のAttentionではなく、複数のAttentionを並列に配置した**マルチヘッドAttention**（`Multi-Head Attention`）である。これはクエリ、キー、バリューのベクトルを複数の小さなベクトルに線形射影して、それぞれに独立したAttentionを適用し、最後にそれらの出力を結合するものである。マルチヘッドAttentionは、Transformerのエンコーダとデコーダの両方で使われる。
+
+### マスク付きAttention
+学習時のデコーダは正解系列をまとめて受け取れるが、そのままでは未来のトークンを見てしまい、推論時との条件がずれてしまう。そのため、未来位置に対応するスコアに$-infinity$を加え、Softmax後の重みが$0$になるようにする。具体的には、以下のような行列を用いて
+
+$$
+ bold(M) = mat(0, -infinity, dots.h, -infinity; 0, 0, dots.h, -infinity; dots.v, dots.v, dots.down, dots.v; 0, 0, dots.h, 0) quad quad M_(i j) = cases(
+ -infinity quad & "if" j > i, 0 quad &"otherwise"
+ )
+$$
+
+出力を以下のように計算する。
+
+$$
+ "MaskedAttention"(bold(Q), bold(K), bold(V)) = "softmax"(frac(bold(Q) bold(K)^top, sqrt(d_k)) + bold(M) ) bold(V)
+$$
+
+すると、重み行列のうち未来位置に対応する部分は$e^(-oo) = 0$となり、未来のトークンを参照できなくなる。Masked Attentionは、Transformerのデコーダ内のSelf-Attentionで使用される。
+
+### 位置エンコーディング
+Attentionは、RNNやLSTMのように順序を逐次的には処理しないため、そのままではトークンの並び順を区別できない。そこでTransformerは、各トークン表現にその位置を表すベクトルを加える。原論文では次のような正弦波型の位置エンコーディングが使われた。
+
+$$
+ "PE"_("pos", 2i) = sin(frac("pos", 10000^(2i slash d))) quad "PE"_("pos", 2i+1) = cos(frac("pos", 10000^(2i slash d)))
+$$
+
+ここで、$"pos"$は系列内の位置を表す整数であり、$2i$や$2i+1$はベクトルのインデックスである。$d$はトークン表現の次元数である。位置エンコーディングは入力埋め込み$bold(X)$に加えて使用される。
+
+Position Encodingは以下の点で優れている。
+
+- $bold("PE")$はトークン内容$bold(X)$に依存せず、位置だけから定まる。
+- 正弦・余弦の加法定理により、固定オフセット$k$に対する$"PE"_("pos" + k)$を$"PE"_("pos")$の線形関数として表せる。
+- Vaswaniらは、この設計が学習時より長い系列への外挿を助ける可能性を期待して、学習型ではなく正弦波型の位置エンコーディングを採用した。
+
+### FFN（Feed-Forward Network）
+Attentionは位置間の情報を混合するが、各位置に対する非線形変換は別途必要である。そのためTransformerは、各位置に同じ2層の全結合ネットワークを独立に適用するフィードフォワードネットワーク（`Feed-Forward Network`; `FFN`）を配置している。原論文ではReLUを用いた次の形で定義される。
+
+$$
+ "FFN"(bold(x)) = "max"(0, bold(x) bold(W)_1 + bold(b)_1) bold(W)_2 + bold(b)_2
+$$
+
+FFNは他の位置の情報を参照せず、各トークン位置の表現を個別に変換する。Transformerではこの層もエンコーダとデコーダの両方に含まれる。

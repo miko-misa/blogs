@@ -1,0 +1,296 @@
+```typst {scope=preamble}
+#let panel(body, fill: rgb("#eef2ff")) = box(
+  inset: (x: 9pt, y: 6pt),
+  radius: 4pt,
+  fill: fill,
+  stroke: rgb("#64748b") + 0.7pt,
+  body,
+)
+```
+
+# 生成モデル
+
+## 導入
+**生成モデル**（`Generative Model`）は、データの生成過程をモデル化することで、新しいデータを生成することができるモデルである。一般的に、ある既存のデータの分布$p(bold(x))$を近似する確率モデル$p_theta (bold(x))$を学習することが目的である。 ここで潜在変数$bold(z)$を考えると
+
+$$
+ p_theta (bold(x)) = integral p_theta (bold(x), bold(z)) d bold(z) = integral p_theta (bold(x)|bold(z)) p_theta (bold(z)) d bold(z)
+$$
+
+と表すことができる。しかし、この計算は一般に難しいため、潜在変数モデルを学習するためのアルゴリズムが必要になる。
+
+## オートエンコーダ（AE）
+そもそも**オートエンコーダ**（`Autoencoder`; `AE`）は、入力データを低次元の潜在表現に符号化し、そこから元の入力を再構成するニューラルネットワークである。入力を潜在変数$bold(z)$へ写像する`Encoder`と、潜在変数$bold(z)$から入力データを再構成する`Decoder`から構成される。オートエンコーダは次元圧縮や特徴抽出に広く用いられる。 標準的なオートエンコーダは潜在変数に明示的な確率モデルを置かないため、そのまま新しいデータをサンプリングする生成モデルとしては扱いにくい。
+
+{#fig-autoencoder}
+```typst {render=svg caption="オートエンコーダの構造"}
+#set align(center)
+#grid(
+  columns: (auto, 18pt, auto, 18pt, auto, 18pt, auto, 18pt, auto),
+  gutter: 4pt,
+  align: center,
+  panel([$bold(x)$], fill: rgb("#dbeafe")),
+  [→],
+  panel([Encoder]),
+  [→],
+  panel([$bold(z)$], fill: rgb("#dcfce7")),
+  [→],
+  panel([Decoder]),
+  [→],
+  panel([$hat(bold(x))$], fill: rgb("#fef3c7")),
+)
+```
+
+## 変分オートエンコーダ（VAE）
+
+一方で、**変分オートエンコーダ**（`Variational Autoencoder`; `VAE`）は、潜在変数モデルと変分推論を組み合わせた生成モデルである。データ$bold(x)$が潜在変数$bold(z)$から生成される確率モデルを考えることで、新しいデータをサンプリングできるようにする。多くの実装では`Encoder`は平均$bold(mu)$と対数分散$log bold(sigma)^2$（あるいは標準偏差$bold(sigma)$に相当する量）を出力し、潜在変数$bold(z)$は
+
+$$
+ bold(z) ~ cal(N)(bold(mu), "diag"(bold(sigma)^2))
+$$
+
+という対角ガウス分布からサンプリングされる。`Decoder`はこの潜在変数$bold(z)$を入力として、データ$bold(x)$を生成する。
+
+{#fig-vae}
+```typst {render=svg caption="変分オートエンコーダの構造"}
+#set align(center)
+#grid(
+  columns: (auto, 16pt, auto, 16pt, auto, 16pt, auto, 16pt, auto, 16pt, auto),
+  gutter: 3pt,
+  align: center,
+  panel([$bold(x)$], fill: rgb("#dbeafe")),
+  [→],
+  panel([Encoder]),
+  [→],
+  panel([$bold(mu), bold(sigma)$], fill: rgb("#ede9fe")),
+  [⇢],
+  panel([Sample], fill: rgb("#fef3c7")),
+  [→],
+  panel([$bold(z)$], fill: rgb("#dcfce7")),
+  [→],
+  panel([Decoder $arrow.r$ $hat(bold(x))$]),
+)
+```
+
+あるデータ$bold(x)$に対してそれが生成できるようになるとは、その尤度$p(bold(x))$を最大化することである。しかし、潜在変数を用いれば
+
+$$
+ p(bold(x)) = integral p(bold(x), bold(z)) d bold(z) = integral p(bold(x)|bold(z)) p(bold(z)) d bold(z)
+$$
+
+と表せるが、これを直接計算することは難しい。
+
+事後確率$p(bold(z)|bold(x))$を計算しようとも
+
+$$
+ p(bold(z)|bold(x)) = frac(p(bold(x)|bold(z)) p(bold(z)), p(bold(x)))
+$$
+
+と表せるが、分母の尤度$p(bold(x))$を計算することが難しい。そのため、$p(bold(z)|bold(x))$を近似するような$q(bold(z)|bold(x))$を用意し、この二つの分布の差を最小化するように学習する。分布の差は通常、カルバック・ライブラー（`Kullback-Leibler`; `KL`）ダイバージェンスで測られる。 すなわち、
+
+$$
+ D_("KL") (q(bold(z)|bold(x)) || p(bold(z)|bold(x))) &= - integral q(bold(z)|bold(x)) log frac(p(bold(z)|bold(x)), q(bold(z)|bold(x))) d bold(z)\
+ &= - integral q(bold(z)|bold(x)) log frac(p(bold(x), bold(z)), q(bold(z)|bold(x)) p(bold(x))) d bold(z) quad (because p(bold(z)|bold(x)) = frac(p(bold(x), bold(z)), p(bold(x)))) \
+ &= - integral q(bold(z)|bold(x)) (log p(bold(x), bold(z)) - log q(bold(z)|bold(x))) d bold(z) + log p(bold(x)) integral q(bold(z)|bold(x)) d bold(z)\
+ &= - EE_(q(bold(z)|bold(x))) [log p(bold(x), bold(z)) - log q(bold(z)|bold(x))] + log p(bold(x)) \
+$$
+
+が成り立つ。私たちが知りたい尤度の対数をとった対数尤度$log p(bold(x))$は、
+
+$$
+ log p(bold(x)) &= D_("KL") (q(bold(z)|bold(x)) || p(bold(z)|bold(x))) + EE_(q(bold(z)|bold(x))) [log p(bold(x), bold(z)) - log q(bold(z)|bold(x))] \
+ &>= EE_(q(bold(z)|bold(x))) [log p(bold(x), bold(z)) - log q(bold(z)|bold(x))] := "ELBO"
+$$
+
+で下から評価できる。右辺は、**変分下界**（`Evidence Lower Bound`; `ELBO`）と呼ばれ、$log p(bold(x))$そのものではなくELBOを最大化することが学習の目的となる。深層学習では、ELBOに負の符号を付けた目的関数を最小化する。
+
+$$
+ "ELBO" &= EE_(q(bold(z)|bold(x))) [log frac(p(bold(z)) p(bold(x)|bold(z)), q(bold(z)|bold(x)))]\
+ &= EE_(q(bold(z)|bold(x))) [log p(bold(x)|bold(z))] + EE_(q(bold(z)|bold(x))) [log frac(p(bold(z)), q(bold(z)|bold(x)))]\
+ &= underbracket(EE_(q(bold(z)|bold(x))) [log p(bold(x)|bold(z))], "Reconstruction error") - underbracket(D_("KL") (q(bold(z)|bold(x)) || p(bold(z))), "KL penalty")\
+$$
+
+一般的に$p(bold(z))$は標準正規分布$cal(N)(bold(0), bold(I))$であると仮定されることが多い。すると、$q(bold(z)|bold(x))$が対角ガウス分布であるとき、KL penalty項は解析的に計算できる。
+
+$$
+ D_("KL") (q(bold(z)|bold(x)) || p(bold(z))) = frac(1, 2) sum_i (mu_i^2 + sigma_i^2 - log sigma_i^2 - 1)
+$$
+
+ただし、$mu_i$と$sigma_i$は$bold(mu)$と$bold(sigma)$の要素である。また、再構成誤差（`Reconstruction error`）項も計算できる。$p(bold(x)|bold(z))$は$bold(x)$の各要素が独立であると仮定すると
+
+$$
+ p(bold(x)|bold(z)) = product_i p(bold(x)_i|bold(z))
+$$
+
+なので、
+
+$$
+ EE_(q(bold(z)|bold(x))) [log p(bold(x)|bold(z))] &= integral q(bold(z)|bold(x)) log product_i p(bold(x)_i|bold(z)) d bold(z)\
+ &= sum_i integral q(bold(z)|bold(x)) log p(bold(x)_i|bold(z)) d bold(z)
+$$
+
+さて、デコーダーは$bold(z)$を入力として$bold(x)_i$が$1$であるような確率$bold(y)_i$を出力するようなモデルであるとする。これはすなわち、$bold(x)_i | bold(z)$がベルヌーイ分布であると仮定することになる。すると、
+
+$$
+ bold(x)_i | bold(z) &~ "Bernoulli"(bold(y)_i)\
+ p(bold(x)_i|bold(z)) &= bold(y)_i^(bold(x)_i) (1 - bold(y)_i)^(1 - bold(x)_i)
+$$
+
+と表せる。これを用いると、
+
+$$
+ EE_(q(bold(z)|bold(x))) [log p(bold(x)|bold(z))] &= sum_i integral q(bold(z)|bold(x)) log (bold(y)_i^(bold(x)_i) (1 - bold(y)_i)^(1 - bold(x)_i)) d bold(z)\
+ &= sum_i integral q(bold(z)|bold(x)) (bold(x)_i log bold(y)_i + (1 - bold(x)_i) log (1 - bold(y)_i)) d bold(z)\
+ &= sum_i EE_(q(bold(z)|bold(x))) [bold(x)_i log bold(y)_i + (1 - bold(x)_i) log (1 - bold(y)_i)]
+$$
+
+さて、本来ではこれを計算するには$q(bold(z)|bold(x))$について期待値を取る必要があるが、これを実際にはモンテカルロ法でサンプリングした$bold(z)^((i))$について、
+
+$$
+ EE_(q(bold(z)|bold(x))) [bold(x)_i log bold(y)_i + (1 - bold(x)_i) log (1 - bold(y)_i)] approx 1/L sum_(l=1)^L (bold(x)_i log bold(y)^((l))_i + (1 - bold(x)_i) log (1 - bold(y)^((l))_i))
+$$
+
+と近似する。また、勾配法を用いて学習する際にはこのELBOの計算自体を何回も繰り返すことになるので$L=1$としても十分であることが多い。
+結果として、ある1サンプル$bold(x)$についてのELBOは、
+
+$$
+ "ELBO" = sum_i (bold(x)_i log bold(y)_i + (1 - bold(x)_i) log (1 - bold(y)_i)) - frac(1, 2) sum_i (mu_i^2 + sigma_i^2 - log sigma_i^2 - 1)
+$$
+
+と計算できる。VAEをニューラルネットワークで実装する際には
+
+$$
+ bold(z) = bold(mu) + bold(sigma) dot.o bold(epsilon) quad bold(epsilon) ~ cal(N)(bold(0), bold(I))
+$$
+
+という形でサンプリングを行う。これを**再パラメータ化トリック**（`Reparameterization Trick`）と呼ぶ。これにより、$bold(mu)$と$bold(sigma)$を通じて$bold(z)$が微分可能な関数として表されるため、誤差逆伝播法を用いて学習することができるようになる。
+
+## 敵対的生成ネットワーク（GAN）
+**敵対的生成ネットワーク**（`Generative Adversarial Network`; `GAN`）は、生成モデルの一種であり、生成器と識別器という二つのニューラルネットワークが互いに競い合うことで学習するモデルである。 生成器$G_phi$は、潜在変数$bold(z)$を入力としてデータ$bold(x)$を生成するモデルである。一方で、識別器$D_theta: X -> [0, 1]$は、入力されたデータが実際のデータ分布からのサンプルであるか、生成器によって生成されたものであるかを識別するモデルである。$p_"data"$をデータセットの分布とする。$bold(x)$がデータセットに属しているかを表すラベル$y$は、
+
+$$
+ y = cases(
+ 1 quad & "if " bold(x) ~ p_"data",
+ 0 & "if " bold(x) = G_phi (bold(z))\, thin bold(z) ~ p_z,
+ )
+$$
+
+で定義される。すると$D_theta$は、入力されたデータが実際のデータセットからのサンプルである確率であると解釈できる。
+
+$$
+ D_theta (bold(x)) = p(y=1|bold(x))
+$$
+
+これを用いると、
+
+$$
+ p(y|bold(x)) = D_theta(bold(x))^y (1 - D_theta(bold(x)))^(1-y)
+$$
+
+と表せる。$D_theta$の対数尤度は、
+
+$$
+ sum_i (y_i log D_theta (bold(x)_i) + (1 - y_i) log (1 - D_theta (bold(x)_i)))
+$$
+
+とかける。ここで、$i$の集合全体でデータセットと生成されたデータの大きさが同じ$m$個であるとする。$p_z$を潜在変数の分布とすると、$bold(x)_1, dots.c, bold(x)_m ~ p_"data"$は実際のデータセットからのサンプルであり、$bold(z)_1, dots.c, bold(z)_m ~ p_z$は潜在変数の分布からのサンプルであるとする。すると、全体をmで割ると
+
+$$
+ & 1/m sum_i^m log D_theta (bold(x)_i) + 1/m sum_i^m log (1 - D_theta (G_phi (bold(z)_i))) \
+ approx & EE_(bold(x) ~ p_"data") [log D_theta (bold(x))] + EE_(bold(z) ~ p_z) [log (1 - D_theta (G_phi (bold(z))))]
+$$
+
+これが$D_theta$の対数尤度である。$theta$はこれを最大化するべきである。一方で、$G_phi$は、$D_theta$が生成されたデータを実際のデータと識別できないようにすることが目的であるため、$phi$はこれを最小化するべきである。よって学習の目的は
+
+$$
+ &min_phi max_theta [EE_(bold(x) ~ p_"data") [log D_theta (bold(x))] + EE_(bold(z) ~ p_z) [log (1 - D_theta (G_phi (bold(z))))]]
+$$
+
+である。しかし、$phi$にのみ注目すると学習の目的は$min_phi EE_(bold(z) ~ p_z) [log (1 - D_theta (G_phi (bold(z))))]$であるが、学習初期の勾配飽和を避けるため、$max_phi EE_(bold(z) ~ p_z) [log D_theta (G_phi (bold(z)))]$を目的関数として使用することも多い。これを**非飽和損失**（`Non-saturating Loss`）と呼ぶ。 まとめると、それぞれの目的関数は以下のようになる。
+
+$$
+ max_theta [EE_(bold(x) ~ p_"data") [log D_theta (bold(x))] + EE_(bold(z) ~ p_z) [log (1 - D_theta (G_phi (bold(z))))]]\
+ max_phi EE_(bold(z) ~ p_z) [log D_theta (G_phi (bold(z)))]
+$$
+
+## 拡散モデル
+**拡散モデル**（`Diffusion Model`）は、データ生成のための確率的な生成モデルである。データ分布からノイズを段階的に加えることでデータを破壊する**前向き過程**（`forward process`）と、ノイズからデータを段階的に復元する**逆過程**（`reverse process`）から構成される。 `forward process`は、データ$bold(x)_0$に対して、段階$t$でノイズを加えることで$bold(x)_t$を生成する。通常、ガウスノイズが用いられる。段階$t-1$から$t$への遷移は、以下のような条件付き確率分布で表される。
+
+$$
+ q(bold(x)_t|bold(x)_(t-1)) = cal(N)(bold(x)_t; sqrt(1 - beta_t) bold(x)_(t-1), beta_t bold(I))
+$$
+
+ここで、$beta_t$は段階$t$のノイズの強さを制御するスケジュールである。これはマルコフ過程であり、段階$t$の分布は初期データ分布からノイズを加えることで直接表される。
+
+$$
+ q(bold(x)_t|bold(x)_0) &= cal(N)(bold(x)_t; sqrt(overline(alpha)_t) bold(x)_0, (1 - overline(alpha)_t) bold(I)) quad quad overline(alpha)_t = product_(s=1)^t (1 - beta_s)\
+ bold(x)_t &= sqrt(overline(alpha)_t) bold(x)_0 + sqrt(1 - overline(alpha)_t) bold(epsilon) quad quad bold(epsilon) ~ cal(N)(bold(0), bold(I))
+$$
+
+この条件下で、$bold(x)_t$から$bold(x)_(t-1)$を復元する逆過程$p_theta (bold(x)_(t-1)|bold(x)_t)$は、Feller (1949) および Anderson (1982) による逆時間過程の理論に動機づけられ、Sohl-Dickstein et al. (2015) や Ho et al. (2020) では、$beta_t$が十分小さいときガウス分布でパラメータ化される。正確には、逆向き過程でも同じ関数形になることが理論的背景であり、$p_theta$自体は機械学習モデルとして導入される。
+
+$$
+ p_theta (bold(x)_(t-1)|bold(x)_t) = cal(N)(bold(x)_(t-1); bold(mu)_theta (bold(x)_t, t), bold(Sigma)_theta (bold(x)_t, t))
+$$
+
+ここで、$theta$は逆過程のパラメータであり、$bold(mu)_theta$と$bold(Sigma)_theta$は、段階$t$のノイズの強さやデータの構造に応じて、$bold(x)_t$から$bold(x)_(t-1)$を復元するための平均と共分散を出力するモデルであり、$theta$によってパラメータ化される。実際には、これらを直接学習するわけではない。すると、尤度は
+
+$$
+ p_theta (bold(x)_(0:T)) & = p(bold(x)_T) product_(t=1)^T p_theta (bold(x)_(t-1)|bold(x)_t) \
+ p_theta (bold(x)_0) & = integral p_theta (bold(x)_(0:T)) d bold(x)_(1:T) \
+$$
+
+である。ここでは、$v_a, v_(a+1), dots.c, v_b$のような添え字を$v_(a:b)$と表す。これの最大化が学習の目的となる。対数尤度の変分下限$L(theta)$を考えると
+
+$$
+ log p_theta (bold(x)_0) &= log (integral q(bold(x)_(1:T)|bold(x)_0) frac(p_theta (bold(x)_(0:T)), q(bold(x)_(1:T)|bold(x)_0)) d bold(x)_(1:T))\
+ &= log (EE_(q(bold(x)_(1:T)|bold(x)_0)) [ frac(p_theta (bold(x)_(0:T)), q(bold(x)_(1:T)|bold(x)_0))])\
+ &>= EE_(q(bold(x)_(1:T)|bold(x)_0)) [log(frac(p_theta (bold(x)_(0:T)), q(bold(x)_(1:T)|bold(x)_0)))] := L(theta) quad quad (because "jensens inequality")\
+ &= EE_(q(bold(x)_(1:T)|bold(x)_0)) [log p_theta (bold(x)_(0:T)) - log q(bold(x)_(1:T)|bold(x)_0)]\
+ &= EE_(q(bold(x)_(1:T)|bold(x)_0)) [sum_(t=1)^T log frac(p_theta (bold(x)_(t-1)|bold(x)_t), q(bold(x)_t|bold(x)_(t-1))) + log p (bold(x)_T)] quad (because q(bold(x)_(1:T)|bold(x)_0) = product_(t=1)^T q(bold(x)_t|bold(x)_(t-1)))\
+ &= EE_(q(bold(x)_(1:T)|bold(x)_0)) [sum_(t=2)^T log frac(p_theta (bold(x)_(t-1)|bold(x)_t), q(bold(x)_t|bold(x)_(t-1))) + log frac(p_theta (bold(x)_0|bold(x)_1), q(bold(x)_1|bold(x)_0)) + log p (bold(x)_T)]\
+$$
+
+となる。ここで、前向き過程$q$はマルコフ過程であるので、$t>1$で$q(bold(x)_t | bold(x)_(t-1)) = q(bold(x)_t | bold(x)_(t-1), bold(x)_0)$となり、
+
+$$
+ q(bold(x)_t | bold(x)_(t-1)) = q(bold(x)_t | bold(x)_(t-1), bold(x)_0) = q(bold(x)_t, bold(x)_(t-1)|bold(x)_0) / q(bold(x)_(t-1)|bold(x)_0) = (q(bold(x)_(t-1)|bold(x)_t, bold(x)_0) q(bold(x)_t|bold(x)_0))/q(bold(x)_(t-1)|bold(x)_0)
+$$
+
+である。これを代入すると
+
+$$
+ L(theta) &= EE_(q(bold(x)_(1:T)|bold(x)_0)) [sum_(t=2)^T log frac(p_theta (bold(x)_(t-1)|bold(x)_t) q(bold(x)_(t-1)|bold(x)_0), q(bold(x)_(t-1)|bold(x)_t, bold(x)_0) q(bold(x)_t|bold(x)_0)) + log frac(p_theta (bold(x)_0|bold(x)_1), q(bold(x)_1|bold(x)_0)) + log p (bold(x)_T)]\
+ &= EE_(q(bold(x)_(1:T)|bold(x)_0)) [sum_(t=2)^T log frac(p_theta (bold(x)_(t-1)|bold(x)_t), q(bold(x)_(t-1)|bold(x)_t, bold(x)_0)) + underbracket(sum_(t=2)^T log frac(q(bold(x)_(t-1)|bold(x)_0), q(bold(x)_t|bold(x)_0)) + log frac(p_theta (bold(x)_0|bold(x)_1), q(bold(x)_1|bold(x)_0)), S) + log p (bold(x)_T)]\
+$$
+
+となる。$S$の部分は
+
+$$
+ S &= sum_(t=2)^T (log q(bold(x)_(t-1)|bold(x)_0) - log q(bold(x)_t|bold(x)_0)) + log p_theta (bold(x)_0|bold(x)_1) - log q(bold(x)_1|bold(x)_0) \
+ &= log q(bold(x)_1|bold(x)_0) - log q(bold(x)_T|bold(x)_0) + log p_theta (bold(x)_0|bold(x)_1) - log q(bold(x)_1|bold(x)_0) \
+ &= log p_theta (bold(x)_0|bold(x)_1) - log q(bold(x)_T|bold(x)_0)\
+$$
+
+と計算できるので
+
+$$
+ L(theta) &= EE_(q(bold(x)_(1:T)|bold(x)_0)) [sum_(t=2)^T log frac(p_theta (bold(x)_(t-1)|bold(x)_t), q(bold(x)_(t-1)|bold(x)_t, bold(x)_0)) + log p_theta (bold(x)_0|bold(x)_1) - log q(bold(x)_T|bold(x)_0) + log p (bold(x)_T)]\
+ &= -sum_(t=2)^T EE_(q(bold(x)_(t-1), bold(x)_t|bold(x)_0)) [log frac(q(bold(x)_(t-1)|bold(x)_t, bold(x)_0), p_theta (bold(x)_(t-1)|bold(x)_t))] - EE_(q(bold(x)_T|bold(x)_0)) [log frac(q(bold(x)_T|bold(x)_0), p (bold(x)_T))] + EE_(q(bold(x)_1|bold(x)_0)) [log p_theta (bold(x)_0|bold(x)_1)]\
+ &= - sum_(t=2)^T EE_(q(bold(x)_t|bold(x)_0)) [ EE_(q(bold(x)_(t-1)|bold(x)_t, bold(x)_0))[ log frac(q(bold(x)_(t-1)|bold(x)_t, bold(x)_0), p_theta (bold(x)_(t-1)|bold(x)_t))]] - D_("KL") (q(bold(x)_T|bold(x)_0) || p (bold(x)_T)) + EE_(q(bold(x)_1|bold(x)_0)) [log p_theta (bold(x)_0|bold(x)_1)]\
+ &= -sum_(t=2)^T underbracket(EE_(q(bold(x)_t|bold(x)_0)) [ D_("KL") (q(bold(x)_(t-1)|bold(x)_t, bold(x)_0) || p_theta (bold(x)_(t-1)|bold(x)_t))], L_(t-1)) - underbracket(D_("KL") (q(bold(x)_T|bold(x)_0) || p (bold(x)_T)), L_T) + underbracket(EE_(q(bold(x)_1|bold(x)_0)) [log p_theta (bold(x)_0|bold(x)_1)], L_0)\
+$$
+
+と求まる。$p_theta (bold(x)_(t-1)|bold(x)_t))$はガウス分布であり、
+
+$$
+ q(bold(x)_(t-1)|bold(x)_t, bold(x)_0) = (q(bold(x)_t|bold(x)_(t-1), bold(x)_0) q(bold(x)_(t-1)|bold(x)_0)) / q(bold(x)_t|bold(x)_0) = (q(bold(x)_t|bold(x)_(t-1)) q(bold(x)_(t-1)|bold(x)_0)) / q(bold(x)_t|bold(x)_0)
+$$
+
+は分母が$bold(x)_(t-1)$によらない定数であり、分子はどちらもガウス分布であるので$q(bold(x)_(t-1)|bold(x)_t, bold(x)_0)$はガウス分布である。つまり、$L_(t-1)$は二つのガウス分布のKLダイバージェンスである。$L_T$は$p(bold(x)_T)$を標準正規分布に固定すれば$theta$に依らない定数であり、$L_0$は復元項とよばれる。Ho et al. (2020) では、最終的に厳密な変分下界そのものではなく、簡略化したノイズ予測損失を用いて学習している。ここで、$bold(epsilon)_theta (bold(x)_t, t)$を、$bold(x)_0$に対して$bold(x)_t$を生成する前向き過程のノイズ$bold(epsilon)$を予測するモデルとすると、実際の損失関数$cal(L)$は$-L(theta)$そのものではなく
+
+$$
+ cal(L) = EE_(t, bold(x)_0, bold(epsilon))[ ||bold(epsilon) - bold(epsilon)_theta (bold(x)_t, t)||^2]
+$$
+
+とできる。

@@ -1,0 +1,90 @@
+```typst {scope=preamble}
+#let panel(body, fill: rgb("#eef2ff")) = box(
+  inset: (x: 9pt, y: 6pt),
+  radius: 4pt,
+  fill: fill,
+  stroke: rgb("#64748b") + 0.7pt,
+  body,
+)
+#let stage(inputs, output, fill: rgb("#eef2ff")) = panel(
+  stack(
+    dir: ttb,
+    spacing: 3pt,
+    align(center, inputs),
+    align(center, [↓]),
+    align(center, output),
+  ),
+  fill: fill,
+)
+```
+
+# 多層パーセプトロン
+
+## 深層学習
+人間は、タスクごとに有効な特徴量を人手で設計することで多くの問題を解いてきた。**深層学習**（`Deep Learning`）は、その特徴表現を多層のニューラルネットワークで自動的に学習する枠組みであり、単純な表現を段階的に組み合わせながら、より抽象的で有用な表現を獲得する。画像認識、自然言語処理、音声認識など様々な分野で高い性能を示している。
+
+## 誤差逆伝播法
+**誤差逆伝播法**（`Backpropagation`; `BP`）は、ニューラルネットワークの学習に用いられるアルゴリズムである。 そもそも、あるパラメータ$theta$について、最小化する対象である損失関数$cal(L)$を偏微分することで更新の方向を知ることができ、更新幅は学習率で調整される。
+
+{#fig-backprop}
+```typst {render=svg caption="損失関数の傾きと最急降下法の更新方向"}
+#set align(center)
+#grid(
+  columns: (auto, 22pt, auto, 22pt, auto),
+  gutter: 5pt,
+  align: center,
+  panel([$theta_1$; slope $< 0$], fill: rgb("#dbeafe")),
+  [→],
+  panel([minimum $theta^*$], fill: rgb("#dcfce7")),
+  [←],
+  panel([$theta_2$; slope $> 0$], fill: rgb("#fee2e2")),
+)
+```
+
+@fig-backprop の例では$theta_1$における損失関数の傾きは負であるため、$theta$を増加させる方向に更新することが望ましい。一方で、$theta_2$における傾きは正であるため、$theta$を減少させる方向に更新することが望ましい。これを**最急降下法**（`Gradient Descent`; `GD`）といい、更新式は以下のようになる。
+
+$$
+ theta <- theta - eta frac(partial cal(L), partial theta)
+$$
+
+ニューラルネットワークでは、パラメータが多く、また層が深いため、損失関数を直接偏微分することは難しい。誤差逆伝播法は、そこで合成関数の微分にチェーンルールを適用することで、効率的に偏微分を計算するアルゴリズムである。例えば、関数$y^((1)), y^((2)), cal(L)$とパラメータ$x^((1)), w^((1)), w^((2)), t$を用いて以下のように定義された関数があるとする。
+
+$$
+ cal(L) = cal(L)(y^((2))(y^((1))(x^((1)), w^((1))), w^((2))), t)
+$$
+
+これを計算木として表すと、以下のようになる。
+
+{#fig-backprop-tree}
+```typst {render=svg caption="誤差逆伝播法の計算木"}
+#set align(center)
+#grid(
+  columns: (auto, 18pt, auto, 18pt, auto),
+  gutter: 4pt,
+  align: center,
+  stage([$x^(1)$ #h(10pt) $w^(1)$], [$y^(1)$]),
+  [→],
+  stage([$y^(1)$ #h(10pt) $w^(2)$], [$y^(2)$], fill: rgb("#dbeafe")),
+  [→],
+  stage([$y^(2)$ #h(10pt) $t$], [$cal(L)$], fill: rgb("#dcfce7")),
+)
+```
+
+このとき、$frac(partial cal(L), partial w^((1)))$を計算したいならば、チェーンルールを適用して
+
+$$
+ frac(partial cal(L), partial w^((1))) = frac(partial cal(L), partial y^((2))) frac(partial y^((2)), partial y^((1))) frac(partial y^((1)), partial w^((1)))
+$$
+
+を計算すればいいことになる。このとき、$frac(partial cal(L), partial y^((2)))$や$frac(partial y^((2)), partial y^((1)))$といった項は他のパラメータの偏微分を計算する際にも必要になるため、これらを再利用することができる。誤差逆伝播法は、こうして効率的に偏微分を計算するアルゴリズムである。
+
+## 多層パーセプトロン（MLP）
+**多層パーセプトロン**（`Multi-Layer Perceptron`; `MLP`）は、全結合層と非線形活性化関数を積み重ねたニューラルネットワークである。入力$bold(x)$に対して、各層では線形変換と非線形変換を順に適用する。
+
+$$
+ bold(h)^((0)) &= bold(x)\
+ bold(h)^((l)) &= phi(W^((l)) bold(h)^((l-1)) + bold(b)^((l))) quad (l = 1, dots.c, L)\
+ bold(y) &= g(W^((L+1)) bold(h)^((L)) + bold(b)^((L+1)))
+$$
+
+ここで、$W^((l))$は第$l$層の重み行列、$bold(b)^((l))$はバイアスベクトル、$phi$は活性化関数である。MLPは、線形モデルでは表現しにくい非線形な関係を、複数の層を通じて表現するための基本的な構成である。

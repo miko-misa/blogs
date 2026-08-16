@@ -22,8 +22,35 @@
     "07principal-component-analysis": {
       "title": "7. 主成分分析"
     },
+    "08maximum-likelihood-estimation": {
+      "title": "8. 最尤推定と確率モデル"
+    },
+    "09multi-layer-perceptron": {
+      "title": "9. 多層パーセプトロン"
+    },
+    "10convolutional-neural-network": {
+      "title": "10. 畳み込みニューラルネットワーク"
+    },
+    "11recurrent-neural-network": {
+      "title": "11. 系列モデルとLSTM"
+    },
+    "12attention-transformer": {
+      "title": "12. 注意機構とTransformer"
+    },
+    "13generative-models": {
+      "title": "13. 生成モデル"
+    },
+    "14self-supervised-learning": {
+      "title": "14. 自己教師あり学習"
+    },
+    "15generative-model-metrics": {
+      "title": "15. 生成モデルの評価指標"
+    },
     "A01-mathmatics": {
       "title": "A.1 数学"
+    },
+    "A03-kernel-methods-rkhs": {
+      "title": "A.3 カーネル法と再生核ヒルベルト空間"
     }
   }
 }

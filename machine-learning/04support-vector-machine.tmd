@@ -46,7 +46,7 @@ bold(w)^top (bold(x)_0 - t bold(w)) + b &= 0\
 => bold(w)^top bold(x)_0 - t bold(w)^top bold(w) + b &= 0\
 => t &= frac(bold(w)^top bold(x)_0 + b, bold(w)^top bold(w)) = frac(bold(w)^top bold(x)_0 + b, ||bold(w)||_2^2)
 $$
-となる。$bold(x)_0$から超平面までの距離$ds$は$bold(x)_0$から$bold(x)_p$までの距離であり、
+となる。$bold(x)_0$から超平面までの距離$d$は$bold(x)_0$から$bold(x)_p$までの距離であり、
 $$
 d = ||bold(x)_0 - bold(x)_p||_2 = ||t bold(w)||_2 = |t| ||bold(w)||_2
 $$
