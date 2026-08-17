@@ -1,8 +1,10 @@
 {
   "display": "ブログ一覧",
+  "description": "Hacnosukeの技術ブログ。数式と図を使った機械学習・深層学習、複素解析、開発ツールの解説を公開しています。",
   "articles": {
     "showcase": {
-      "title": "TypMarkチートシート"
+      "title": "TypMarkチートシート",
+      "description": "A hands-on TypMark cheat sheet pairing source examples with their rendered output."
     }
   }
 }

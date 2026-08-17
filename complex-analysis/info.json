@@ -1,14 +1,18 @@
 {
   "display": "複素解析",
+  "description": "複素関数、複素積分、Laurent展開、特異点、留数定理を数式とともに基礎から整理した複素解析ノートです。",
   "articles": {
     "01function": {
-      "title": "1. 複素関数と正則性"
+      "title": "1. 複素関数と正則性",
+      "description": "複素数と複素平面から始め、複素関数の微分可能性、正則性、Cauchy–Riemann方程式を整理します。"
     },
     "02integral": {
-      "title": "2. 複素積分"
+      "title": "2. 複素積分",
+      "description": "複素平面上の曲線と線積分を定義し、Cauchyの積分定理・積分公式へ進みます。"
     },
     "03laurent-expansion": {
-      "title": "3. 特異点と留数定理"
+      "title": "3. 特異点と留数定理",
+      "description": "Laurent展開と孤立特異点を導入し、留数と留数定理による積分計算を解説します。"
     }
   }
 }

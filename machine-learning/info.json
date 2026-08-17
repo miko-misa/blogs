@@ -1,56 +1,74 @@
 {
   "display": "機械学習",
+  "description": "線形回帰から最尤推定、ニューラルネットワーク、Transformer、生成モデルまで、機械学習を数式・定義・導出・図解とともに体系的に学べる日本語ノートです。",
   "articles": {
     "01linear-regression": {
-      "title": "1. 線形回帰分析"
+      "title": "1. 線形回帰分析",
+      "description": "単回帰と重回帰を題材に、損失関数、最小二乗法、正規方程式を数式から導出します。"
     },
     "02gradient-method": {
-      "title": "2. 凸性と勾配法"
+      "title": "2. 凸性と勾配法",
+      "description": "凸集合・凸関数の性質を確認し、最急降下法や確率的勾配降下法による最適化を解説します。"
     },
     "03linear-classification": {
-      "title": "3. 線形分類"
+      "title": "3. 線形分類",
+      "description": "二値分類と多クラス分類を、ロジスティック回帰、Softmax、交差エントロピーから整理します。"
     },
     "04support-vector-machine": {
-      "title": "4. サポートベクトルマシン"
+      "title": "4. サポートベクトルマシン",
+      "description": "マージン最大化からSVMを導出し、双対問題、ソフトマージン、カーネルトリックまで解説します。"
     },
     "05non-hierarchical-clustering": {
-      "title": "5. 非階層的クラスタリング"
+      "title": "5. 非階層的クラスタリング",
+      "description": "k-means法などの非階層的クラスタリングを、目的関数とアルゴリズムの両面から説明します。"
     },
     "06hierarchical-clustering": {
-      "title": "6. 階層的クラスタリング"
+      "title": "6. 階層的クラスタリング",
+      "description": "クラスタ間距離とデンドログラムを用いて、凝集型の階層的クラスタリングを解説します。"
     },
     "07principal-component-analysis": {
-      "title": "7. 主成分分析"
+      "title": "7. 主成分分析",
+      "description": "分散最大化と再構成誤差最小化の観点から、主成分分析と固有値問題の関係を導出します。"
     },
     "08maximum-likelihood-estimation": {
-      "title": "8. 最尤推定と確率モデル"
+      "title": "8. 最尤推定と確率モデル",
+      "description": "尤度と対数尤度を定義し、代表的な確率分布、最尤推定、KLダイバージェンスを整理します。"
     },
     "09multi-layer-perceptron": {
-      "title": "9. 多層パーセプトロン"
+      "title": "9. 多層パーセプトロン",
+      "description": "ニューロンと活性化関数から始め、逆伝播、最適化、Batch Normalization、正則化まで導出します。"
     },
     "10convolutional-neural-network": {
-      "title": "10. 畳み込みニューラルネットワーク"
+      "title": "10. 畳み込みニューラルネットワーク",
+      "description": "局所受容野、畳み込み、Padding、img2col、畳み込み層の逆伝播を図と添字から解説します。"
     },
     "11recurrent-neural-network": {
-      "title": "11. 系列モデルとLSTM"
+      "title": "11. 系列モデルとLSTM",
+      "description": "系列データを扱うRNNの課題を確認し、LSTMのゲート構造と計算を数式で説明します。"
     },
     "12attention-transformer": {
-      "title": "12. 注意機構とTransformer"
+      "title": "12. 注意機構とTransformer",
+      "description": "Scaled Dot-Product AttentionからMulti-Head Attention、Transformerの構造まで解説します。"
     },
     "13generative-models": {
-      "title": "13. 生成モデル"
+      "title": "13. 生成モデル",
+      "description": "生成モデルの目的を確率分布から整理し、VAE、GAN、自己回帰モデル、拡散モデルを解説します。"
     },
     "14self-supervised-learning": {
-      "title": "14. 自己教師あり学習"
+      "title": "14. 自己教師あり学習",
+      "description": "データから教師信号を作る自己教師あり学習について、主要な事前学習タスクと考え方を整理します。"
     },
     "15generative-model-metrics": {
-      "title": "15. 生成モデルの評価指標"
+      "title": "15. 生成モデルの評価指標",
+      "description": "生成品質と多様性を評価するInception Score、FID、KIDなどの指標を数式から解説します。"
     },
     "A01-mathmatics": {
-      "title": "A.1 数学"
+      "title": "A.1 数学",
+      "description": "機械学習で用いるベクトル、行列、微分、確率などの数学を定義と計算例から整理します。"
     },
     "A03-kernel-methods-rkhs": {
-      "title": "A.3 カーネル法と再生核ヒルベルト空間"
+      "title": "A.3 カーネル法と再生核ヒルベルト空間",
+      "description": "ヒルベルト空間と再生性を定義し、カーネル関数と再生核ヒルベルト空間の関係を解説します。"
     }
   }
 }
