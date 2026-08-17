@@ -5,6 +5,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: render-blogs-main
+  cancel-in-progress: true
+
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -15,38 +22,29 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Test renderer
+        run: python3 -m unittest scripts/test_render_site.py
+
       - name: Download typmark-cli
         run: |
           python3 - <<'PY'
           import hashlib
-          import json
           import os
           import shutil
           import subprocess
           import tarfile
           import urllib.request
 
-          api_url = (
-            "https://api.github.com/repos/"
-            "miko-misa/typmark/releases/latest"
+          release_tag = "v0.5.1"
+          url = (
+            "https://github.com/miko-misa/typmark/releases/download/"
+            f"{release_tag}/typmark-cli-{release_tag}-"
+            "x86_64-unknown-linux-gnu.tar.gz"
           )
-          with urllib.request.urlopen(api_url) as resp:
-            data = json.load(resp)
-
-          asset = None
-          for item in data.get("assets", []):
-            name = item.get("name", "")
-            if name.endswith("x86_64-unknown-linux-gnu.tar.gz"):
-              asset = item
-              break
-
-          if not asset:
-            raise SystemExit("typmark-cli release asset not found")
-
-          url = asset["browser_download_url"]
-          expected_digest = asset.get("digest", "")
-          if not expected_digest.startswith("sha256:"):
-            raise SystemExit("typmark-cli release digest not found")
+          expected_digest = (
+            "sha256:0a673a8e1d08f8b93b12a6a6037b212f"
+            "a7c4d3120a8c0ee87e0607e4f7bdc657"
+          )
 
           archive_path = "typmark-cli.tar.gz"
           urllib.request.urlretrieve(url, archive_path)
@@ -74,13 +72,12 @@ jobs:
           shutil.copy2(binary_path, "./typmark-cli")
           os.chmod("./typmark-cli", 0o755)
 
-          release_tag = data.get("tag_name")
           version = subprocess.check_output(
             ["./typmark-cli", "--version"], text=True
           ).strip()
           if release_tag != f"v{version}":
             raise SystemExit(
-              f"Latest release {release_tag} contains CLI version {version}"
+              f"Pinned release {release_tag} contains CLI version {version}"
             )
           print(f"Using TypMark {release_tag}")
           PY
@@ -135,157 +132,21 @@ jobs:
           echo "TYPMARK_FONT_PATHS=$TYPMARK_FONT_PATHS" >> "$GITHUB_ENV"
 
       - name: Render .tmd to HTML
-        run: |
-          rm -rf site
-          mkdir -p site/blogs-content site/blogs/assets
-
-          python3 - <<'PY'
-          import json
-          import subprocess
-          from pathlib import Path
-
-          root = Path(".").resolve()
-
-          def is_ignored(path: Path) -> bool:
-            parts = set(path.parts)
-            return ".git" in parts or ".github" in parts or "site" in parts
-
-          json_paths = [
-            p
-            for p in root.rglob("info.json")
-            if not is_ignored(p)
-          ]
-
-          if not json_paths:
-            raise SystemExit("No info.json found")
-
-          index = {"folders": {}}
-          folder_keys = []
-
-          for info_path in json_paths:
-            folder = info_path.parent
-            rel_folder = folder.relative_to(root)
-            folder_key = "" if str(rel_folder) == "." else rel_folder.as_posix()
-            folder_keys.append(folder_key)
-
-            info = json.loads(info_path.read_text(encoding="utf-8"))
-            display = info.get("display") or (folder_key or "Blog")
-            folder_description = info.get("description")
-            articles = info.get("articles")
-
-            if not isinstance(articles, dict):
-              raise SystemExit(f"Invalid info.json: {info_path}")
-
-            pages = []
-            for slug, meta in articles.items():
-              if not isinstance(slug, str) or not slug:
-                raise SystemExit(f"Invalid article key in {info_path}")
-              title = None
-              description = None
-              if isinstance(meta, dict):
-                title = meta.get("title")
-                description = meta.get("description")
-              title = title or slug
-
-              tmd_path = folder / f"{slug}.tmd"
-              if not tmd_path.exists():
-                raise SystemExit(f"Missing tmd file: {tmd_path}")
-
-              out_rel = f"{folder_key}/{slug}" if folder_key else slug
-              out_path = Path("site/blogs-content") / f"{out_rel}.html"
-              out_path.parent.mkdir(parents=True, exist_ok=True)
-
-              rendered = subprocess.run(
-                [
-                  "./typmark-cli",
-                  "--render",
-                  "--theme",
-                  "dark",
-                  "--diagnostics",
-                  "pretty",
-                  str(tmd_path),
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-              )
-              if rendered.returncode != 0 or rendered.stderr:
-                raise SystemExit(
-                  f"TypMark failed for {tmd_path}:\n"
-                  + rendered.stderr.decode("utf-8", errors="replace")
-                )
-
-              fallbacks = (
-                b'class="TypMark-math-inline--error',
-                b'class="TypMark-math-block--error',
-                b'<figure class="TypMark-typst-block TypMark-typst-error',
-              )
-              if any(marker in rendered.stdout for marker in fallbacks):
-                raise SystemExit(f"TypMark fallback in {tmd_path}")
-
-              out_path.write_bytes(rendered.stdout)
-
-              page = {"slug": slug, "title": title, "path": out_rel}
-              if isinstance(description, str) and description.strip():
-                page["description"] = description.strip()
-              pages.append(page)
-
-            index["folders"][folder_key] = {
-              "display": display,
-              "pages": pages,
-              "folders": [],
-            }
-            if (
-              isinstance(folder_description, str)
-              and folder_description.strip()
-            ):
-              index["folders"][folder_key]["description"] = (
-                folder_description.strip()
-              )
-
-          folder_keys = sorted(set(folder_keys))
-
-          for folder_key in folder_keys:
-            prefix = f"{folder_key}/" if folder_key else ""
-            children = []
-            for child in folder_keys:
-              if child == folder_key:
-                continue
-              if not child.startswith(prefix):
-                continue
-              rest = child[len(prefix):]
-              if "/" in rest:
-                continue
-              child_info = index["folders"].get(child, {})
-              display = child_info.get("display") or rest
-              entry = {"name": rest, "path": child, "display": display}
-              description = child_info.get("description")
-              if isinstance(description, str) and description.strip():
-                entry["description"] = description.strip()
-              children.append(entry)
-
-            index["folders"][folder_key]["folders"] = sorted(
-              children, key=lambda item: item["display"].lower()
-            )
-
-          Path("site/blogs-index.json").write_text(
-            json.dumps(index, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-          )
-          PY
-
-          if [ -d assets ]; then
-            rsync -a assets/ site/blogs/assets/
-          fi
+        run: python3 scripts/render_site.py
 
       - name: Checkout portfolio
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: miko-misa/portfolio
           token: ${{ secrets.PORTFOLIO_PUSH_TOKEN }}
+          persist-credentials: false
           path: portfolio
 
       - name: Publish to portfolio
+        env:
+          PORTFOLIO_PUSH_TOKEN: ${{ secrets.PORTFOLIO_PUSH_TOKEN }}
         run: |
+          set -euo pipefail
           rm -rf portfolio/public/blogs
           rm -rf portfolio/public/blogs-content
           rm -rf portfolio/public/blogs/assets
@@ -306,5 +167,9 @@ jobs:
           git add public/blogs-content \
             public/blogs/assets \
             public/blogs-index.json
-          git commit -m "Update blogs from blogs repo"
-          git push
+          git commit -m "Update blogs from blogs@${GITHUB_SHA::7}"
+          auth=$(printf 'x-access-token:%s' "$PORTFOLIO_PUSH_TOKEN" \
+            | base64 | tr -d '\n')
+          git -c \
+            "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            push origin HEAD:main

@@ -1,4 +1,6 @@
 .DS_Store
 site/
 node_modules/
+__pycache__/
+*.py[cod]
 .github/copilot-instructions.md

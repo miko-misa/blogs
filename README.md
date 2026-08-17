@@ -1,70 +1,89 @@
-# Blogs (TypMark .tmd)
+# Blogs (TypMark `.tmd`)
 
-This repo stores TypMark `.tmd` sources for the portfolio blog.
-On every push to `main`, GitHub Actions renders `.tmd` files to HTML
-and publishes them into the `portfolio` repo under `public/blogs-content/`.
+This repository is the canonical source for the TypMark articles published on the Hacnosuke portfolio.
 
-The portfolio app fetches the rendered HTML and wraps it with React/Tailwind
-when visiting `/blogs/<slug>`.
+During the Vercel/Cloudflare coexistence phase, every push to `main`:
 
-## Folder info manifest (required)
+1. downloads the pinned TypMark CLI;
+2. validates and renders every listed article;
+3. generates the folder/article index;
+4. publishes the generated handoff to the private `portfolio` repository;
+5. lets the portfolio host build the static SEO routes and React UI.
 
-Each folder that contains `.tmd` files **must** include an `info.json` file.
-Only files listed in `info.json` are rendered and published.
+Generated HTML is not the source of truth. Edit `.tmd`, `info.json`, and `assets/` here.
 
-Example format:
+## Folder manifest
 
-```
+Every folder containing articles must include `info.json`. Only listed articles are rendered and published.
+
+```json
 {
-  "display": "Folder A",
+  "display": "Machine Learning",
+  "description": "Folder description used by listings and SEO.",
   "articles": {
-    "a": {"title": "Math 1"},
-    "b": {"title": "Math 2"}
+    "intro": {
+      "title": "Introduction",
+      "description": "Article summary shown in cards and search metadata."
+    }
   }
 }
 ```
 
-- `display`: the folder display name shown in listings
-- `articles`: keys are slugs and must match `<slug>.tmd` in the same folder
-- `title`: title shown in folder listings
+| Field | Purpose |
+| --- | --- |
+| `display` | Folder title shown in listings |
+| Folder `description` | Category summary and SEO description |
+| `articles` key | Slug matching `<slug>.tmd` in the same folder |
+| Article `title` | Listing and article title |
+| Article `description` | Listing card summary and page metadata |
+
+An omitted description is filled from article content by the portfolio build when possible.
 
 ## URL mapping
 
-The path is preserved from the repo root, using each slug:
+Repository paths are preserved below `/blogs/`:
 
-- `tests/hello.tmd` -> `/blogs/tests/hello`
-- `notes/2025/intro.tmd` -> `/blogs/notes/2025/intro`
-
-## Folder listing
-
-Accessing a folder shows a list of pages in that folder and any child folders
-that also have `info.json`.
-
-- `/blogs/` shows items listed in `/info.json`
-- `/blogs/tests` shows items listed in `tests/info.json`
+```text
+tests/hello.tmd -> /blogs/tests/hello/
+notes/intro.tmd -> /blogs/notes/intro/
+```
 
 ## Assets
 
-Place shared assets under `assets/`. They are copied to
-`portfolio/public/blogs/assets/`.
+Place shared assets under `assets/` and reference them with an absolute URL:
 
-Use absolute paths in your Markdown so they work from any blog route:
-
-- `/blogs/assets/your-image.png`
-
-## Required GitHub secret
-
-Add this secret to the **blogs** repository:
-
-- `PORTFOLIO_PUSH_TOKEN`: a PAT with write access to
-  `https://github.com/miko-misa/portfolio.git`
-
-Recommended: a classic PAT with `repo` scope.
-
-## Local render (optional)
-
-If you have `typmark-cli` installed:
-
+```text
+/blogs/assets/your-image.png
 ```
-./typmark-cli --render --theme dark input.tmd > output.html
+
+## Local rendering
+
+Install or download the pinned TypMark CLI, then run the same renderer used by GitHub Actions:
+
+```bash
+python3 scripts/render_site.py --typmark /path/to/typmark-cli
 ```
+
+Output is written to the ignored `site/` directory:
+
+```text
+site/blogs-content/
+site/blogs/assets/
+site/blogs-index.json
+```
+
+Run the renderer self-check with:
+
+```bash
+python3 -m unittest scripts/test_render_site.py
+```
+
+## Current publishing credential
+
+The coexistence workflow currently needs this GitHub Actions secret:
+
+- `PORTFOLIO_PUSH_TOKEN`: write access limited to `miko-misa/portfolio`
+
+A fine-grained token is preferred over a classic `repo` token. Generated portfolio commits remain temporarily necessary to keep Vercel and Cloudflare synchronized during canary testing.
+
+After the Cloudflare production gate passes, this push credential will be replaced with a dispatch-only credential and generated portfolio commits will stop. The authoritative migration and retirement procedure is maintained in the private portfolio repository at `docs/hosting-migration.md`.
