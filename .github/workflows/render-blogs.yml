@@ -35,15 +35,15 @@ jobs:
           import tarfile
           import urllib.request
 
-          release_tag = "v0.5.1"
+          release_tag = "v0.5.2"
           url = (
             "https://github.com/miko-misa/typmark/releases/download/"
             f"{release_tag}/typmark-cli-{release_tag}-"
             "x86_64-unknown-linux-gnu.tar.gz"
           )
           expected_digest = (
-            "sha256:0a673a8e1d08f8b93b12a6a6037b212f"
-            "a7c4d3120a8c0ee87e0607e4f7bdc657"
+            "sha256:24d0d0d957ea8407cd7d51974e68756a"
+            "367550591c16f1ebe309128ba970a815"
           )
 
           archive_path = "typmark-cli.tar.gz"
