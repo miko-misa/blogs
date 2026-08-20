@@ -8,6 +8,122 @@
 この記事はWIP（Work in Progress）です。
 :::
 
+# 概要
+`Mamba`は時系列データのような系列データの処理に特化した深層学習モデルである。すでに、`RNN`や`LSTM`、`GRU`などの再帰型ニューラルネットワークや、`Transformer`のような自己注意機構（`Scaled dot-product Attention`）を用いたモデルがある。これらに対して、`Mamba`は線形な状態空間モデル（State Space Model; SSM）を用いたモデルである。これは、隠れ状態が入力と隠れ状態自身によって変化するものとし、その隠れ状態から出力を計算するような定式化であり、再帰型ニューラルネットワークと似ている一方、このモデルは中で計算される隠れ状態の変化が線形であることが特徴である。`Mamba`ではこのモデルのパラメータを入力依存にすることで非線形な活性を外部に出した`Selective SSM`を用いている。以下は、Mamba-1 のブロック図である。
+
+```typst {render=svg caption="Mamba-1ブロックの構成"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let bw = 3.4      // ブロックの幅
+  let bh = 0.85     // ブロックの高さ
+  let xl = 0.0      // 左の列（SSM 側）
+  let xr = 4.4      // 右の列（ゲート側）
+  let xc = (xl + xr) / 2
+
+  // 中心 (x, y) に幅 w のブロックを置く
+  let blk(x, y, label, name, w: bw) = {
+    rect((x - w / 2, y + bh / 2), (x + w / 2, y - bh / 2), fill: white, stroke: black, name: name)
+    content((x, y), text(size: 11pt, label))
+  }
+  let arrow(a, b) = line(a, b, mark: (end: "triangle", fill: black))
+
+  let y1 = -1.7     // 入力側の線形射影
+  let y2 = -3.7     // CausalConv1D
+  let y3 = -5.6     // SiLU
+  let y4 = -7.5     // Selective SSM とゲートの SiLU
+  let y5 = -9.6     // 要素ごとの積
+  let y6 = -11.5    // 出力側の線形射影
+
+  content((xc, 0), text(size: 11pt, $bold(X)_"block"$), name: "in")
+  blk(xc, y1, [Linear $bold(W)_"in"$], "win", w: 8.2)
+  blk(xl, y2, [CausalConv1D], "conv")
+  blk(xl, y3, [SiLU], "act")
+  blk(xl, y4, [Selective SSM], "ssm")
+  blk(xr, y4, [SiLU], "gate")
+  circle((xc, y5), radius: 0.42, fill: white, stroke: black, name: "had")
+  content((xc, y5), text(size: 13pt, $dot.o$))
+  blk(xc, y6, [Linear $bold(W)_"out"$], "wout", w: 8.2)
+  content((xc, -12.8), text(size: 11pt, $bold(Y)_"block"$), name: "out")
+
+  // 入力から出力へ向かう経路
+  arrow("in.south", "win.north")
+  arrow((xl, y1 - bh / 2), "conv.north")
+  arrow("conv.south", "act.north")
+  arrow("act.south", "ssm.north")
+  arrow((xr, y1 - bh / 2), "gate.north")
+  arrow("ssm.south", "had")
+  arrow("gate.south", "had")
+  arrow("had", "wout.north")
+  arrow("wout.south", "out.north")
+
+  // 経路上のテンソル名
+  content((xl - 0.45, (y1 - bh / 2 + y2 + bh / 2) / 2), text(size: 10pt, $bold(U)$), anchor: "east")
+  content((xr + 0.45, (y1 - bh / 2 + y4 + bh / 2) / 2), text(size: 10pt, $bold(Z)$), anchor: "west")
+  content((xl - 0.45, (y3 - bh / 2 + y4 + bh / 2) / 2), text(size: 10pt, $bold(X)_"SSM"$), anchor: "east")
+})
+]
+```
+
+Mamba-2ブロックではさらなる制約を加え、`Selective SSM`を行列積で表現する。行列積は現代のGPUで非常に効率的に計算できる。結果として`Scaled dot-product Attention`に非常によく似た計算（これを`SSD`という）になる。Mamba-2ブロックの図は以下の通りである。
+
+```typst {render=svg caption="Mamba-2ブロックの構成"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let bw = 3.4      // ブロックの幅
+  let bh = 0.85     // ブロックの高さ
+  let xl = 0.0      // 左の列（SSD 側）
+  let xr = 4.4      // 右の列（ゲート側）
+  let xc = (xl + xr) / 2
+
+  let blk(x, y, label, name, w: bw) = {
+    rect((x - w / 2, y + bh / 2), (x + w / 2, y - bh / 2), fill: white, stroke: black, name: name)
+    content((x, y), text(size: 11pt, label))
+  }
+  let arw(a, b) = line(a, b, mark: (end: "triangle", fill: black))
+
+  let y1 = -1.7     // 入口の線形射影
+  let y2 = -3.7     // CausalConv1D
+  let y3 = -5.6     // SiLU
+  let y4 = -7.5     // SSD とゲートの SiLU
+  let y5 = -9.6     // 要素ごとの積
+  let y6 = -11.5    // 正規化
+  let y7 = -13.4    // 出口の線形射影
+
+  content((xc, 0), text(size: 11pt, $bold(X)_"block"$), name: "in")
+  blk(xc, y1, [Linear $bold(W)_"in"$], "win", w: 8.2)
+  blk(xl, y2, [CausalConv1D], "conv")
+  blk(xl, y3, [SiLU], "act")
+  blk(xl, y4, [SSD], "ssd")
+  blk(xr, y4, [SiLU], "gate")
+  circle((xc, y5), radius: 0.42, fill: white, stroke: black, name: "had")
+  content((xc, y5), text(size: 13pt, $dot.o$))
+  blk(xc, y6, [RMSNorm], "norm", w: 8.2)
+  blk(xc, y7, [Linear $bold(W)_"out"$], "wout", w: 8.2)
+  content((xc, -14.7), text(size: 11pt, $bold(Y)_"block"$), name: "out")
+
+  arw("in.south", "win.north")
+  arw((xl, y1 - bh / 2), "conv.north")
+  arw("conv.south", "act.north")
+  arw("act.south", "ssd.north")
+  arw((xr, y1 - bh / 2), "gate.north")
+  arw("ssd.south", "had")
+  arw("gate.south", "had")
+  arw("had", "norm.north")
+  arw("norm.south", "wout.north")
+  arw("wout.south", "out.north")
+
+  content((xl - 0.45, (y1 - bh / 2 + y2 + bh / 2) / 2), text(size: 10pt, $bold(X), bold(cal(B)), bold(cal(C))$), anchor: "east")
+  content((xr + 0.45, (y1 - bh / 2 + y4 + bh / 2) / 2), text(size: 10pt, $bold(Z)$), anchor: "west")
+  content((xl - 0.45, (y4 - bh / 2 + y5 + 0.42) / 2), text(size: 10pt, $bold(Y)_"SSD"$), anchor: "east")
+})
+]
+```
+
+この図において、$bold(cal(B)), bold(cal(C)), bold(X)$は`Attention`における`Query, Key, Value`に相当する。
 
 # 離散時間の状態空間モデル（SSM）
 ここではMambaの基礎である状態空間モデル（State Space Model; SSM）による時系列データのモデリングについて説明する。離散時間に入る前に、まずは連続時間の状態空間モデルについて導入し、離散化する。
@@ -114,7 +230,7 @@ $$
 bold(h)_0 &= bold(B)_(Delta_0) bold(x)_0\
 bold(h)_1 &= bold(A)_(Delta_1) bold(B)_(Delta_0) bold(x)_0 + bold(B)_(Delta_1) bold(x)_1\
 bold(h)_2 &= bold(A)_(Delta_2) bold(A)_(Delta_1) bold(B)_(Delta_0) bold(x)_0 + bold(A)_(Delta_2) bold(B)_(Delta_1) bold(x)_1 + bold(B)_(Delta_2) bold(x)_2\
-bold(h)_3 &= bold(A)_(Delta_3) bold(A)_(Delta_2) bold(A)_(Delta_1) bold(B)_(Delta_0) bold(x)_0 + bold(A)_(Delta_3) bold(A)_(Delta_2) bold(B)_(Delta_1) bold(x)_1 + bold(A)_(Delta_3) bold(B)_(Delta_2) bold(x)_2 + bold(B)_Delta_3 bold(x)_3\
+bold(h)_3 &= bold(A)_(Delta_3) bold(A)_(Delta_2) bold(A)_(Delta_1) bold(B)_(Delta_0) bold(x)_0 + bold(A)_(Delta_3) bold(A)_(Delta_2) bold(B)_(Delta_1) bold(x)_1 + bold(A)_(Delta_3) bold(B)_(Delta_2) bold(x)_2 + bold(B)_(Delta_3) bold(x)_3\
 dots.v
 $$
 よって、$bold(h)_k$の一般項は次のように表される。
