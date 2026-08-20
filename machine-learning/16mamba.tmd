@@ -1,0 +1,1905 @@
+```typst {scope=preamble}
+#import "@preview/cetz:0.3.4"
+#set page(fill: white, margin: 4pt)
+#set text(font: ("New Computer Modern", "Noto Sans JP"))
+```
+
+::: box
+この記事はWIP（Work in Progress）です。
+:::
+
+
+# 離散時間の状態空間モデル（SSM）
+ここではMambaの基礎である状態空間モデル（State Space Model; SSM）による時系列データのモデリングについて説明する。離散時間に入る前に、まずは連続時間の状態空間モデルについて導入し、離散化する。
+
+まず、ここでは連続的な変化を行う隠れ状態$bold(q) (t)$と入力$bold(x) (t)$、出力$bold(y) (t)$を持つ次のようなモデルを考える。
+
+$$
+(d bold(q) (t))/(d t) &= bold(A) bold(q) (t) + bold(B) bold(x) (t)\
+bold(y) (t) &= bold(C) bold(q) (t) + bold(S) bold(x) (t)
+$$
+
+つまり、状態は今の状態と入力の線形変換で決まり、出力は状態と入力の線形変換で決まる。ここで、$bold(A)$は状態遷移行列、$bold(B)$は入力行列、$bold(C)$は出力行列、$bold(S)$は直接伝達行列と呼ばれ、ここでは何にも依存しない定数であるとする。また、ここではそれぞれのベクトル、行列の次元は適切であるとする。
+
+ここで、$t$上の分割${t_k | k in NN_(>=0)}$を考える。そして、$t_k <= t < t_(k+1)$の元で$bold(x)(t) = bold(x)_k = "const."$であると仮定する。$Delta := t_(k+1) - t_k$とおく。このとき、
+
+$$
+d/(d t) (e^(-bold(A) t) bold(q)(t)) &= e^(-bold(A) t) (d bold(q)(t))/(d t) - bold(A) e^(-bold(A) t) bold(q)(t)\
+&= e^(-bold(A) t) (bold(A) bold(q)(t) + bold(B) x(t)) - bold(A) e^(-bold(A) t) bold(q)(t)\
+&= e^(-bold(A) t) bold(B) bold(x)_k
+$$
+
+が成り立つ。天下り的ではあるが、$e^(-bold(A) t)$をかけた$bold(q)(t)$の微分を考えた。この両辺を$t$について$t_k$から$t_(k+1)$まで積分すると、
+
+$$
+integral_(t_k)^(t_(k+1)) d/(d t) (e^(-bold(A) t) bold(q)(t)) d t &= integral_(t_k)^(t_(k+1)) e^(-bold(A) t) bold(B) bold(x)_k d t\
+e^(-bold(A) t_(k+1)) bold(q)(t_(k+1)) - e^(-bold(A) t_k) bold(q)(t_k) &= integral_(t_k)^(t_(k+1)) e^(-bold(A) t) bold(B) d t bold(x)_k
+$$
+
+となる。右辺の積分について、$tau := t - t_k$と置換すると、$t = tau + t_k$であり、$d t = d tau$である。よって、
+$$
+integral_(t_k)^(t_(k+1)) e^(-bold(A) t) bold(B) d t &= integral_(0)^(t_(k+1) - t_k) e^(-bold(A) (tau + t_k)) bold(B) d tau\
+&= e^(-bold(A) t_k) integral_(0)^Delta e^(-bold(A) tau) bold(B) d tau
+$$
+
+となる。これを先ほどの式に代入すると、
+$$
+e^(-bold(A) t_(k+1)) bold(q)(t_(k+1)) - e^(-bold(A) t_k) bold(q)(t_k) &= e^(-bold(A) t_k) integral_(0)^Delta e^(-bold(A) tau) bold(B) d tau bold(x)_k \
+e^(-bold(A) (t_(k+1) - t_k)) bold(q)(t_(k+1)) &= bold(q)(t_k) + integral_(0)^Delta e^(-bold(A) tau) bold(B) d tau bold(x)_k\
+bold(q)(t_(k+1)) &= underbracket(e^(Delta bold(A)), bold(A)_Delta) bold(q)(t_k) + underbracket(integral_(0)^Delta e^(bold(A) (Delta - tau)) bold(B) d tau, bold(B)_Delta) bold(x)_k
+$$
+となる。上のように$bold(A)_Delta$と$bold(B)_Delta$を定義した。これらは$bold(A), bold(B)$を刻み幅$Delta$で離散化した行列で、形は元と同じである。**添字は刻み幅そのもの**を表す。刻み幅が別の値になれば、添字もその値になる。文献ではこれを$overline(bold(A)), overline(bold(B))$と書くことも多いが、本章では上線付きの記号を後の節で別の対象に使うので、離散化した行列は刻み幅を添字にして表すことにする。隠れ状態を$bold(q)_k := bold(q)(t_k)$、出力を$bold(y)_k := bold(y)(t_k)$とおくと、離散時間の状態空間モデルは次のように表される。
+$$
+bold(q)_(k+1) &= bold(A)_Delta bold(q)_k + bold(B)_Delta bold(x)_k
+$$
+この条件では$bold(B)_Delta$は閉形式で計算できる。
+
+$$
+bold(B)_Delta &= integral_(0)^Delta e^(bold(A) (Delta - tau)) bold(B) d tau = integral_(0)^Delta e^(bold(A) tau) bold(B) d tau\
+&= [bold(A)^(-1) e^(bold(A) tau) bold(B)]_(0)^Delta = bold(A)^(-1) (e^(Delta bold(A)) - bold(I)) bold(B)
+$$
+
+さて、一般に深層学習では入力$bold(x)_k$は時系列データの観測値を処理した後の隠れ状態を$bold(h)_k$とすることが多い。なので$bold(h)_k := bold(q)_(k+1)$とおくと、次のように書き換えられる。
+$$
+bold(h)_k &= bold(A)_Delta bold(h)_(k-1) + bold(B)_Delta bold(x)_k\
+bold(y)_k &= bold(C) bold(h)_(k) + bold(S) bold(x)_k
+$$
+なお、ここで出力は入力を処理した後の隠れ状態$bold(h)_(k)$から計算すると決めた。数列${bold(h)_k | k in NN_(>=0)}$を漸化式を繰り返し用いて次のように書き下してみる。なお、$bold(h)_(-1) = bold(0)$とする。
+$$
+bold(h)_0 &= bold(B)_Delta bold(x)_0\
+bold(h)_1 &= bold(A)_Delta bold(B)_Delta bold(x)_0 + bold(B)_Delta bold(x)_1\
+bold(h)_2 &= (bold(A)_Delta)^2 bold(B)_Delta bold(x)_0 + bold(A)_Delta bold(B)_Delta bold(x)_1 + bold(B)_Delta bold(x)_2\
+dots.v
+$$
+よって、$bold(h)_k$の一般項は次のように表される。
+$$
+bold(h)_k = sum_(i=0)^k (bold(A)_Delta)^(k-i) bold(B)_Delta bold(x)_i
+$$
+そして、出力$bold(y)_k$は次のように表される。
+$$
+bold(y)_k = sum_(i=0)^k bold(C) (bold(A)_Delta)^(k-i) bold(B)_Delta bold(x)_i + bold(S) bold(x)_k
+$$
+ここで、
+$$
+bold(K)_i := bold(C) (bold(A)_Delta)^i bold(B)_Delta
+$$
+とすると、
+$$
+bold(y)_k = sum_(i=0)^k bold(K)_(k-i) bold(x)_i + bold(S) bold(x)_k
+$$
+と表せ、総和部分は$(bold(K)_0, bold(K)_1, ..., bold(K)_k)$と$(bold(x)_0, bold(x)_1, ..., bold(x)_k)$の一次元の畳み込みであることがわかる。よって、離散時間の状態空間モデルは、入力$bold(x)_k$と出力$bold(y)_k$の間に線形な畳み込み関係があることがわかる。$bold(x)_0$から$bold(x)_k$までの入力が一度に得られる学習フェーズでは、畳み込みとして並列計算ができる。
+
+# Selective SSM
+上記の離散時間の状態空間モデルで入力$bold(x)_i$が出力$bold(y)_k$に対する重みは$bold(K)_(k-i)$である。$bold(K)_(k-i)$の定義を思い出すと、これは$k-i$にのみ依存する。つまり、入力$bold(x)_i$が出力$bold(y)_k$に対する重みは、入力と出力の距離$k-i$にのみ依存する。しかし、実際は入力$bold(x)_i$に依るはずである。たとえば、時系列データ上のノイズの影響を受ける入力$bold(x)_i$は、距離が近くても出力$bold(y)_k$に対する重みは小さくなるべきである。そこで、Selective SSMでは、入力$bold(x)_i$に依存する重みを導入する。ある関数$bold(f)_B, bold(f)_C, bold(f)_Delta$を用いて、$B, C, Delta$を入力に依存するようにする。すなわち、
+$$
+bold(B)(t) := bold(f)_B (bold(x) (t)), quad bold(C)(t) := bold(f)_C (bold(x)(t) ), quad Delta(t) := bold(f)_Delta (bold(x)(t ))
+$$
+である。ここで、$bold(A)$は入力に依存しない定数であるとする。$Delta(t)$は$t$上の分割${t_k | k in NN_(>=0)}$を決める。先ほどと同様に$t_k <= t < t_(k+1)$の元で$bold(x)(t) = bold(x)_k = "const."$であると仮定する。すると、これらも離散化され、次のように表される。
+$$
+bold(B)_k := bold(f)_B (bold(x)_k), quad bold(C)_k := bold(f)_C (bold(x)_k), quad Delta_k := bold(f)_Delta (bold(x)_k)
+$$
+これらは$t_k <= t < t_(k+1)$で一定である。よって、SSMの離散化の議論をそのまま適用できる。すなわち、次のように表される。
+$$
+bold(h)_k &= bold(A)_(Delta_k) bold(h)_(k-1) + bold(B)_(Delta_k) bold(x)_k\
+bold(y)_k &= bold(C)_k bold(h)_(k) + bold(S) bold(x)_k
+$$
+
+ここで$bold(A)_(Delta_k), bold(B)_(Delta_k)$は、先ほどの定義の刻み幅に$Delta_k$を入れただけのものである。すなわち
+$$
+bold(A)_(Delta_k) = e^(Delta_k bold(A)), quad bold(B)_(Delta_k) = integral_(0)^(Delta_k) e^(bold(A) (Delta_k - tau)) bold(B)_k d tau
+$$
+である。刻み幅が時刻ごとに違うので、離散化した行列も時刻の数だけ存在することになる。
+さて、同様に、数列${bold(h)_k | k in NN_(>=0)}$を漸化式を繰り返し用いて次のように書き下してみる。なお、$bold(h)_(-1) = bold(0)$とする。
+$$
+bold(h)_0 &= bold(B)_(Delta_0) bold(x)_0\
+bold(h)_1 &= bold(A)_(Delta_1) bold(B)_(Delta_0) bold(x)_0 + bold(B)_(Delta_1) bold(x)_1\
+bold(h)_2 &= bold(A)_(Delta_2) bold(A)_(Delta_1) bold(B)_(Delta_0) bold(x)_0 + bold(A)_(Delta_2) bold(B)_(Delta_1) bold(x)_1 + bold(B)_(Delta_2) bold(x)_2\
+bold(h)_3 &= bold(A)_(Delta_3) bold(A)_(Delta_2) bold(A)_(Delta_1) bold(B)_(Delta_0) bold(x)_0 + bold(A)_(Delta_3) bold(A)_(Delta_2) bold(B)_(Delta_1) bold(x)_1 + bold(A)_(Delta_3) bold(B)_(Delta_2) bold(x)_2 + bold(B)_Delta_3 bold(x)_3\
+dots.v
+$$
+よって、$bold(h)_k$の一般項は次のように表される。
+$$
+bold(h)_k = sum_(i=0)^k (product_(j=i+1)^k bold(A)_(Delta_j)) bold(B)_(Delta_i) bold(x)_i
+$$
+そして、出力$bold(y)_k$は次のように表される。
+$$
+bold(y)_k = sum_(i=0)^k bold(C)_k (product_(j=i+1)^k bold(A)_(Delta_j)) bold(B)_(Delta_i) bold(x)_i + bold(S) bold(x)_k
+$$
+
+# Mamba-1
+## 入力
+Mamba ブロックでは得られた入力を少し処理した後、Selective SSM に入力する。今までの説明では入力はベクトルであったが、Mambaブロックへの入力はそれを束ねたシーケンスである。
+$$
+bold(X)_"block" := vec(bold(x)^top_0, bold(x)^top_1, dots.v, bold(x)^top_(L-1)) in RR^(L times d_"in")
+$$
+この入力に線形変換を行い、特徴量方向の次元を変化させる。その際、$bold(U) in RR^(L times D)$と$bold(Z) in RR^(L times D)$を作る。
+$$
+mat(bold(U), bold(Z)) = bold(X)_"block" bold(W)^top_"in" = vec(bold(x)^top_0 bold(W)^top_"in", bold(x)^top_1 bold(W)^top_"in", dots.v, bold(x)^top_(L-1) bold(W)^top_"in") in RR^(L times 2D)
+$$
+各シーケンスの特徴量方向に線形射影を行って、最終的にそれを2つに分けて、初めの$D$次元を$bold(U)$、後ろの$D$次元を$bold(Z)$としている。Selective SSM に対する入力$bold(X)_"SSM"$は以下のようにして与えられる。
+$$
+bold(X)_"SSM" := "SiLU"("CausalConv1D"(bold(U), bold(W)_"conv")) in RR^(L times D)
+$$
+ここで、CausalConv1Dは過去の情報のみを使うシーケンス方向のみに対する（Depthwiseな）畳み込みで、重み$bold(W)_"conv" in RR^(K times D)$を用いて以下のように計算される。
+$$
+y_(ell, d) = sum_(0 <= ell' < K\ ell' <= ell) [bold(W)_"conv"]_(ell', d) [bold(U)]_(ell - ell', d)
+$$
+こうして得た入力$bold(X)_"SSM"$が、先ほどのSelective SSMの一つの入力$bold(x)_k$と以下のように対応する。
+$$
+bold(x)_k = [bold(X)_"SSM"]_(k, :)
+$$
+
+## Mamba-1におけるSelective SSM
+Selective SSMの漸化式は以下のようなものであった。
+$$
+bold(h)_k &= bold(A)_(Delta_k) bold(h)_(k-1) + bold(B)_(Delta_k) bold(x)_k\
+bold(y)_k &= bold(C)_k bold(h)_(k) + bold(S) bold(x)_k
+$$
+Mamba-1 では、この漸化式を入力の feature-wise （つまり異なる特徴量の状態を直接混合しないよう）に計算する。ここで記号の形が一段変わるので、先に断っておく。
+
+$bold(A)$を対角行列に制限すると、$bold(A)_(Delta_k) = e^(Delta_k bold(A))$も対角行列になる。対角行列は対角成分だけで決まるので、$N times N$の行列を持ち回る必要はなく、$N$次元のベクトルで足りる。同じことが$bold(B)_(Delta_k)$にも起きる。また$bold(B)_k, bold(C)_k$は、状態が$N$次元で入力と出力がスカラーになるため、行列ではなく$N$次元ベクトルになる。
+
+そこで、行列から退化したこれらには別の記号を割り当てる。ベクトルであることを示すために小文字にし、離散化したものには上線を付ける。
+
+$$
+bold(A)_(Delta_k) -> overline(bold(a))^((d))_k, quad bold(B)_(Delta_k) -> overline(bold(b))^((d))_k, quad bold(B)_k -> bold(b)_k, quad bold(C)_k -> bold(c)_k
+$$
+
+上付きの$(d)$は特徴量の番号である。$overline(bold(a))^((d))_k$と$overline(bold(b))^((d))_k$は特徴量ごとに別なので$(d)$を持つが、$bold(b)_k, bold(c)_k$は全特徴量で共有するので持たない。第$d$番目の特徴量について、以下のように計算される。
+$$
+bold(h)^((d))_k &= overline(bold(a))^((d))_k dot.o  bold(h)^((d))_(k-1) + overline(bold(b))^((d))_k x_k^((d))\
+y^((d))_k &= (bold(c)_k)^top bold(h)^((d))_(k) + s^((d)) x_k^((d))
+$$
+入力はスカラーのまま、その特徴量に対して得られる隠れ状態はベクトルになる。下にそれぞれの次元をまとめる。
+
+| 変数 | 次元 | 定義 |
+| --- | --- | --- |
+| $x_k^((d))$ | スカラ | 時刻$k$の第$d$番目の特徴量の入力 |
+| $bold(h)^((d))_k$ | $N$次元ベクトル | 上記 |
+| $y^((d))_k$ | スカラ | 出力 |
+| $bold(a)^((d))$ | $N$次元ベクトル | $bold(x)_k$に依存しない。学習可能な定数 |
+| $Delta^((d))_k$ | スカラ | $bold(f)_Delta (bold(x)_k)$の第$d$成分 |
+| $overline(bold(a))^((d))_k$ | $N$次元ベクトル | $exp(Delta^((d))_k bold(a)^((d)))$（$bold(x)_k$に依存） |
+| $bold(b)_k$ | $N$次元ベクトル | $bold(f)_B (bold(x)_k)$ |
+| $overline(bold(b))^((d))_k$ | $N$次元ベクトル | $integral_0^(Delta^((d))_k) exp(bold(a)^((d)) (Delta^((d))_k - tau)) dot.o bold(b)_k d tau$ |
+| $bold(c)_k$ | $N$次元ベクトル | $bold(f)_C (bold(x)_k)$ |
+| $s^((d))$ | スカラ | 学習可能な定数 |
+
+連続時間の状態空間モデルでの$bold(A)$を対角行列$"diag"(bold(a)^((d))_1, dots.c, bold(a)^((d))_N)$にしている。これによって隠れ状態の各次元が独立に計算される。
+
+これを各$d = 0, dots, D-1$について計算するが、これは巨大な配列に集約することができる。$D$本の$N$次元ベクトルを縦に積んだ$D times N$の配列であり、状態に掛ける行列ではなく要素ごとの積$dot.o$で作用する。行列と区別するため、この種の配列には大文字の上に線を引いた記号を割り当てる。次のように決める。
+$$
+bold(x)_k &= vec(x^((0))_k, x^((1))_k, dots.v, x^((D-1))_k) in RR^(D)\
+bold(H)_k &= mat(bold(h)^((0))_k, bold(h)^((1))_k, dots.c, bold(h)^((D-1))_k)^top in RR^(D times N)\
+bold(y)_k &= vec(y^((0))_k, y^((1))_k, dots.v, y^((D-1))_k) in RR^(D)\
+overline(bold(A))_k &= mat(overline(bold(a))^((0))_k, overline(bold(a))^((1))_k, dots.c, overline(bold(a))^((D-1))_k)^top in RR^(D times N)\
+overline(bold(B))_k &= mat(overline(bold(b))^((0))_k, overline(bold(b))^((1))_k, dots.c, overline(bold(b))^((D-1))_k)^top in RR^(D times N)\
+bold(s)_"skip" &= vec(s^((0)), s^((1)), dots.v, s^((D-1))) in RR^(D)
+$$
+
+すると、
+
+$$
+bold(H)_k &= overline(bold(A))_k dot.o bold(H)_(k-1) + overline(bold(B))_k dot.o (bold(x)_k bold(1)_N^top)\
+bold(y)_k &= bold(H)_(k) bold(c)_k + bold(s)_"skip" dot.o bold(x)_k
+$$
+
+と表される。ここで、$bold(1)_N$は$N$次元の全ての成分が1のベクトルである。初期状態として$bold(H)_(-1) = bold(O)$とする。
+
+値の並び方を確認しておく。$bold(H)_k$は、第$d$行に特徴量$d$の状態$bold(h)^((d))_k$を横倒しにして置いた行列である。成分で書けば
+$$
+bold(H)_k = mat(
+h^((0))_(k,1), h^((0))_(k,2), dots.c, h^((0))_(k,N);
+h^((1))_(k,1), h^((1))_(k,2), dots.c, h^((1))_(k,N);
+dots.v, dots.v, dots.down, dots.v;
+h^((D-1))_(k,1), h^((D-1))_(k,2), dots.c, h^((D-1))_(k,N)
+)
+$$
+となる。行が特徴量、列が状態の次元である。$overline(bold(A))_k$と$overline(bold(B))_k$も同じ並びなので、漸化式の$dot.o$は同じ位置の成分どうしを掛けるだけである。
+
+$bold(x)_k bold(1)_N^top$は、$D$次元の列ベクトルと$N$次元の行ベクトルの積であるから
+$$
+bold(x)_k bold(1)_N^top = vec(x^((0))_k, x^((1))_k, dots.v, x^((D-1))_k) mat(1, 1, dots.c, 1) = mat(
+x^((0))_k, x^((0))_k, dots.c, x^((0))_k;
+x^((1))_k, x^((1))_k, dots.c, x^((1))_k;
+dots.v, dots.v, dots.down, dots.v;
+x^((D-1))_k, x^((D-1))_k, dots.c, x^((D-1))_k
+) in RR^(D times N)
+$$
+となる。各行に同じ値を$N$回並べただけの行列であり、$bold(H)_k$と形を揃えるためだけに置いている。出力側の$bold(H)_k bold(c)_k$は、$D times N$の行列に$N$次元ベクトルを掛けて$D$次元ベクトルを得る、通常の行列とベクトルの積である。図にすると次のようになる。
+
+```typst {render=svg caption="Mamba-1における値の並び。行が特徴量、列が状態の次元にあたる"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let sq-w = 3.0    // D×N 行列の幅
+  let sq-h = 2.4    // D×N 行列の高さ
+  let thin = 0.9
+
+  let box(x, y, w, h, label, shape) = {
+    rect((x, y), (x + w, y - h), fill: white, stroke: black)
+    content((x + w / 2, y - h / 2), text(size: 10pt, label))
+    content((x + w / 2, y - h - 0.45), text(size: 9pt, shape))
+  }
+  let op(x, y, sym) = content((x, y), text(size: 14pt, sym))
+
+  let yc = -sq-h / 2
+
+  box(0, 0, sq-w, sq-h, $bold(H)_k$, $D times N$)
+  op(3.5, yc, $times$)
+  box(4.0, -0.75, thin, thin, $bold(c)_k$, $N times 1$)
+  op(5.5, yc, $=$)
+  box(6.0, -0.75, thin, thin, $bold(y)_k$, $D times 1$)
+
+  // 行と列が何を意味するか
+  content((-0.35, -0.55), text(size: 9pt, [d]), anchor: "east")
+  line((-0.25, -0.25), (-0.25, -sq-h + 0.25), mark: (end: "triangle", fill: black))
+  content((sq-w / 2, 0.6), text(size: 9pt, [n]))
+  line((0.25, 0.35), (sq-w - 0.25, 0.35), mark: (end: "triangle", fill: black))
+})
+]
+```
+
+また、$bold(U)_k := overline(bold(B))_k dot.o (bold(x)_k bold(1)_N^top)$とおくと、以下のように書き下せる。
+
+$$
+bold(H)_0 &= bold(U)_0\
+bold(H)_1 &= overline(bold(A))_1 dot.o bold(U)_0 + bold(U)_1\
+bold(H)_2 &= overline(bold(A))_2 dot.o overline(bold(A))_1 dot.o bold(U)_0 + overline(bold(A))_2 dot.o bold(U)_1 + bold(U)_2\
+dots.v
+$$
+
+なので、一般項は
+
+$$
+bold(H)_k = sum_(i=0)^k (dot.o.big_(j=i+1)^k overline(bold(A))_j) dot.o overline(bold(B))_i dot.o (bold(x)_i bold(1)_N^top)
+$$
+
+となる。しかし、これを各$k$について計算するのは、計算量が$cal(O)(L^2)$となり、長いシーケンスに対しては計算量が大きくなる。そこで、Mamba-1では、これを効率的に計算するためのアルゴリズムを導入する。まず、以下の行列の組み（順序対）を定義する。
+
+$$
+bold(P)_k := (thin overline(bold(A))_k, thick bold(U)_k thin )
+$$
+
+これは、それぞれ $bold(x)_k$ にしか依存しないので、前の状態$bold(H)_(k-1)$ によらず独立に計算できる。つまり並行計算が可能である。この時、$bold(H)_(k+1)$を$bold(H)_(k-1)$を用いて書き下すと、次のようになる。
+
+$$
+bold(H)_(k+1) &= overline(bold(A))_(k+1) dot.o bold(H)_k + bold(U)_(k+1)\
+&= overline(bold(A))_(k+1) dot.o (overline(bold(A))_k dot.o bold(H)_(k-1) + bold(U)_k) + bold(U)_(k+1)\
+&= (overline(bold(A))_(k+1) dot.o overline(bold(A))_k) dot.o bold(H)_(k-1) + overline(bold(A))_(k+1) dot.o bold(U)_k + bold(U)_(k+1)
+$$
+
+ここで$bold(P) = (bold(A), bold(U))$について次のような写像$bold(T)_bold(P)$を定義する。
+$$
+T_bold(P) (bold(H)) := bold(A) dot.o bold(H) + bold(U)
+$$
+すると、定義から
+$$
+bold(H)_(k+1) = bold(T)_(bold(P)_(k+1)) (bold(H)_k) = overline(bold(A))_(k+1) dot.o bold(H)_k + bold(U)_(k+1)
+$$
+である。また、先ほどの式から$bold(P) = (overline(bold(A))_(k+1) dot.o overline(bold(A))_k, overline(bold(A))_(k+1) dot.o bold(U)_k + bold(U)_(k+1))$とすると、
+$$
+T_bold(P) (bold(H)_(k-1)) = (overline(bold(A))_(k+1) dot.o overline(bold(A))_k) dot.o bold(H)_(k-1) + overline(bold(A))_(k+1) dot.o bold(U)_k + bold(U)_(k+1) = bold(H)_(k+1)
+$$
+でもある。そうすると、試しに以下のような演算$compose$を定義する。
+$$
+bold(P)_a = (overline(bold(A))_a, bold(U)_a), quad bold(P)_b = (overline(bold(A))_b, bold(U)_b)\
+bold(P)_a compose bold(P)_b := (overline(bold(A))_a dot.o overline(bold(A))_b, overline(bold(A))_a dot.o bold(U)_b + bold(U)_a)
+$$
+すると、一般に以下が成り立つ。
+
+::: box
+#### 主張
+$$
+bold(T)_(bold(P)_a compose bold(P)_b) (bold(H)) = bold(T)_(bold(P)_a) (bold(T)_(bold(P)_b) (bold(H)))
+$$
+
+#### 証明
+実際、
+
+$$
+bold(T)_(bold(P)_a) (bold(T)_(bold(P)_b) (bold(H))) &= bold(T)_(bold(P)_a) (overline(bold(A))_b dot.o bold(H) + bold(U)_b)\
+&= overline(bold(A))_a dot.o (overline(bold(A))_b dot.o bold(H) + bold(U)_b) + bold(U)_a\
+&= (overline(bold(A))_a dot.o overline(bold(A))_b) dot.o bold(H) + overline(bold(A))_a dot.o bold(U)_b + bold(U)_a\
+&= bold(T)_(bold(P)_a compose bold(P)_b) (bold(H))
+$$
+
+:::
+
+つぎに、この演算は結合的であることを証明する。
+
+::: box
+#### 主張
+$compose$は結合的である。つまり、任意の$bold(P)_a, bold(P)_b, bold(P)_c$について、
+$$
+(bold(P)_a compose bold(P)_b) compose bold(P)_c = bold(P)_a compose (bold(P)_b compose bold(P)_c)
+$$
+
+#### 証明
+実際、
+$$
+(bold(P)_a compose bold(P)_b) compose bold(P)_c &= (overline(bold(A))_a dot.o overline(bold(A))_b, overline(bold(A))_a dot.o bold(U)_b + bold(U)_a) compose (overline(bold(A))_c, bold(U)_c)\
+&= (overline(bold(A))_a dot.o overline(bold(A))_b dot.o overline(bold(A))_c, (overline(bold(A))_a dot.o overline(bold(A))_b) dot.o bold(U)_c + overline(bold(A))_a dot.o bold(U)_b + bold(U)_a)\
+&= (overline(bold(A))_a dot.o (overline(bold(A))_b dot.o overline(bold(A))_c), overline(bold(A))_a dot.o (overline(bold(A))_b dot.o bold(U)_c + bold(U)_b) + bold(U)_a)\
+&= (overline(bold(A))_a, bold(U)_a) compose (overline(bold(A))_b dot.o overline(bold(A))_c, overline(bold(A))_b dot.o bold(U)_c + bold(U)_b)\
+&= bold(P)_a compose (bold(P)_b compose bold(P)_c)
+$$
+
+:::
+次は連続した結合から隠れ状態を得られることを証明する。ここで$i >= j >= 0$として以下のような記号を定義する。
+$$
+bold(P)_(j:i) := bold(P)_i compose bold(P)_(i-1) compose dots.c compose bold(P)_j
+$$
+
+::: box
+#### 主張
+$$
+bold(H)_i = bold(T)_(bold(P)_(j:i)) (bold(H)_(j-1))
+$$
+
+#### 証明
+$i = j$のとき、$bold(P)_(j:i) = bold(P)_i$となり、これは定義から成り立つ。
+ある$j < i$のとき、次が成り立つと仮定する。
+$$
+bold(H)_i = bold(T)_(bold(P)_(j:i)) (bold(H)_(j-1))
+$$
+すると、
+$$
+bold(H)_(i+1) = bold(T)_(bold(P)_(i+1)) (bold(H)_i) = bold(T)_(bold(P)_(i+1)) (bold(T)_(bold(P)_(j:i)) (bold(H)_(j-1))) = bold(T)_(bold(P)_(i+1) compose bold(P)_(j:i)) (bold(H)_(j-1))
+$$
+ここで、$bold(P)_(i+1) compose bold(P)_(j:i) = bold(P)_(j:i+1)$であるので、結論が得られる。
+:::
+
+ここで、特に$j = 0$としたとき、$bold(P)_(0:k) = (overline(bold(A))_(0:k), bold(U)_(0:k))$とおくと、次のように書き下せる。
+$$
+bold(H)_k = bold(T)_(bold(P)_(0:k)) (bold(H)_(-1)) = overline(bold(A))_(0:k) dot.o bold(H)_(-1) + bold(U)_(0:k) = bold(U)_(0:k)
+$$
+なお、$bold(H)_(-1) = bold(O)$である。ここで、$bold(P)_(0:k)$は$bold(P)_0, bold(P)_1, dots, bold(P)_k$の順に結合したものである。つまり、$bold(H)_k$は$bold(P)_0, bold(P)_1, dots, bold(P)_k$の順に結合した結果から得られる。結合的であることからどんな順に結合してもいいが、
+
+- $bold(P)_(0:0) = bold(P)_0$を得る。これの2要素目は$bold(H)_0$である。
+- $bold(P)_(0:1) = bold(P)_1 compose bold(P)_0$を得る。これの2要素目は$bold(H)_1$である。
+- $bold(P)_(0:2) = bold(P)_2 compose bold(P)_(0:1)$を得る。これの2要素目は$bold(H)_2$である。\
+$dots.v$
+- $bold(P)_(0:k) = bold(P)_k compose bold(P)_(0:k-1)$を得る。これの2要素目は$bold(H)_k$である。
+
+という順番で結合すれば、$bold(H)_0, bold(H)_1, dots, bold(H)_k$を順番に得られる。これは並列時間計算量が$cal(O)(L)$である。
+
+また、最後の$bold(H)_k$を得るだけであれば、$bold(P)_0, bold(P)_1, dots, bold(P)_k$を二分木の葉に置き、親ノードは子ノードの2つの要素を結合するようにすれば、並列時間計算量は$cal(O)(log L)$である。
+
+## prefix scan
+先ほど紹介した順番に結合していく方法よりも、効率的な方法をここでは議論する。なお、途中の隠れ状態すべてを生成できるようなアルゴリズムを prefix scan と呼ぶ。prefix scan は、与えられたシーケンスの各要素に対して、ある二項演算を順番に適用した結果を返すものである。ここでは、二項演算として $compose$ を用いる。
+
+### Hillis-Steele型の prefix scan
+まず、$bold(Q)^((0))_k = bold(P)_k$と定義する。これを用いて以下のルールで再帰的に$bold(Q)^((r))_k$を定義する。
+$$
+bold(Q)^((r+1))_k := cases(
+bold(Q)^((r))_k & quad (k < 2^r),
+bold(Q)^((r))_k compose bold(Q)^((r))_(k - 2^r) & quad (k >= 2^r)
+)
+$$
+これを繰り返し、$r = 0, 1, dots, log_2 L - 1$まで計算する。すると、最終的に$bold(Q)^((log_2 L))_k = bold(P)_(0:k)$が得られる。
+
+以下に$L = 4$のときの例を示す。
+
+::: box
+$r=0$のとき、
+$$
+bold(Q)^((0))_0 = bold(P)_0, quad bold(Q)^((0))_1 = bold(P)_1, quad bold(Q)^((0))_2 = bold(P)_2, quad bold(Q)^((0))_3 = bold(P)_3
+$$
+
+$r=1$のとき、
+$$
+bold(Q)^((1))_0 &= bold(P)_0\
+bold(Q)^((1))_1 &= bold(P)_1 compose bold(P)_0\
+bold(Q)^((1))_2 &= bold(P)_2 compose bold(P)_1\
+bold(Q)^((1))_3 &= bold(P)_3 compose bold(P)_2\
+$$
+
+$r=2$のとき、
+$$
+bold(Q)^((2))_0 &= bold(P)_0\
+bold(Q)^((2))_1 &= bold(P)_1 compose bold(P)_0\
+bold(Q)^((2))_2 &= bold(P)_2 compose bold(P)_1 compose bold(Q)^((1))_0 = bold(P)_2 compose bold(P)_1 compose bold(P)_0\
+bold(Q)^((2))_3 &= bold(P)_3 compose bold(P)_2 compose bold(Q)^((1))_1 = bold(P)_3 compose bold(P)_2 compose bold(P)_1 compose bold(P)_0
+$$
+:::
+
+過去の計算結果（部分的な連続結合）を賢く使うことで、並列計算量は$cal(O)(log L)$で、計算量（結合回数）は$cal(O)(L log L)$である。
+
+### Blelloch scan
+まず、結合演算の単位元を定義する。単位元は、結合演算において要素を変化させないような要素である。ここでは、単位元を$bold(P)_"id" := (bold(1)_(D times N), bold(O)_(D times N))$とする。これは実際単位元である。
+$$
+bold(P)_"id" compose bold(P)_k &= (bold(1)_(D times N) dot.o overline(bold(A))_k, bold(1)_(D times N) dot.o bold(U)_k + bold(O)_(D times N)) = (overline(bold(A))_k, bold(U)_k) = bold(P)_k\
+bold(P)_k compose bold(P)_"id" &= (overline(bold(A))_k dot.o bold(1)_(D times N), overline(bold(A))_k dot.o bold(O)_(D times N) + bold(U)_k) = (overline(bold(A))_k, bold(U)_k) = bold(P)_k
+$$
+
+Blelloch scanでは以前紹介した二分木構造を用いた結合を行う。ただこれだけだと、木の根以外にノードを使ったとしても全ての隠れ状態は得られない。そこで、木の根から逆方向に足りない結合を行うことで、全ての隠れ状態を得ることができる。前者の木の根までの結合をUp-sweep、後者の逆方向の結合をDown-sweepと呼ぶ。
+
+まず、Up-sweepを行う。これは単純に$bold(P)_0$から$bold(P)_(L-1)$までの結合を二分木構造で行う。以下では$L=8$の木構造の図を示す。
+
+```typst {render=svg caption="Up-sweep（L=8）の二分木構造"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let node(pos, name, label) = {
+    circle(pos, radius: 0.62, stroke: black, fill: white, name: name)
+    content(pos, text(size: 12pt, label))
+  }
+
+  // 葉ノード: P_0, ..., P_7
+  for i in range(8) {
+    node((i * 1.8, 0), "n0-" + str(i), [$bold(P)_#i$])
+  }
+
+  // 内部ノード: 各レベル r の担当区間 (a, b) から P_(a:b) を配置する
+  let levels = (
+    (1, ((0, 1), (2, 3), (4, 5), (6, 7))),
+    (2, ((0, 3), (4, 7))),
+    (3, ((0, 7),)),
+  )
+  for (r, ranges) in levels {
+    for (idx, rg) in ranges.enumerate() {
+      let (a, b) = rg
+      let x = (a + b) * 1.8 / 2
+      node((x, r * 1.7), "n" + str(r) + "-" + str(idx), [$bold(P)_(#a:#b)$])
+    }
+  }
+
+  // 子から親への結合を矢印で示す
+  let counts = (8, 4, 2, 1)
+  for r in (1, 2, 3) {
+    for idx in range(counts.at(r)) {
+      line("n" + str(r - 1) + "-" + str(2 * idx), "n" + str(r) + "-" + str(idx), mark: (end: "triangle", fill: black))
+      line("n" + str(r - 1) + "-" + str(2 * idx + 1), "n" + str(r) + "-" + str(idx), mark: (end: "triangle", fill: black))
+    }
+  }
+})
+]
+```
+
+ここまでで、$bold(P)_0, bold(P)_(0:1), bold(P)_(0:3), bold(P)_(0:7)$が得られているがそれ以外は得られていない。そこで、Down-sweepを行う。Down-sweepでは、Up-sweepで得られた結合結果を使って、全ての$bold(P)_(0:k)$を計算する。具体的にはまずそれぞれのノードに$bold(E)_x$を割り当て、ルートノードから始めて以下の操作を再帰的に行う。なお、$x$はノードの$bold(P)_x$の添字と対応する。ルートノードでは$bold(E)_"root" = bold(P)_"id"$を割り当てる。
+
+Up-sweepで$bold(P)_"parent"$の結合が$bold(P)_"right" compose bold(P)_"left"$であったとする。
+```typst {render=svg caption="Up-sweepの部分二分木構造"}
+  #align(center)[
+  #cetz.canvas(length: 1cm, {
+    import cetz.draw: *
+
+    let node(pos, name, label) = {
+      circle(pos, radius: 0.62, stroke: black, fill: white, name: name)
+      content(pos, text(size: 12pt, label))
+    }
+
+    // 葉ノード: P_left, P_right
+    node((0, 0), "n0-0", [$bold(P)_"left"$])
+    node((1.8, 0), "n0-1", [$bold(P)_"right"$])
+
+    // 親ノード: P_parent
+    node((0.9, 1.7), "n1-0", [$bold(P)_"parent"$])
+
+    // 子から親への結合を矢印で示す
+    line("n0-0", "n1-0", mark: (end: "triangle", fill: black))
+    line("n0-1", "n1-0", mark: (end: "triangle", fill: black))
+  })]
+  ```
+このとき、
+$$
+bold(E)_"left" = bold(E)_"parent", quad bold(E)_"right" = bold(P)_"left" compose bold(E)_"parent"
+$$
+とする。これを全てのノードに対して行う。$L=8$のとき、各ノードの$bold(E)_x$は以下のようになる。
+
+```typst {render=svg caption="Down-sweep（L=8）で各ノードに割り当てられるEの中身"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let node(pos, name, label) = {
+    circle(pos, radius: 0.62, stroke: black, fill: white, name: name)
+    content(pos, text(size: 12pt, label))
+  }
+
+  // 各ノード: (レベル r, 担当区間 (a, b), E_x の中身)
+  // E_x は担当区間より前の部分の結合 P_(0:a-1)（a = 0 なら P_id）
+  let nodes = (
+    (3, (0, 7), $bold(P)_"id"$),
+    (2, (0, 3), $bold(P)_"id"$),
+    (2, (4, 7), $bold(P)_(0:3)$),
+    (1, (0, 1), $bold(P)_"id"$),
+    (1, (2, 3), $bold(P)_(0:1)$),
+    (1, (4, 5), $bold(P)_(0:3)$),
+    (1, (6, 7), $bold(P)_(0:5)$),
+    (0, (0, 0), $bold(P)_"id"$),
+    (0, (1, 1), $bold(P)_0$),
+    (0, (2, 2), $bold(P)_(0:1)$),
+    (0, (3, 3), $bold(P)_(0:2)$),
+    (0, (4, 4), $bold(P)_(0:3)$),
+    (0, (5, 5), $bold(P)_(0:4)$),
+    (0, (6, 6), $bold(P)_(0:5)$),
+    (0, (7, 7), $bold(P)_(0:6)$),
+  )
+  for (r, rg, lab) in nodes {
+    let (a, b) = rg
+    let idx = calc.quo(a, calc.pow(2, r))
+    node(((a + b) * 1.8 / 2, r * 1.7), "n" + str(r) + "-" + str(idx), lab)
+  }
+
+  // 親から子への伝播を矢印で示す
+  let counts = (8, 4, 2, 1)
+  for r in (1, 2, 3) {
+    for idx in range(counts.at(r)) {
+      line("n" + str(r) + "-" + str(idx), "n" + str(r - 1) + "-" + str(2 * idx), mark: (end: "triangle", fill: black))
+      line("n" + str(r) + "-" + str(idx), "n" + str(r - 1) + "-" + str(2 * idx + 1), mark: (end: "triangle", fill: black))
+    }
+  }
+})
+]
+```
+
+このように、Down-sweepを行うことで、全ての$bold(P)_(0:k)$を計算することができる。これにより、全ての隠れ状態$bold(H)_k$を効率的に計算することが可能となる。
+
+この方法の良いところは、Up-sweepとDown-sweepの両方を並列に計算できるため、全体の計算時間を大幅に短縮できる点である。特に、長いシーケンスに対しても、結合回数は$cal(O)(L)$に抑えられ、並列計算を活用することで実際の計算時間は$cal(O)(log L)$まで削減可能である。これは後で数える。加えて、このアルゴリズムはほとんど長さ$L$のメモリがあれば済むところである。つまりin-placeでできる。Up-sweepではノードの結合はその右側のノードに上書きする。つまり、以前の例で図示してみると以下のようになる。
+
+```typst {render=svg caption="Up-sweepにおけるメモリの上書きの様子（L=8）。網掛けはそのステップで上書きされたセル"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let cell-w = 1.8
+  let cell-h = 1.0
+  let row-gap = 1.5
+
+  // 各行: (このステップで上書きされたセルの添字, セルの中身)
+  let rows = (
+    ((), ($bold(P)_0$, $bold(P)_1$, $bold(P)_2$, $bold(P)_3$, $bold(P)_4$, $bold(P)_5$, $bold(P)_6$, $bold(P)_7$)),
+    ((1, 3, 5, 7), ($bold(P)_0$, $bold(P)_(0:1)$, $bold(P)_2$, $bold(P)_(2:3)$, $bold(P)_4$, $bold(P)_(4:5)$, $bold(P)_6$, $bold(P)_(6:7)$)),
+    ((3, 7), ($bold(P)_0$, $bold(P)_(0:1)$, $bold(P)_2$, $bold(P)_(0:3)$, $bold(P)_4$, $bold(P)_(4:5)$, $bold(P)_6$, $bold(P)_(4:7)$)),
+    ((7,), ($bold(P)_0$, $bold(P)_(0:1)$, $bold(P)_2$, $bold(P)_(0:3)$, $bold(P)_4$, $bold(P)_(4:5)$, $bold(P)_6$, $bold(P)_(0:7)$)),
+  )
+  for (r, row) in rows.enumerate() {
+    let (updated, cells) = row
+    let y = -r * (cell-h + row-gap)
+    content((-1.2, y - cell-h / 2), text(size: 12pt)[$r = #r$], anchor: "east")
+    for (k, lab) in cells.enumerate() {
+      rect(
+        (k * cell-w, y),
+        ((k + 1) * cell-w, y - cell-h),
+        fill: if updated.contains(k) { luma(200) } else { white },
+        stroke: black,
+      )
+      content(((k + 0.5) * cell-w, y - cell-h / 2), text(size: 12pt, lab))
+    }
+
+    // どのセルとどのセルが結合されたかを線で示す
+    // セル k は、1つ前の行のセル k - 2^(r-1) とセル k を結合した結果である
+    if r > 0 {
+      let src-bottom = -(r - 1) * (cell-h + row-gap) - cell-h
+      for k in updated {
+        let left = k - calc.pow(2, r - 1)
+        line(((left + 0.5) * cell-w, src-bottom), ((k + 0.5) * cell-w, y), mark: (end: "triangle", fill: black))
+        line(((k + 0.5) * cell-w, src-bottom), ((k + 0.5) * cell-w, y), mark: (end: "triangle", fill: black))
+      }
+    }
+  }
+})
+]
+```
+このようにすると途中の状態が消えてしまうのではないかという懸念があるかもしれないが、Down-sweepでは、Up-sweepで上書きされたセル、つまり右側の子供のノードは使わない。これはアルゴリズムの式に$bold(P)_"right"$が現れないことからもわかる。Up-sweepで左側のノードになってしまったセルはその後上書きされることはないため、必要な情報は全て残っている。具体的にはDown-sweepでは、$bold(E)_"right"$の結果を$bold(E)_"parent"$のセルに上書きする。$bold(E)_"left"$は、$bold(P)_"left"$のセルに上書きする。なお、最初に$bold(E)_"root" = bold(P)_"id"$を割り当てる。
+
+以下に、$L=8$のときのDown-sweepの様子を示す。
+
+```typst {render=svg caption="Down-sweepにおけるメモリの上書きの様子（L=8）。網掛けはそのステップで上書きされたセル"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let cell-w = 1.8
+  let cell-h = 1.0
+  let row-gap = 1.5
+
+  // 各行: (このステップで上書きされたセルの添字, 結合されたペア (left, parent), セルの中身)
+  // ペア (l, k) について、E_left = E_parent をセル l に、
+  // E_right = P_left compose E_parent をセル k（親のセル）に上書きする
+  let rows = (
+    ((), (), ($bold(P)_0$, $bold(P)_(0:1)$, $bold(P)_2$, $bold(P)_(0:3)$, $bold(P)_4$, $bold(P)_(4:5)$, $bold(P)_6$, $bold(P)_(0:7)$)),
+    ((7,), (), ($bold(P)_0$, $bold(P)_(0:1)$, $bold(P)_2$, $bold(P)_(0:3)$, $bold(P)_4$, $bold(P)_(4:5)$, $bold(P)_6$, $bold(P)_"id"$)),
+    ((3, 7), ((3, 7),), ($bold(P)_0$, $bold(P)_(0:1)$, $bold(P)_2$, $bold(P)_"id"$, $bold(P)_4$, $bold(P)_(4:5)$, $bold(P)_6$, $bold(P)_(0:3)$)),
+    ((1, 3, 5, 7), ((1, 3), (5, 7)), ($bold(P)_0$, $bold(P)_"id"$, $bold(P)_2$, $bold(P)_(0:1)$, $bold(P)_4$, $bold(P)_(0:3)$, $bold(P)_6$, $bold(P)_(0:5)$)),
+    ((0, 1, 2, 3, 4, 5, 6, 7), ((0, 1), (2, 3), (4, 5), (6, 7)), ($bold(P)_"id"$, $bold(P)_0$, $bold(P)_(0:1)$, $bold(P)_(0:2)$, $bold(P)_(0:3)$, $bold(P)_(0:4)$, $bold(P)_(0:5)$, $bold(P)_(0:6)$)),
+  )
+  for (r, row) in rows.enumerate() {
+    let (updated, pairs, cells) = row
+    let y = -r * (cell-h + row-gap)
+    let row-label = if r == 0 { [After Up-sweep] } else { [$r = #(r - 1)$] }
+    content((-1.2, y - cell-h / 2), text(size: 12pt, row-label), anchor: "east")
+    for (k, lab) in cells.enumerate() {
+      rect(
+        (k * cell-w, y),
+        ((k + 1) * cell-w, y - cell-h),
+        fill: if updated.contains(k) { luma(200) } else { white },
+        stroke: black,
+      )
+      content(((k + 0.5) * cell-w, y - cell-h / 2), text(size: 12pt, lab))
+    }
+
+    // どのセルとどのセルが結合されたかを線で示す
+    if r > 0 {
+      let src-bottom = -(r - 1) * (cell-h + row-gap) - cell-h
+      for (l, k) in pairs {
+        line(((k + 0.5) * cell-w, src-bottom), ((l + 0.5) * cell-w, y), mark: (end: "triangle", fill: black))
+        line(((l + 0.5) * cell-w, src-bottom), ((k + 0.5) * cell-w, y), stroke: (dash: "dashed"), mark: (end: "triangle", fill: black))
+        line(((k + 0.5) * cell-w, src-bottom), ((k + 0.5) * cell-w, y), mark: (end: "triangle", fill: black))
+      }
+    }
+  }
+})
+]
+```
+
+Down-sweepが終わった時点で、第$k$セルには
+$$
+bold(E)_0 = bold(P)_"id", quad bold(E)_k = bold(P)_(0:k-1) quad (k >= 1)
+$$
+が入っている。つまり、**自分より前だけを結合したもの**が並んでいる状態である。このように自分自身を含まないprefixを返すものを**排他的**（exclusive）なprefix scanと呼ぶ。
+
+一方、我々が欲しかったのは$bold(H)_k$、すなわち$bold(P)_(0:k)$の第2要素であった。これは自分自身を含む結合であり、**包含的**（inclusive）なprefixである。両者の違いは最後に$bold(P)_k$を結合するかどうかだけであるから、各$k$について
+$$
+bold(P)_(0:k) = bold(P)_k compose bold(P)_(0:k-1) = bold(P)_k compose bold(E)_k
+$$
+を計算すればよい。これは$k$ごとに独立なので、$L$個すべてを1段で同時に計算できる。図示すると以下のようになる。
+
+```typst {render=svg caption="Down-sweepの結果に元のPを結合して包含的prefixを得る（L=8）"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let cell-w = 1.8
+  let cell-h = 1.0
+  let gap = 0.55
+
+  // 中心 y を上端とする1行分のセルを描く
+  let row(y, label, cells, shade) = {
+    content((-2.0, y - cell-h / 2), text(size: 12pt, label), anchor: "east")
+    for (k, lab) in cells.enumerate() {
+      rect(
+        (k * cell-w, y),
+        ((k + 1) * cell-w, y - cell-h),
+        fill: if shade { luma(200) } else { white },
+        stroke: black,
+      )
+      content(((k + 0.5) * cell-w, y - cell-h / 2), text(size: 12pt, lab))
+    }
+  }
+
+  // 1段目: Up-sweep前の元の P_k
+  row(0, $bold(P)_k$, ($bold(P)_0$, $bold(P)_1$, $bold(P)_2$, $bold(P)_3$, $bold(P)_4$, $bold(P)_5$, $bold(P)_6$, $bold(P)_7$), false)
+
+  // 2段目: Down-sweep後の E_k
+  let y2 = -(cell-h + gap)
+  row(y2, $bold(E)_k$, ($bold(P)_"id"$, $bold(P)_0$, $bold(P)_(0:1)$, $bold(P)_(0:2)$, $bold(P)_(0:3)$, $bold(P)_(0:4)$, $bold(P)_(0:5)$, $bold(P)_(0:6)$), true)
+
+  // 結合の演算子と筆算の横線
+  content((-0.9, y2 - cell-h / 2), text(size: 15pt, $compose$))
+  let rule-y = y2 - cell-h - 0.6
+  line((-1.35, rule-y), (8 * cell-w, rule-y))
+
+  // 3段目: 結合の結果
+  row(rule-y - 0.6, $bold(P)_(0:k)$, ($bold(P)_(0:0)$, $bold(P)_(0:1)$, $bold(P)_(0:2)$, $bold(P)_(0:3)$, $bold(P)_(0:4)$, $bold(P)_(0:5)$, $bold(P)_(0:6)$, $bold(P)_(0:7)$), true)
+})
+]
+```
+
+ここで一つ問題がある。この最後の結合には元の$bold(P)_k$が必要であるが、in-placeで進めてきた以上、それはもう残っていない。Up-sweepの時点で右側の子にあたるセルが上書きされ、Down-sweepではさらに全てのセルが$bold(E)_k$で埋められている。直前の図の最終行を見ればわかるとおり、$L=8$の8つのセルに元の$bold(P)_k$は1つも残っていない。
+
+対処は2通りある。1つは$bold(P)_k$を別の配列に取っておくことで、この場合メモリは$2L$個分必要になる。もう1つは、必要になった時点で$bold(P)_k$を作り直すことである。$bold(P)_k = (overline(bold(A))_k, bold(U)_k)$は$bold(x)_k$のみから決まるのであった。$bold(x)_k$はブロックの入力側で計算されており、いずれにせよメモリ上に存在する。したがって、$bold(P)_k$は捨ててしまっても必要になったときに作り直せる。この考え方は後で改めて扱う。
+
+さて、Blelloch scanの結合回数を数えておこう。Up-sweepでは、レベル$r$で$L slash 2^r$回の結合を行うので、合計は
+$$
+sum_(r=1)^(log_2 L) L/2^r = L - 1
+$$
+回である。これは二分木の内部ノードの数に一致する。Down-sweepでも内部ノード1つにつき1回結合するので、同じく$L-1$回である。最後の結合が$L$回であるから、全体では
+$$
+(L-1) + (L-1) + L = 3L - 2 = cal(O)(L)
+$$
+回となる。並列段数は、Up-sweepが$log_2 L$段、Down-sweepが$log_2 L$段、最後の結合が1段で、合計$2 log_2 L + 1 = cal(O)(log L)$段である。
+
+ここまでに出てきた3つの方法をまとめる。
+
+| 方法 | 結合回数 | 並列段数 |
+| --- | --- | --- |
+| 順に結合 | $cal(O)(L)$ | $cal(O)(L)$ |
+| Hillis-Steele | $cal(O)(L log L)$ | $cal(O)(log L)$ |
+| Blelloch | $cal(O)(L)$ | $cal(O)(log L)$ |
+
+Hillis-Steeleは並列段数を$cal(O)(log L)$まで縮めたが、結合回数は$cal(O)(L log L)$であり、順に結合する場合よりも仕事量そのものは増えている。プロセッサが無限にあるならこれでよいが、実際には有限である。Blelloch scanは並列段数を$cal(O)(log L)$に保ったまま結合回数を$cal(O)(L)$に抑えており、この性質を**仕事効率的**（work-efficient）であるという。その代わり木を2度たどるので、段数の係数はHillis-Steeleの2倍になる。
+
+## メモリ階層を意識した実装
+ここまでは結合回数と並列段数だけを見てきた。しかし実際のGPU上では、もう一つ別の制約のほうが強く効いてくる。メモリの読み書きである。Mamba-1の実装が「ハードウェアを意識している」と言われるのは、この部分を指している。
+
+GPUのメモリは階層になっている。演算器のすぐ近くには小さく高速なSRAM（共有メモリ）があり、その外側に大きく低速なHBM（一般に「GPUのメモリ容量」と言われるもの）がある。おおよその規模感は次の通りである。
+
+| 階層 | 容量 | 帯域 |
+| --- | --- | --- |
+| SRAM（共有メモリ） | スレッドブロックあたり数十〜数百KB | 非常に高速 |
+| HBM | 数十GB | SRAMより1桁以上遅い |
+
+したがって、ある計算が速いかどうかは浮動小数点演算の回数だけでは決まらない。「HBMから1つ値を読むごとに何回演算するか」が効いてくる。この比を**演算強度**（arithmetic intensity）と呼び、これが小さい計算はメモリ帯域で頭打ちになる。この状態を**メモリ律速**（memory-bound）であるという。
+
+Selective SSMのscanがまさにこれである。結合演算$compose$の中身は
+$$
+bold(P)_a compose bold(P)_b = (overline(bold(A))_a dot.o overline(bold(A))_b, overline(bold(A))_a dot.o bold(U)_b + bold(U)_a)
+$$
+であり、$D times N$個の要素それぞれについて積2回と和1回を行うだけである。読み書きするデータ量も$D times N$個であるから、演算強度は定数である。行列積のように「一度読んだ値を何度も使い回す」構造が無い。
+
+さらに悪いことに、素直に実装すると途中の状態$bold(H)_k$を全時刻分HBMに書き出すことになる。$bold(H)_k in RR^(D times N)$が$L$個であるから$L D N$個の値であり、入力$bold(X)_"SSM"$の$L D$個に比べて$N$倍大きい。$N = 16$なら16倍である。つまり、状態を素直に持つと、入力を読む何倍ものデータをHBMとやりとりすることになってしまう。
+
+### カーネル融合とチャンク分割
+そこでMamba-1では、離散化からscan、出力の計算までを1つのGPUカーネルにまとめる。これを**カーネル融合**（kernel fusion）という。加えて、系列を長さ$C$の**チャンク**に区切り、チャンク単位でSRAMに載せて処理する。$C$は必要な作業領域がSRAMに収まるように選ぶ。
+
+具体的な手順は次の通りである。$bold(H)_(-1) = bold(O)$から始め、チャンク$c = 0, 1, dots, L slash C - 1$について順に行う。
+
+1. HBMから、チャンク$c$に対応する時刻の$bold(x)_k, Delta_k, bold(b)_k, bold(c)_k$と、時刻に依らない$bold(a), bold(s)_"skip"$をSRAMへ読み込む。
+2. SRAM上で離散化を行い、$overline(bold(A))_k$と$bold(U)_k = overline(bold(B))_k dot.o (bold(x)_k bold(1)_N^top)$を作る。すなわち$bold(P)_k$を作る。
+3. SRAM上でチャンク内のprefix scanを実行する。このとき、直前のチャンクから引き継いだ$bold(H)_(c C - 1)$を初期値とする。$bold(H)_(c C), dots, bold(H)_((c+1) C - 1)$が得られる。
+4. 同じくSRAM上で$bold(y)_k = bold(H)_k bold(c)_k + bold(s)_"skip" dot.o bold(x)_k$を計算する。
+5. HBMへ書き出すのは$bold(y)_k$だけである。$bold(P)_k$と$bold(H)_k$は捨てる。ただしチャンク末尾の$bold(H)_((c+1) C - 1)$だけは次のチャンクへ引き継ぐ。
+
+3のチャンク内scanには、前節までに述べたBlelloch scanをそのまま使う。チャンク間は逐次だが、チャンクは$L slash C$個しかない。またバッチ方向と特徴量方向$D$には完全な並列性があるので、GPUのスレッドブロックはそちらで埋まる。図にすると以下のようになる。
+
+```typst {render=svg caption="融合カーネルにおけるデータの流れ。破線で囲んだ量はHBMに書き出されない"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  // arrow はTypstの記号名と衝突するので別名にする
+  let arw(a, b) = line(a, b, mark: (end: "triangle", fill: black))
+
+  // HBM 側
+  rect((0, 0), (4.0, -6.4), stroke: black, fill: white)
+  content((2.0, -0.55), text(size: 11pt, [HBM]))
+  line((0, -1.1), (4.0, -1.1))
+  content((2.0, -1.9), text(size: 10pt, $bold(x)_k, Delta_k, bold(b)_k, bold(c)_k$))
+  content((2.0, -2.9), text(size: 10pt, $bold(a), bold(s)_"skip"$))
+  content((2.0, -5.3), text(size: 10pt, $bold(y)_k$))
+
+  // SRAM 側
+  rect((6.8, 0), (12.0, -6.4), stroke: black, fill: white)
+  content((9.4, -0.55), text(size: 11pt, [SRAM]))
+  line((6.8, -1.1), (12.0, -1.1))
+
+  let bw = 4.4
+  let bh = 0.8
+  let blk(y, label, name) = {
+    rect((9.4 - bw / 2, y + bh / 2), (9.4 + bw / 2, y - bh / 2),
+      stroke: (dash: "dashed"), fill: white, name: name)
+    content((9.4, y), text(size: 10pt, label))
+  }
+  blk(-1.9, [discretize $arrow.r bold(P)_k$], "d1")
+  blk(-3.6, [scan $arrow.r bold(H)_k$], "d2")
+  blk(-5.3, [$bold(y)_k = bold(H)_k bold(c)_k + dots.c$], "d3")
+  arw("d1.south", "d2.north")
+  arw("d2.south", "d3.north")
+
+  // HBM と SRAM の間の転送
+  arw((4.0, -2.4), (6.8, -2.4))
+  content((5.4, -2.0), text(size: 9pt, [load]))
+  arw((6.8, -5.3), (4.0, -5.3))
+  content((5.4, -4.9), text(size: 9pt, [store]))
+})
+]
+```
+
+これでどれだけ減るのか、1つのMambaブロックについてHBMとやりとりする値の個数を数えてみる。素直に中間結果を書き出す実装では、$bold(P)_k$と$bold(H)_k$がそれぞれ$L D N$個あるので、全体で$cal(O)(L D N)$個の読み書きが発生する。一方、融合カーネルがHBMとやりとりするのは、
+
+- 読み込み: $bold(x)_k$と$Delta_k$が各$L D$個、$bold(b)_k, bold(c)_k$が各$L N$個
+- 書き出し: $bold(y)_k$が$L D$個
+
+だけであり、合計は$cal(O)(L D + L N)$個である。$D >> N$のとき、比はおよそ$N$倍になる。$N = 16$であれば、HBMとの通信量が$1 slash 16$程度まで減る計算である。演算回数は変わっていないが、律速していたのはメモリのほうなので、これがそのまま速度に効く。
+
+### 逆伝播と推論
+順伝播の話は以上だが、逆伝播では$bold(H)_k$が必要になる。$bold(y)_k = bold(H)_k bold(c)_k + bold(s)_"skip" dot.o bold(x)_k$であるから、$bold(c)_k$についての勾配を求めるには$bold(H)_k$そのものが要るからである。しかし順伝播でそれを捨ててしまっている。
+
+素直に考えれば順伝播で$bold(H)_k$をHBMに保存しておけばよいが、それはちょうど$L D N$個の書き出しと読み込みであり、いま避けたばかりのものである。そこで、逆伝播の時点で$bold(x)_k, Delta_k, bold(b)_k$から$bold(P)_k$を作り直し、もう一度scanして$bold(H)_k$を得る。この「保存せずに作り直す」戦略を**再計算**（recomputation）と呼ぶ。先ほど、Blelloch scanの最後の結合で$bold(P)_k$を作り直せると述べたのと同じ発想である。
+
+計算量は順伝播1回分増えるが、演算はメモリアクセスに比べて桁違いに安いので、全体としては速くなる。なお、$bold(H)_k$についての勾配は時刻の逆向きに伝わるので、逆伝播では時刻を逆にたどるscanも併せて行うことになる。
+
+一方、1トークンずつ生成する推論時には、そもそもscanは要らない。漸化式を1ステップ回すだけである。
+$$
+bold(H)_k = overline(bold(A))_k dot.o bold(H)_(k-1) + bold(U)_k, quad bold(y)_k = bold(H)_k bold(c)_k + bold(s)_"skip" dot.o bold(x)_k
+$$
+このとき次の時刻へ持ち越すのは$bold(H)_(k-1) in RR^(D times N)$だけである。ただし実装上はもう一つ注意点があり、ブロック入口のCausalConv1Dが直近$K$時刻の入力を参照するので、$bold(U)$の末尾$K-1$時刻分も一緒に保持しておく必要がある。この2つを合わせたものが、Transformerで言うところのKVキャッシュに相当する。違いは、こちらは系列長$L$に依存しない固定サイズであるという点である。
+
+## 出力
+ここまでで、Selective SSMの出力$bold(y)_k$が得られた。これを入力と同じように縦に束ねて
+$$
+bold(Y)_"SSM" := vec(bold(y)^top_0, bold(y)^top_1, dots.v, bold(y)^top_(L-1)) in RR^(L times D)
+$$
+とおく。
+
+さて、入力のところで$bold(U)$と一緒に作った$bold(Z) in RR^(L times D)$がまだ使われていなかった。Mamba-1ブロックでは、この$bold(Z)$をゲートとして使う。
+$$
+bold(Y)_"gate" := bold(Y)_"SSM" dot.o "SiLU"(bold(Z)) in RR^(L times D)
+$$
+ここで$"SiLU"$は入力のところでも使った活性化関数で、
+$$
+"SiLU"(x) := x sigma(x) = x/(1 + e^(-x))
+$$
+で定義される。$dot.o$も$"SiLU"$も要素ごとに作用する。
+
+ゲートの役割は、SSMが出した特徴量のうちどれを通すかを入力自身に決めさせることである。$bold(Z)$は$bold(X)_"block"$の線形射影であったから、$"SiLU"(bold(Z))$の各成分は入力に応じて$0$付近から大きな値までを取り、$0$に近い成分は出力にほとんど現れない。Selective SSMが「時間方向にどの入力を残すか」を選んでいたのに対し、こちらは「特徴量方向にどの成分を残すか」を選んでいることになる。
+
+最後に、特徴量方向の次元を入力と同じ$d_"in"$に戻す。
+$$
+bold(Y)_"block" := bold(Y)_"gate" bold(W)^top_"out" in RR^(L times d_"in")
+$$
+ここで$bold(W)_"out" in RR^(d_"in" times D)$である。以上をまとめると、Mamba-1ブロックは次の図のようになる。
+
+```typst {render=svg caption="Mamba-1ブロックの構成"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let bw = 3.4      // ブロックの幅
+  let bh = 0.85     // ブロックの高さ
+  let xl = 0.0      // 左の列（SSM 側）
+  let xr = 4.4      // 右の列（ゲート側）
+  let xc = (xl + xr) / 2
+
+  // 中心 (x, y) に幅 w のブロックを置く
+  let blk(x, y, label, name, w: bw) = {
+    rect((x - w / 2, y + bh / 2), (x + w / 2, y - bh / 2), fill: white, stroke: black, name: name)
+    content((x, y), text(size: 11pt, label))
+  }
+  let arrow(a, b) = line(a, b, mark: (end: "triangle", fill: black))
+
+  let y1 = -1.7     // 入力側の線形射影
+  let y2 = -3.7     // CausalConv1D
+  let y3 = -5.6     // SiLU
+  let y4 = -7.5     // Selective SSM とゲートの SiLU
+  let y5 = -9.6     // 要素ごとの積
+  let y6 = -11.5    // 出力側の線形射影
+
+  content((xc, 0), text(size: 11pt, $bold(X)_"block"$), name: "in")
+  blk(xc, y1, [Linear $bold(W)_"in"$], "win", w: 8.2)
+  blk(xl, y2, [CausalConv1D], "conv")
+  blk(xl, y3, [SiLU], "act")
+  blk(xl, y4, [Selective SSM], "ssm")
+  blk(xr, y4, [SiLU], "gate")
+  circle((xc, y5), radius: 0.42, fill: white, stroke: black, name: "had")
+  content((xc, y5), text(size: 13pt, $dot.o$))
+  blk(xc, y6, [Linear $bold(W)_"out"$], "wout", w: 8.2)
+  content((xc, -12.8), text(size: 11pt, $bold(Y)_"block"$), name: "out")
+
+  // 入力から出力へ向かう経路
+  arrow("in.south", "win.north")
+  arrow((xl, y1 - bh / 2), "conv.north")
+  arrow("conv.south", "act.north")
+  arrow("act.south", "ssm.north")
+  arrow((xr, y1 - bh / 2), "gate.north")
+  arrow("ssm.south", "had")
+  arrow("gate.south", "had")
+  arrow("had", "wout.north")
+  arrow("wout.south", "out.north")
+
+  // 経路上のテンソル名
+  content((xl - 0.45, (y1 - bh / 2 + y2 + bh / 2) / 2), text(size: 10pt, $bold(U)$), anchor: "east")
+  content((xr + 0.45, (y1 - bh / 2 + y4 + bh / 2) / 2), text(size: 10pt, $bold(Z)$), anchor: "west")
+  content((xl - 0.45, (y3 - bh / 2 + y4 + bh / 2) / 2), text(size: 10pt, $bold(X)_"SSM"$), anchor: "east")
+})
+]
+```
+
+## Mamba-1ブロックの計算手順
+ここまでで部品が出揃ったので、入力から出力までを順に並べておく。$bold(X)_"block" in RR^(L times d_"in")$を入力とし、行列の第$k$行を$[dot.c]_(k, :)$と書く。
+
+**1. 入力の射影** — 特徴量方向を$2D$次元に広げ、半分ずつに分ける。
+$$
+mat(bold(U), bold(Z)) = bold(X)_"block" bold(W)^top_"in" in RR^(L times 2D)
+$$
+
+**2. 畳み込みと活性化** — $bold(U)$だけがSSMへ向かう。
+$$
+bold(X)_"SSM" = "SiLU"("CausalConv1D"(bold(U), bold(W)_"conv")) in RR^(L times D)
+$$
+
+**3. 時刻ごとのパラメータ** — $bold(x)_k = [bold(X)_"SSM"]_(k, :) in RR^D$として、1つの射影から3つをまとめて作り、切り分ける。
+$$
+mat(bold(delta)_k, bold(b)_k, bold(c)_k) = bold(W)_"proj" bold(x)_k in RR^(r + 2N)
+$$
+$$
+Delta_k = "softplus"(bold(W)_Delta bold(delta)_k + bold(b)_Delta) in RR^D
+$$
+
+**4. 離散化** — $bold(a) = -exp(bold(A)_"log") in RR^(D times N)$として、
+$$
+overline(bold(A))_k = exp((Delta_k bold(1)_N^top) dot.o bold(a)) in RR^(D times N)
+$$
+$$
+bold(U)_k = (Delta_k dot.o bold(x)_k) bold(b)_k^top in RR^(D times N)
+$$
+とする。$Delta_k bold(1)_N^top$は$Delta_k$を$N$列ぶん横に並べた配列、$(Delta_k dot.o bold(x)_k) bold(b)_k^top$は$D$次元ベクトルと$N$次元ベクトルの外積である。2つ目の式は、$bold(U)_k = overline(bold(B))_k dot.o (bold(x)_k bold(1)_N^top)$に一次近似$overline(bold(b))^((d))_k approx Delta^((d))_k bold(b)_k$を入れて整理したものである。
+
+**5. scan** — $bold(H)_(-1) = bold(O)$から始めて
+$$
+bold(H)_k = overline(bold(A))_k dot.o bold(H)_(k-1) + bold(U)_k in RR^(D times N)
+$$
+を全時刻について求める。学習時はprefix scanで並列に、推論時は1ステップずつ回す。
+
+**6. SSMの出力**
+$$
+bold(y)_k = bold(H)_k bold(c)_k + bold(s)_"skip" dot.o bold(x)_k in RR^D
+$$
+
+**7. ゲートと出力の射影** — $bold(y)_k$を縦に束ねて$bold(Y)_"SSM" in RR^(L times D)$とし、
+$$
+bold(Y)_"block" = (bold(Y)_"SSM" dot.o "SiLU"(bold(Z))) bold(W)^top_"out" in RR^(L times d_"in")
+$$
+
+3から6は時刻$k$ごとに書いたが、3と4と6は$k$について完全に独立なので一度に計算できる。逐次性があるのは5だけである。
+
+## ブロックの積み重ねとモデル全体
+ここまでで1つのMambaブロックの中身が分かった。ここからは、それを何層も積み重ねて言語モデルに仕立てるところまでを見る。
+
+Mambaブロックは、単体で使うのではなく、残差接続と正規化を伴って何層も積み重ねる。第$ell$層は
+$$
+bold(X)^((ell+1))_"block" = bold(X)^((ell))_"block" + "MambaBlock"("RMSNorm"(bold(X)^((ell))_"block"))
+$$
+である。図にすると次のようになる。
+
+```typst {render=svg caption="Mamba層の積み重ね。正規化はブロックの手前に置き、残差の経路には挟まない"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let bw = 3.6
+  let bh = 0.8
+  let xm = 0.0      // 本流
+  let xr = 3.6      // 残差の経路
+  let arrow(a, b) = line(a, b, mark: (end: "triangle", fill: black))
+
+  // y0 を層の入口として1層分を描く
+  let layer(y0, lab-in) = {
+    let ybr = y0 - 0.9             // 分岐点
+    let y1 = y0 - 2.1              // RMSNorm
+    let y2 = y0 - 3.8              // Mamba ブロック
+    let y3 = y0 - 5.3              // 加算
+    content((xm, y0), text(size: 10pt, lab-in))
+
+    // 分岐して残差へ
+    line((xm, y0 - 0.35), (xm, ybr))
+    line((xm, ybr), (xr, ybr))
+    line((xr, ybr), (xr, y3))
+    arrow((xr, y3), (0.42, y3))
+
+    rect((xm - bw / 2, y1 + bh / 2), (xm + bw / 2, y1 - bh / 2), stroke: black, fill: white)
+    content((xm, y1), text(size: 10pt, [RMSNorm]))
+    rect((xm - bw / 2, y2 + bh / 2), (xm + bw / 2, y2 - bh / 2), stroke: black, fill: white)
+    content((xm, y2), text(size: 10pt, [Mamba Block]))
+    circle((xm, y3), radius: 0.42, stroke: black, fill: white)
+    content((xm, y3), text(size: 12pt, $+$))
+
+    arrow((xm, ybr), (xm, y1 + bh / 2))
+    arrow((xm, y1 - bh / 2), (xm, y2 + bh / 2))
+    arrow((xm, y2 - bh / 2), (xm, y3 + 0.42))
+  }
+
+  layer(0, $bold(X)^((ell))_"block"$)
+  arrow((xm, -5.3 - 0.42), (xm, -6.9 + 0.35))
+  layer(-6.9, $bold(X)^((ell+1))_"block"$)
+  arrow((xm, -12.2 - 0.42), (xm, -13.3))
+  content((xm, -13.7), text(size: 12pt, $dots.v$))
+})
+]
+```
+
+### RMSNorm
+ここで使っているRMSNormについて、何をしている層なのか、なぜ必要なのか、そしてなぜLayerNormではないのかを順に見ていく。
+
+RMSNormは、各トークンの特徴量ベクトル$bold(x) in RR^(d_"in")$に対して
+$$
+"RMSNorm"(bold(x)) := bold(x)/sqrt(1/d_"in" sum_(j=1)^(d_"in") x_j^2 + epsilon) dot.o bold(g)
+$$
+で定義される。分母に現れる
+$$
+"RMS"(bold(x)) := sqrt(1/d_"in" sum_(j=1)^(d_"in") x_j^2) = (||bold(x)||_2)/sqrt(d_"in")
+$$
+は各成分の二乗平均の平方根であり、**二乗平均平方根**（root mean square）と呼ばれる。要するにベクトルの大きさを次元数で均したものである。$epsilon$は零除算を避けるための小さな定数、$bold(g) in RR^(d_"in")$は学習可能なスケールで、通常は全成分$1$で初期化する。
+
+$bold(x)$を$"RMS"(bold(x))$で割るということは、**ベクトルの向きだけを残して大きさを揃える**ということである。実際、$bold(g) = bold(1)$かつ$epsilon = 0$のとき、出力のノルムは
+$$
+norm(bold(x)/("RMS"(bold(x)))) = (||bold(x)||_2)/((||bold(x)||_2) slash sqrt(d_"in")) = sqrt(d_"in")
+$$
+となり、入力の大きさによらず一定である。そのうえで$bold(g)$によって特徴量ごとに大きさを付け直す。つまりRMSNormは「大きさをいったん捨てて、望ましい大きさを学習し直す」層である。
+
+では、なぜこれが必要なのか。理由は2つある。1つ目は、**残差接続によって値がどんどん大きくなるのを抑えるため**である。$bold(X)^((ell+1)) = bold(X)^((ell)) + "MambaBlock"(dots)$という形をしているので、層を通るたびに何かが足され続ける。各層の出力が独立に近ければ、分散はおおむね層数に比例して増えていく。ところがブロックの中には$"SiLU"$や$exp(Delta_k bold(a))$といった、入力の大きさに敏感な非線形関数が入っている。入力の大きさが層ごとに変わってしまうと、浅い層と深い層で$"SiLU"$の効き方も$Delta_k$の値域も変わってしまう。ブロックの手前で大きさを揃えておけば、どの層も同じ条件で入力を受け取れる。
+
+2つ目は、**勾配が深いところまで届くようにするため**である。ここで正規化を残差の経路の外、すなわちブロックの手前に置いていることが効いてくる。この置き方を**pre-norm**という。式が
+$$
+bold(X)^((ell+1)) = bold(X)^((ell)) + cal(F)(bold(X)^((ell)))
+$$
+の形なので、$bold(X)^((ell+1))$から$bold(X)^((ell))$へは、$cal(F)$を通らない恒等の経路が残る。したがって勾配は、層をいくつ跨いでも減衰しない経路を1本持つことになる。逆に、正規化を残差の後ろに置くと（post-norm）、この経路にも正規化が挟まってしまい、層を深くしたときに学習が難しくなる。
+
+最後に、平均を引かない点について触れておく。9章で扱ったBatch Normalizationや、Transformerで使われるLayer Normalizationは、平均を引いてから標準偏差で割る。
+$$
+"LayerNorm"(bold(x)) = (bold(x) - mu bold(1))/sqrt(sigma^2 + epsilon) dot.o bold(g) + bold(b), quad mu = 1/d_"in" sum_j x_j
+$$
+これに対しRMSNormは平均を引かず、単に大きさで割るだけである。上で見たとおり、正規化に期待している役割は「大きさを揃えること」であって、「中心を$0$に寄せること」ではない。実際、平均を引かなくても精度はほとんど変わらないことが知られている。
+
+そして省ける計算が意外に大きい。平均を引く操作は特徴量方向の総和を取ってから全成分に減算を配る必要があり、これも演算に対して読み書きの比率が高い、メモリ律速な処理である。メモリ階層の節で見たとおりMambaはメモリ帯域を節約する設計になっているので、正規化だけ重いのでは筋が通らない。RMSNormはその方針に合っている。
+
+### 言語モデルとして動かす
+ここまででMambaブロックの中身と積み重ね方が分かった。では、これだけで言語モデルとして動くのだろうか。答えは「動かない。ただし足りないのは入口と出口だけで、それはTransformerと全く同じものである」となる。
+
+12章のTransformerによる言語モデルは、
+$$
+"tokens" arrow.r "Embedding" arrow.r ("Attention" + "FFN") times L_"layer" arrow.r "Norm" arrow.r "Head"
+$$
+という構成であった。Mamba-1はこのうち真ん中だけを差し替えたものである。すなわち、Attentionとフィードフォワードネットワークという2種類のサブブロックの繰り返しが、Mambaブロック1種類の繰り返しに置き換わる。前後は変わらない。
+
+| 部分 | Transformer | Mamba-1 |
+| --- | --- | --- |
+| 入口 | トークン埋め込み ＋ 位置エンコーディング | トークン埋め込みのみ |
+| 中身 | （Self-Attention ＋ FFN）$times L_"layer"$ | Mambaブロック $times L_"layer"$ |
+| 正規化の位置 | 各サブブロックの手前（pre-norm） | 各ブロックの手前（pre-norm） |
+| 出口 | 正規化 $arrow.r$ 線形層 $arrow.r$ softmax | 同じ |
+
+入口で違うのは位置エンコーディングが要らないことである。Attentionは全トークンを対称に扱うので順序の情報を外から与える必要があったが、Mambaは$bold(H)_k$を時刻順に更新していく漸化式であり、順序そのものが計算の構造に入っている。
+
+全体を図にすると以下のようになる。
+
+```typst {render=svg caption="Mamba-1による言語モデルの全体構成"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let bw = 5.6
+  let bh = 0.85
+  let arrow(a, b) = line(a, b, mark: (end: "triangle", fill: black))
+  let blk(y, label, name, dashed: false) = {
+    rect((-bw / 2, y + bh / 2), (bw / 2, y - bh / 2), fill: white,
+      stroke: if dashed { (dash: "dashed") } else { black }, name: name)
+    content((0, y), text(size: 10.5pt, label))
+  }
+
+  content((0, 0), text(size: 10.5pt, [token ids]), name: "tok")
+  blk(-1.7, [Embedding], "emb")
+  blk(-3.7, [Mamba layer $times L_"layer"$], "layers", dashed: true)
+  blk(-5.7, [RMSNorm], "norm")
+  blk(-7.7, [Linear (LM head)], "head")
+  blk(-9.7, [softmax], "sm")
+  content((0, -11.4), text(size: 10.5pt, [next-token distribution]), name: "out")
+
+  arrow("tok.south", "emb.north")
+  arrow("emb.south", "layers.north")
+  arrow("layers.south", "norm.north")
+  arrow("norm.south", "head.north")
+  arrow("head.south", "sm.north")
+  arrow("sm.south", "out.north")
+
+  // 破線のブロックが前節の積み重ねに対応することを示す
+  content((bw / 2 + 0.6, -3.7), text(size: 9pt, [RMSNorm + Block + residual]), anchor: "west")
+})
+]
+```
+
+破線のブロックが、この節の初めに図示した「RMSNorm $arrow.r$ Mambaブロック $arrow.r$ 残差の加算」を$L_"layer"$回繰り返す部分である。最後にもう一度RMSNormを置くのは、残差を足し続けた結果の大きさを出力層の手前で揃えるためである。出力層$bold(W)_"head" in RR^(V times d_"in")$は語彙数$V$次元へ射影し、softmaxを通して次トークンの確率分布を得る。埋め込み行列と出力層の重みを共有する（weight tying）ことも多い。
+
+## 離散化の一次近似
+Selective SSMの表では、$overline(bold(b))^((d))_k$を積分の形で定義していた。ところが実際の実装では、この積分を厳密に計算せず、一次近似で済ませることが多い。ここでは、その近似がどこから出てくるのか、どれくらいずれるのか、そしてなぜそれが許されるのかを順に導出する。
+
+### 積分を厳密に計算する
+まず、そもそも厳密な値がどうなるかを求める。連続時間の$bold(A)$を対角行列にしたことで、$N$次元の各成分は独立に動く。したがって成分ごとに書き下せる。
+
+記号を軽くするため、特徴量$d$と時刻$k$を固定して
+$$
+a_n := [bold(a)^((d))]_n, quad b_n := [bold(b)_k]_n, quad Delta := Delta^((d))_k
+$$
+とおく。定義から、$overline(bold(b))^((d))_k$の第$n$成分は
+$$
+[overline(bold(b))^((d))_k]_n = integral_0^Delta e^(a_n (Delta - tau)) b_n d tau
+$$
+である。$b_n$は$tau$に依らないので積分の外に出せる。残った積分は、$s := Delta - tau$と置換すると、$d s = - d tau$であり、$tau$が$0$から$Delta$まで動くとき$s$は$Delta$から$0$まで動くので、
+$$
+integral_0^Delta e^(a_n (Delta - tau)) d tau = integral_Delta^0 e^(a_n s) (- d s) = integral_0^Delta e^(a_n s) d s
+$$
+となる。$a_n eq.not 0$のとき、
+$$
+integral_0^Delta e^(a_n s) d s = [e^(a_n s)/a_n]_0^Delta = (e^(Delta a_n) - 1)/a_n
+$$
+である。よって厳密な値は
+$$
+[overline(bold(b))^((d))_k]_n = (e^(Delta a_n) - 1)/a_n b_n
+$$
+となる。$overline(bold(a))^((d))_k$の第$n$成分が$e^(Delta a_n)$であったことを思い出せば、これは
+$$
+[overline(bold(b))^((d))_k]_n = ([overline(bold(a))^((d))_k]_n - 1)/a_n b_n
+$$
+とも書ける。すなわち、$overline(bold(a))$さえ計算してあれば、$overline(bold(b))$は$a_n$で割るだけで得られる。
+
+### 一次近似
+ここから近似を導く。上の式で$Delta$を括り出してみる。分母と分子に$Delta$を掛けて
+$$
+(e^(Delta a_n) - 1)/a_n = Delta dot (e^(Delta a_n) - 1)/(Delta a_n)
+$$
+とすると、右側の因子は$Delta a_n$だけの関数になっている。そこで
+$$
+phi(z) := (e^z - 1)/z
+$$
+とおくと、厳密な値は
+$$
+[overline(bold(b))^((d))_k]_n = Delta phi(Delta a_n) b_n
+$$
+と、$Delta b_n$に補正係数$phi(Delta a_n)$が掛かった形に整理できる。
+
+この$phi$は$z = 0$で$0 slash 0$になるが、これは除去可能な特異点である。実際、$e^z$のマクローリン展開
+$$
+e^z = sum_(m=0)^oo z^m/m! = 1 + z + z^2/2! + z^3/3! + dots.c
+$$
+から
+$$
+e^z - 1 = sum_(m=1)^oo z^m/m! = z (1 + z/2! + z^2/3! + dots.c)
+$$
+であり、両辺を$z$で割ると
+$$
+phi(z) = sum_(m=0)^oo z^m/(m+1)! = 1 + z/2 + z^2/6 + z^3/24 + dots.c
+$$
+を得る。この級数は全ての$z$で収束するので、$phi$は$z = 0$を含めて解析的であり、$phi(0) = 1$である。
+
+したがって、$|z|$が小さいところでは
+$$
+phi(z) = 1 + z/2 + cal(O)(z^2)
+$$
+であり、$|Delta a_n| << 1$であれば$phi(Delta a_n) approx 1$、すなわち
+$$
+[overline(bold(b))^((d))_k]_n approx Delta b_n
+$$
+と近似できる。ベクトルの形に戻すと
+$$
+overline(bold(b))^((d))_k approx Delta^((d))_k bold(b)_k
+$$
+となる。これが実装で使われている形である。
+
+この近似には別の見方もある。連続時間の式$(d h)/(d t) = a h + b x$を、区間$[t_k, t_(k+1))$で前進Euler法により離散化すると
+$$
+h_(k+1) = h_k + Delta (a h_k + b x_k) = (1 + Delta a) h_k + Delta b x_k
+$$
+となる。つまりEuler法では$overline(a) = 1 + Delta a$、$overline(b) = Delta b$である。Mamba-1が使っているのは、$overline(a)$はZOHの厳密な$e^(Delta a)$のまま、$overline(b)$だけEuler法の$Delta b$に取り替えた混ざった形である、と言える。
+
+### 近似が許される理由
+$overline(b)$を近似するなら$overline(a)$も近似してよさそうに思えるが、この2つは役割が違う。
+
+$overline(a)$は状態に**繰り返し**掛かる。$bold(h)_k$の一般項に$product_(j=i+1)^k overline(bold(a))_j$という積が現れていたことを思い出すと、$overline(a)$の誤差は掛け算で積み上がる。長さ$L$の系列では最大$L$回掛かるので、1回あたりが小さな誤差でも系列全体では効いてしまう。
+
+さらに重要なのが安定性である。$bold(a) = -exp(bold(A)_"log")$として$a_n < 0$を保証しているので、厳密な$e^(Delta a_n)$は$Delta$がどれだけ大きくなっても必ず$(0, 1)$に入り、状態は必ず減衰する。ところがEuler法の$1 + Delta a_n$は、$Delta |a_n| > 1$で負になり、$Delta |a_n| > 2$では絶対値が$1$を超えて発散する。$Delta$は入力依存で、しかも学習で変わる量であるから、この保証が失われるのは困る。
+
+一方$overline(b)$は各時刻の入力に**1回だけ**掛かる。誤差が積み上がる構造にはなっていないし、発散にも関わらない。
+
+では実際どれくらいずれるのか。$a_n < 0$かつ$Delta > 0$なので$z = Delta a_n < 0$であり、このとき$phi(z) in (0, 1)$である。つまり近似$Delta b_n$は真の値を**過大に**見積もる。いくつかの値を挙げる。
+
+| $z = Delta a_n$ | $phi(z)$ | 真の値からのずれ |
+| --- | --- | --- |
+| $-0.001$ | $0.9995$ | $0.05%$ |
+| $-0.01$ | $0.9950$ | $0.5%$ |
+| $-0.1$ | $0.9516$ | $4.8%$ |
+| $-0.5$ | $0.7869$ | $21.3%$ |
+| $-1.6$ | $0.4988$ | $50.1%$ |
+
+$Delta$は$"softplus"(bold(b)_Delta)$が$[0.001, 0.1]$程度になるよう初期化され、$a_n$の初期値は$-(n+1) in [-N, -1]$であった。$N = 16$とすると$|z| = Delta |a_n|$は最大でも$0.1 times 16 = 1.6$である。つまり、$Delta$が小さい成分や$|a_n|$が小さい成分ではほぼ厳密だが、両方が大きい成分では2倍近くずれうる。
+
+ただし、大きくずれる領域は$overline(a)_n = e^(-1.6) approx 0.20$、すなわち1ステップで状態の8割が消える成分である。そこに書き込まれた情報はどのみち数ステップしか残らないので、その寄与の大きさが多少ずれても出力への影響は限定的である。加えて$bold(b)_k = bold(f)_B (bold(x)_k)$は学習で決まるので、系統的なずれはある程度$bold(f)_B$の側で吸収されうる。
+
+もう一つ、近似が乱暴でないことの根拠を挙げておく。入力を一定値$x$に保ったときに状態が落ち着く先、すなわち定常状態を比べてみる。漸化式$h_k = overline(a) h_(k-1) + overline(b) x$の不動点$h^ast$は
+$$
+h^ast = overline(a) h^ast + overline(b) x <=> h^ast = overline(b)/(1 - overline(a)) x
+$$
+である。厳密な値を代入すると、分子が$(e^(Delta a) - 1) b slash a = -(1 - e^(Delta a)) b slash a$であるから
+$$
+h^ast = (-(1 - e^(Delta a)) b slash a)/(1 - e^(Delta a)) x = - b/a x
+$$
+となる。これは連続時間の式で$(d h)/(d t) = 0$とおいた$0 = a h + b x$の解と完全に一致する。ZOHによる離散化は定常状態を厳密に保存するのである。
+
+近似$overline(b) = Delta b$を使うとどうなるか。
+$$
+h^ast = (Delta b)/(1 - e^(Delta a)) x
+$$
+であり、分母は
+$$
+1 - e^(Delta a) = -(Delta a + (Delta a)^2/2 + dots.c) = - Delta a (1 + (Delta a)/2 + dots.c)
+$$
+と展開できるので、
+$$
+h^ast = (Delta b)/(- Delta a (1 + (Delta a) slash 2 + dots.c)) x = - b/a dot 1/(1 + (Delta a) slash 2 + dots.c) x = - b/a x (1 + cal(O)(Delta a))
+$$
+となる。定常状態も一次の精度では保たれている。
+
+最後に、実装上の利点を2つ挙げておく。1つは計算が減ることである。厳密な形は$e^(Delta a_n)$に加えて$a_n$による除算を必要とするが、近似では$Delta$を掛けるだけで済む。$e^(Delta a_n)$は$overline(bold(a))$の計算でどのみち必要なので、差分は時刻あたり$N times D$回の除算がまるごと消えることになる。もう1つは数値的な安全性である。$(e^(Delta a) - 1) slash a$は$a -> 0$で$0 slash 0$になるため、素直に書くと桁落ちする。避けるには`expm1`や場合分けが要る。$Delta b$にはその問題がなく、学習の途中で$a_n$が$0$に近づいても壊れない。
+
+なお繰り返しになるが、$overline(bold(A))_k$についてはこの近似を使わず、$exp(Delta^((d))_k bold(a)^((d)))$をそのまま計算する。
+
+## 実装のためのまとめ
+ここで、実装に必要な量を一覧にしておく。$d_"in"$をモデルの次元、$D$をブロック内部の次元、$N$を状態の次元、$K$を畳み込みの幅、$r$を$Delta$の低ランク射影の階数とする。代表的な設定は$D = 2 d_"in"$、$N = 16$、$K = 4$、$r = ceil(d_"in" slash 16)$である。
+
+$Delta_k, bold(b)_k, bold(c)_k$は、1つの線形射影でまとめて作ってから切り分ける。
+$$
+mat(bold(delta)_k, bold(b)_k, bold(c)_k) = bold(W)_"proj" bold(x)_k in RR^(r + 2N)
+$$
+$$
+Delta_k = "softplus"(bold(W)_Delta bold(delta)_k + bold(b)_Delta) in RR^D
+$$
+$Delta_k$は時間の刻み幅であるから正でなければならない。それを保証するために$"softplus"(x) = log(1 + e^x)$を通している。また$Delta$だけ$r$次元を経由する低ランクの射影になっているのは、$Delta$が$D$次元すべてに対して必要である一方、$bold(b)_k, bold(c)_k$のように$N$次元で済むものと比べてパラメータ数が大きくなりすぎるためである。
+
+| 記号 | 形 | 役割 | 初期化の要点 |
+| --- | --- | --- | --- |
+| $bold(W)_"emb"$ | $V times d_"in"$ | トークン埋め込み | 通常の乱数 |
+| $bold(W)_"in"$ | $2D times d_"in"$ | $bold(U), bold(Z)$への射影 | 通常の乱数 |
+| $bold(W)_"conv"$ | $K times D$ | 深さ方向の因果的畳み込み | 通常の乱数 |
+| $bold(W)_"proj"$ | $(r + 2N) times D$ | $bold(delta)_k, bold(b)_k, bold(c)_k$への射影 | 通常の乱数 |
+| $bold(W)_Delta, bold(b)_Delta$ | $D times r$, $D$ | $Delta_k$への射影 | $"softplus"(bold(b)_Delta)$が$[0.001, 0.1]$程度になるよう調整 |
+| $bold(A)_"log"$ | $D times N$ | $bold(a) = -exp(bold(A)_"log")$ | $a_(d,n) = -(n+1)$ |
+| $bold(s)_"skip"$ | $D$ | スキップ結合の係数 | 全成分$1$ |
+| $bold(W)_"out"$ | $d_"in" times D$ | ブロック出力の射影 | 通常の乱数 |
+| $bold(g)^((ell))$ | $d_"in"$ | RMSNormのスケール | 全成分$1$ |
+| $bold(W)_"head"$ | $V times d_"in"$ | 出力層 | 埋め込みと共有することも多い |
+
+$bold(A)$の扱いには理由がある。$bold(a)$を直接学習可能なパラメータにするのではなく、$bold(a) = -exp(bold(A)_"log")$と置いて$bold(A)_"log"$のほうを学習する。こうすると$bold(a)$は必ず負であり、したがって
+$$
+overline(bold(a))^((d))_k = exp(Delta^((d))_k bold(a)^((d))) in (0, 1)^N
+$$
+が保証される。$Delta_k > 0$であることと合わせて、状態は時刻を追うごとに必ず減衰する。もし$overline(bold(a))$が$1$を超えると、漸化式を回すうちに$bold(H)_k$が発散してしまう。初期値を$a_(d,n) = -(n+1)$、すなわち$n$番目の状態ほど速く減衰するようにしておくと、状態の各次元が異なる時間スケールを担当することになり、短期の情報と長期の情報を同時に保持しやすくなる。
+
+$overline(bold(B))_k$については、前節で導いたとおり一次近似の$overline(bold(b))^((d))_k approx Delta^((d))_k bold(b)_k$を使えばよい。$overline(bold(A))_k$のほうは$exp(Delta^((d))_k bold(a)^((d)))$をそのまま計算する。
+
+## Transformerとの比較
+最後に、12章で扱ったTransformerと比較しておく。$L$を系列長、$d$をトークン表現の次元、$D$をMambaブロック内部の次元、$N$を状態の次元とする。
+
+| 項目 | Transformer（Self-Attention） | Mamba-1 |
+| --- | --- | --- |
+| 学習時の計算量 | $cal(O)(L^2 d)$ | $cal(O)(L D N)$ |
+| 学習時の並列段数 | $cal(O)(1)$ | $cal(O)(log L)$ |
+| 推論時の1トークンあたりの計算量 | $cal(O)(L d)$ | $cal(O)(D N)$ |
+| 推論時に持ち越す状態 | KVキャッシュ $cal(O)(L d)$ | $bold(H)_k$と畳み込みの直近$K-1$時刻分 $cal(O)(D N + K D)$ |
+| 位置の情報 | 位置エンコーディングが必要 | 漸化式が順序を保持する |
+
+Attentionは全てのトークン対について内積を取るため、系列長に対して二乗で計算量が増える。その代わり、全ての対を独立に計算できるので並列段数は定数である。Mambaは漸化式であるから本来は逐次的だが、prefix scanによって$cal(O)(log L)$段まで並列化でき、計算量は$L$について線形に収まる。
+
+推論時の差はさらに大きい。Transformerは過去の全トークンのキーとバリューを保持し続ける必要があり、生成が進むほどメモリも1トークンあたりの計算量も増えていく。一方、Mambaが次の時刻へ持ち越すのは$bold(H)_k$だけであり、これは$L$に依存しない。長い系列を扱うほどこの差は効いてくる。
+
+ただし、Attentionが持つ「任意の過去のトークンを直接参照できる」という性質は、固定サイズの状態$bold(H)_k$には無い。$bold(H)_k$は過去を$D times N$個の値に圧縮したものであり、そこに入り切らない情報は失われる。Selective SSMにおいて$Delta_k, bold(B)_k, bold(C)_k$を入力依存にしたことは、この限られた容量に何を残すかを入力自身に選ばせるための仕組みであった、と見ることもできる。
+
+# Mamba-2
+Mamba-1によって長い系列を線形の計算量で扱えるようになったが、速度の面では不満が残っていた。原因はscanにある。結合演算$compose$の中身は要素ごとの積と和だけであり、行列積の形をしていない。ところが現代のGPUは行列積のための専用の演算器を積んでおり、そこを通る計算とそうでない計算とでは最大で16倍ほどの速度差がある。scanはその恩恵をまったく受けられない。状態次元$N$を$16$までしか大きくできなかったのも、突き詰めればここに理由がある。
+
+Mamba-2はこの壁を理論の側から崩した。Selective SSMの計算を行列ひとつの積として書き直すと、それが注意機構とほとんど同じ形になる。この対応を**状態空間双対性**、あるいは**SSD**と呼ぶ。同じ計算に、漸化式として時刻順に回す見方と、行列積として一度に片づける見方の2通りがあることになり、後者を選べば行列積の演算器が使える。この節では、まずその書き直しを導き、次にそれを実際の計算手順に落とす。
+
+## 半分離可能行列としてのSSM
+Selective SSMの一般項を思い出す。特徴量$d$を固定し、記号から上付きの$(d)$を落として書けば、
+$$
+bold(h)_k = sum_(i=0)^k (dot.o.big_(j=i+1)^k overline(bold(a))_j) dot.o overline(bold(b))_i x_i
+$$
+であった。出力は$y_k = (bold(c)_k)^top bold(h)_k$であるから、これを代入して
+$$
+y_k = sum_(i=0)^k (bold(c)_k)^top ((dot.o.big_(j=i+1)^k overline(bold(a))_j) dot.o overline(bold(b))_i) x_i
+$$
+を得る。スキップ結合の項は以降の議論に関わらないので省いた。
+
+この式は、出力$y_k$が入力$x_0, dots, x_k$の線形結合であることを言っている。そこで$x_i$の係数だけを取り出して
+$$
+M_(k i) := cases(
+(bold(c)_k)^top ((dot.o.big_(j=i+1)^k overline(bold(a))_j) dot.o overline(bold(b))_i) & quad (k >= i),
+0 & quad (k < i)
+)
+$$
+と定義する。$k < i$のとき$0$としたのは、未来の入力が出力に影響しないためである。すると、出力を縦に並べた$bold(y) = (y_0, dots, y_(L-1))^top$と入力を縦に並べた$bold(x) = (x_0, dots, x_(L-1))^top$の間には
+$$
+bold(y) = bold(M) bold(x)
+$$
+という関係が成り立つ。$bold(M) in RR^(L times L)$は下三角行列である。漸化式が、行列をひとつ掛けるだけの計算に化けた。
+
+どういう値がどこに並んでいるのかを見ておこう。$L = 4$として書き下すと
+$$
+vec(y_0, y_1, y_2, y_3) = mat(
+(bold(c)_0)^top overline(bold(b))_0, 0, 0, 0;
+(bold(c)_1)^top (overline(bold(a))_1 dot.o overline(bold(b))_0), (bold(c)_1)^top overline(bold(b))_1, 0, 0;
+(bold(c)_2)^top (overline(bold(a))_2 dot.o overline(bold(a))_1 dot.o overline(bold(b))_0), (bold(c)_2)^top (overline(bold(a))_2 dot.o overline(bold(b))_1), (bold(c)_2)^top overline(bold(b))_2, 0;
+(bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(a))_2 dot.o overline(bold(a))_1 dot.o overline(bold(b))_0), (bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(a))_2 dot.o overline(bold(b))_1), (bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(b))_2), (bold(c)_3)^top overline(bold(b))_3
+) vec(x_0, x_1, x_2, x_3)
+$$
+となる。第$k$行は出力$y_k$を、第$i$列は入力$x_i$を担当する。ひとつ下の行へ移るごとに$overline(bold(a))$がひとつ増え、左へ一列進むごとにも$overline(bold(a))$がひとつ増える。つまり、対角から左下へ離れるほど減衰が積み重なる。上三角が$0$なのは、未来の入力を見ないという因果性そのものである。
+
+減衰が積み重なる様子は、もう少し長く取ったほうが見えやすい。$L = 6$として、各成分に何回$overline(bold(a))$が掛かるかだけを描くと次のようになる。
+
+```typst {render=svg caption="Mの各成分が何を表すか。行が出力の時刻、列が入力の時刻に対応する"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let w = 1.25      // セルの幅
+  let h = 0.95      // セルの高さ
+  let n = 6
+
+  // 1. 塗りだけを線なしで置く。対角から離れるほど減衰が重なるので濃くする
+  for k in range(n) {
+    for i in range(n) {
+      if i <= k {
+        rect((i * w, -k * h), ((i + 1) * w, -k * h - h),
+          fill: luma(252 - (k - i) * 19), stroke: none)
+      }
+    }
+  }
+  // 2. 罫線は下三角の内側と、その境界の階段だけに引く
+  for i in range(1, n) { line((i * w, -(i - 1) * h), (i * w, -n * h), stroke: gray) }
+  for k in range(1, n) { line((0, -k * h), ((k + 1) * w, -k * h), stroke: gray) }
+  // 3. セルの中身と行列の外側のラベル
+  for k in range(n) {
+    content((-0.4, -k * h - h / 2), text(size: 9pt, $y_#k$), anchor: "east")
+    for i in range(n) {
+      if k == 0 { content((i * w + w / 2, 0.4), text(size: 9pt, $x_#i$)) }
+      if i <= k {
+        content((i * w + w / 2, -k * h - h / 2), text(size: 9pt, $overline(bold(a))^(#(k - i))$))
+      }
+    }
+  }
+  // 上三角はまとめて零
+  content((n * w * 0.73, -n * h * 0.26), text(size: 13pt, $bold(O)$))
+  // 4. 外枠を最後に重ねる
+  rect((0, 0), (n * w, -n * h), stroke: black)
+
+  // 対角と左下の意味づけ
+  content((n * w + 0.35, -h / 2), text(size: 9pt, [same step]), anchor: "west")
+  content((n * w + 0.35, -(n - 1) * h - h / 2), text(size: 9pt, [older input]), anchor: "west")
+  line((n * w + 0.2, -0.8), (n * w + 0.2, -(n - 1) * h - 0.15), mark: (end: "triangle", fill: black))
+})
+]
+```
+
+図の$overline(bold(a))^(m)$は、その成分に減衰が$m$回掛かっていることを表す記号として使った。実際に掛かるのは$overline(bold(a))_1, overline(bold(a))_2, dots$と時刻ごとに違うベクトルであり、同じものの累乗ではない。
+
+この$bold(M)$には強い構造がある。それを見るために、時刻$1$から$k$までの減衰をまとめて
+$$
+bold(pi)_k := dot.o.big_(j=1)^k overline(bold(a))_j
+$$
+とおく。$i < k$のとき$dot.o.big_(j=i+1)^k overline(bold(a))_j = bold(pi)_k slash.o bold(pi)_i$と書ける。$slash.o$は要素ごとの除算を表す。これを代入すると
+$$
+M_(k i) = (bold(c)_k)^top ((bold(pi)_k slash.o bold(pi)_i) dot.o overline(bold(b))_i) = (bold(c)_k dot.o bold(pi)_k)^top (overline(bold(b))_i slash.o bold(pi)_i)
+$$
+となる。2つ目の等号では、要素ごとの積を内積のどちら側に寄せてもよいことを使った。そこで
+$$
+tilde(bold(c))_k := bold(c)_k dot.o bold(pi)_k, quad tilde(bold(b))_i := overline(bold(b))_i slash.o bold(pi)_i
+$$
+とおけば、対角より下の成分はすべて
+$$
+M_(k i) = tilde(bold(c))_k^top tilde(bold(b))_i
+$$
+という$N$次元ベクトル同士の内積で書けることになる。ここから次が従う。
+
+::: box 【定理】下三角部分の低ランク性
+
+#### 主張
+$bold(M)$の対角線より真に下の領域に完全に含まれる部分行列は、そのランクが$N$以下である。
+
+#### 証明
+そのような部分行列の成分はすべて$k > i$を満たすので、上で得た$M_(k i) = tilde(bold(c))_k^top tilde(bold(b))_i$がそのまま使える。行の添字を$k_1, dots, k_r$、列の添字を$i_1, dots, i_s$とすると、この部分行列は
+$$
+mat(tilde(bold(c))_(k_1)^top; tilde(bold(c))_(k_2)^top; dots.v; tilde(bold(c))_(k_r)^top) mat(tilde(bold(b))_(i_1), tilde(bold(b))_(i_2), dots.c, tilde(bold(b))_(i_s))
+$$
+と、$r times N$行列と$N times s$行列の積に分解される。行列の積のランクは各因子のランクを超えないから、この部分行列のランクは$N$以下である。
+:::
+
+対角より下がこのように低ランクになっている行列を**半分離可能行列**と呼ぶ。ランクの上限が$N$であることを強調して$N$-半分離可能行列ということもある。Selective SSMとは、要するに半分離可能行列を掛ける操作だったわけである。
+
+ただし、この分解をそのまま計算に使うことはできない。$bold(pi)_i$は減衰を積み重ねたものであり、$i$が大きくなると急速に$0$へ近づく。それで割る$tilde(bold(b))_i$は数値として発散してしまう。分解の存在は理論として重要だが、実際の計算では後で述べるチャンク分割を使う。
+
+## 注意機構との双対性
+ここでMamba-2は$overline(bold(a))_k$に制限を課す。$N$個の成分がすべて等しいとするのである。すなわちスカラー$overline(a)_k$を用いて
+$$
+overline(bold(a))_k = overline(a)_k bold(1)_N
+$$
+と書けるとする。連続時間に戻せば、対角行列$bold(A)$の対角成分がすべて同じ値であること、つまり$bold(A)$がスカラーと単位行列の積であることに当たる。Mamba-1では状態の$N$個の次元がそれぞれ別の速さで減衰していたが、その自由度を捨てて、ひとつの速さに揃える。
+
+この制限のもとでは
+$$
+dot.o.big_(j=i+1)^k overline(bold(a))_j = (product_(j=i+1)^k overline(a)_j) bold(1)_N
+$$
+となり、減衰がスカラーとして内積の外に出せる。したがって
+$$
+M_(k i) = (bold(c)_k)^top ((dot.o.big_(j=i+1)^k overline(bold(a))_j) dot.o overline(bold(b))_i) = (product_(j=i+1)^k overline(a)_j) (bold(c)_k)^top overline(bold(b))_i
+$$
+である。右辺が2つの部分に分かれたことが重要である。$(bold(c)_k)^top overline(bold(b))_i$は$k$と$i$の両方に依存するが、$N$次元ベクトル同士の内積でしかない。一方$product_(j=i+1)^k overline(a)_j$はスカラーであり、時刻の情報だけを持つ。この2つをそれぞれ$L times L$の行列に集約する。
+
+まず内積のほうを扱う。$bold(c)_k$と$overline(bold(b))_i$を、今度は時刻の方向に積んで$L times N$の配列$bold(cal(C)), bold(cal(B))$を作る。Mamba-1の$overline(bold(A))_k$が特徴量の方向に積んだ配列で時刻ごとに1つずつ存在したのに対し、こちらは系列全体で1つである。積む方向が違えば別の量なので、記号も分けて$bold(cal(C))$、$bold(cal(B))$と書く。
+$$
+bold(cal(C)) := mat(
+(bold(c)_0)^top;
+(bold(c)_1)^top;
+dots.v;
+(bold(c)_(L-1))^top
+) in RR^(L times N), quad
+bold(cal(B)) := mat(
+(overline(bold(b))_0)^top;
+(overline(bold(b))_1)^top;
+dots.v;
+(overline(bold(b))_(L-1))^top
+) in RR^(L times N)
+$$
+とおく。$bold(cal(C))$の第$k$行が$bold(c)_k$、$bold(cal(B))$の第$i$行が$overline(bold(b))_i$である。このとき
+$$
+bold(cal(C)) bold(cal(B))^top = mat(
+(bold(c)_0)^top overline(bold(b))_0, (bold(c)_0)^top overline(bold(b))_1, dots.c, (bold(c)_0)^top overline(bold(b))_(L-1);
+(bold(c)_1)^top overline(bold(b))_0, (bold(c)_1)^top overline(bold(b))_1, dots.c, (bold(c)_1)^top overline(bold(b))_(L-1);
+dots.v, dots.v, dots.down, dots.v;
+(bold(c)_(L-1))^top overline(bold(b))_0, (bold(c)_(L-1))^top overline(bold(b))_1, dots.c, (bold(c)_(L-1))^top overline(bold(b))_(L-1)
+) in RR^(L times L)
+$$
+となり、$(k, i)$成分がちょうど欲しかった内積になる。$L times N$の行列と$N times L$の行列を掛けて$L times L$を作る形であり、12章の$bold(Q) bold(K)^top$と同じ計算である。
+
+次にスカラーのほうを
+$$
+Gamma_(k i) := cases(
+product_(j=i+1)^k overline(a)_j & quad (k >= i),
+0 & quad (k < i)
+)
+$$
+とまとめて行列$bold(Gamma)$を作る。原論文はこれを$bold(L)$と書くが、ここでは系列長$L$と紛れるので$bold(Gamma)$とした。$L = 4$で書き下すと
+$$
+bold(Gamma) = mat(
+1, 0, 0, 0;
+overline(a)_1, 1, 0, 0;
+overline(a)_2 overline(a)_1, overline(a)_2, 1, 0;
+overline(a)_3 overline(a)_2 overline(a)_1, overline(a)_3 overline(a)_2, overline(a)_3, 1
+)
+$$
+である。対角は積が空なので$1$、左下へ進むごとに因子がひとつずつ増えていく。
+
+この2つを要素ごとに掛ければ$M_(k i)$に戻るから、
+$$
+bold(M) = bold(Gamma) dot.o (bold(cal(C)) bold(cal(B))^top)
+$$
+と書ける。$bold(Gamma)$は$N = 1$の半分離可能行列になっているので、**1-半分離可能行列**と呼ばれる。
+
+この形まで来たものが**SSD**である。冒頭で状態空間双対性という名前だけ挙げておいたが、実体はこの式である。以降、$overline(bold(a))_k$をスカラーに制限したSelective SSMのことをSSDと呼び、その計算の仕方を詰めていく。
+
+それぞれの行列の形を並べると次のようになる。
+
+```typst {render=svg caption="Mの分解。薄い線の1本ずつがトークンで、その並ぶ向きが系列方向Lにあたる。濃さは重みの大きさを表し、対角から左下へ離れるほど減衰して薄くなる"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let sq = 3.2      // 正方行列の一辺
+  let thin = 1.0    // 細長い配列の短辺
+  let n = 6         // 図示するトークン数
+  let band = gray   // トークンの区切り線
+
+  // 系列方向が縦。区切り線を引いてから外枠を最後に重ねる
+  let colbox(x, y, w, name, shape) = {
+    rect((x, y), (x + w, y - sq), fill: white, stroke: none)
+    for r in range(1, n) { line((x, y - r * sq / n), (x + w, y - r * sq / n), stroke: band) }
+    rect((x, y), (x + w, y - sq), stroke: black)
+    content((x + w / 2, y - sq - 0.45), text(size: 9pt, shape))
+    content((x + w / 2, y - sq - 1.05), text(size: 10pt, name))
+  }
+  // 系列方向が横
+  let rowbox(x, y, h, name, shape) = {
+    rect((x, y), (x + sq, y - h), fill: white, stroke: none)
+    for k in range(1, n) { line((x + k * sq / n, y), (x + k * sq / n, y - h), stroke: band) }
+    rect((x, y), (x + sq, y - h), stroke: black)
+    content((x + sq / 2, y - h - 0.45), text(size: 9pt, shape))
+    content((x + sq / 2, y - h - 1.05), text(size: 10pt, name))
+  }
+  // 縦横とも系列。塗り、罫線、セルの印、外枠 の順に重ねる
+  let sqbox(x, y, name, shape, fill-fn, text-fn, cross-fn) = {
+    let c = sq / n
+    for r in range(n) {
+      for k in range(n) {
+        let f = fill-fn(r, k)
+        if f != white {
+          rect((x + k * c, y - r * c), (x + (k + 1) * c, y - (r + 1) * c), fill: f, stroke: none)
+        }
+      }
+    }
+    for i in range(1, n) {
+      line((x + i * c, y), (x + i * c, y - sq), stroke: band)
+      line((x, y - i * c), (x + sq, y - i * c), stroke: band)
+    }
+    for r in range(n) {
+      for k in range(n) {
+        let x0 = x + k * c
+        let y0 = y - r * c
+        if cross-fn(r, k) {
+          let m = c * 0.17
+          line((x0 + m, y0 - m), (x0 + c - m, y0 - c + m), stroke: 0.6pt + black)
+          line((x0 + m, y0 - c + m), (x0 + c - m, y0 - m), stroke: 0.6pt + black)
+        }
+        let s = text-fn(r, k)
+        if s != none { content((x0 + c / 2, y0 - c / 2), text(size: 6pt, s)) }
+      }
+    }
+    rect((x, y), (x + sq, y - sq), stroke: black)
+    content((x + sq / 2, y - sq - 0.45), text(size: 9pt, shape))
+    content((x + sq / 2, y - sq - 1.05), text(size: 10pt, name))
+  }
+  let plain = (r, k) => white
+  let notext = (r, k) => none
+  let nocross = (r, k) => false
+  let op(x, y, sym) = content((x, y - sq / 2), text(size: 14pt, sym))
+  let decay = (r, k) => if k <= r { luma(155 + (r - k) * 20) } else { white }
+
+  // 1段目: 細長い2つの配列から正方行列を作る
+  let r1 = 0.0
+  colbox(0, r1, thin, $bold(cal(C))$, $L times N$)
+  op(1.45, r1, $times$)
+  rowbox(1.9, r1 - 1.1, thin, $bold(cal(B))^top$, $N times L$)
+  op(5.55, r1, $=$)
+  sqbox(6.0, r1, $bold(cal(C)) bold(cal(B))^top$, $L times L$, plain, notext, nocross)
+
+  // 2段目: そこに減衰のマスクを要素ごとに掛ける
+  let r2 = -5.8
+  sqbox(0, r2, $bold(cal(C)) bold(cal(B))^top$, $L times L$, plain, notext, nocross)
+  op(3.65, r2, $dot.o$)
+  sqbox(4.1, r2, $bold(Gamma)$, $L times L$, decay, notext, nocross)
+  op(7.75, r2, $=$)
+  sqbox(8.2, r2, $bold(M)$, $L times L$, decay, notext, nocross)
+})
+]
+```
+
+ここで12章の注意機構を並べてみる。因果マスクを掛けたAttentionの出力は
+$$
+bold(Y) = ("softmax"(frac(bold(Q) bold(K)^top, sqrt(d_k)) + bold(M)_"mask")) bold(V)
+$$
+であった。一方、SSDは
+$$
+bold(y) = (bold(Gamma) dot.o (bold(cal(C)) bold(cal(B))^top)) bold(x)
+$$
+と計算される。$bold(cal(C))$がクエリ、$bold(cal(B))$がキー、$bold(x)$がバリューに対応している。違いは2つしかない。
+
+| | 因果マスク付きAttention | SSD |
+| --- | --- | --- |
+| 類似度 | $bold(Q) bold(K)^top slash sqrt(d_k)$ | $bold(cal(C)) bold(cal(B))^top$ |
+| 正規化 | softmaxで行ごとに和を$1$にする | 何もしない |
+| マスク | 未来を$0$にするだけ | 未来を$0$にし、過去には$Gamma_(k i)$を掛ける |
+
+Attentionのほうも同じ構図で描いてみると、違いが目で見える。
+
+```typst {render=svg caption="Attentionの重み行列。1段目はSSDと同じ形。セルを覆う×は$-oo$を表す。2段目でそれを足し、3段目のsoftmaxを通すとその位置が$0$になる"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let sq = 3.2      // 正方行列の一辺
+  let thin = 1.0    // 細長い配列の短辺
+  let n = 6         // 図示するトークン数
+  let band = gray   // トークンの区切り線
+
+  // 系列方向が縦。区切り線を引いてから外枠を最後に重ねる
+  let colbox(x, y, w, name, shape) = {
+    rect((x, y), (x + w, y - sq), fill: white, stroke: none)
+    for r in range(1, n) { line((x, y - r * sq / n), (x + w, y - r * sq / n), stroke: band) }
+    rect((x, y), (x + w, y - sq), stroke: black)
+    content((x + w / 2, y - sq - 0.45), text(size: 9pt, shape))
+    content((x + w / 2, y - sq - 1.05), text(size: 10pt, name))
+  }
+  // 系列方向が横
+  let rowbox(x, y, h, name, shape) = {
+    rect((x, y), (x + sq, y - h), fill: white, stroke: none)
+    for k in range(1, n) { line((x + k * sq / n, y), (x + k * sq / n, y - h), stroke: band) }
+    rect((x, y), (x + sq, y - h), stroke: black)
+    content((x + sq / 2, y - h - 0.45), text(size: 9pt, shape))
+    content((x + sq / 2, y - h - 1.05), text(size: 10pt, name))
+  }
+  // 縦横とも系列。塗り、罫線、セルの印、外枠 の順に重ねる
+  let sqbox(x, y, name, shape, fill-fn, text-fn, cross-fn) = {
+    let c = sq / n
+    for r in range(n) {
+      for k in range(n) {
+        let f = fill-fn(r, k)
+        if f != white {
+          rect((x + k * c, y - r * c), (x + (k + 1) * c, y - (r + 1) * c), fill: f, stroke: none)
+        }
+      }
+    }
+    for i in range(1, n) {
+      line((x + i * c, y), (x + i * c, y - sq), stroke: band)
+      line((x, y - i * c), (x + sq, y - i * c), stroke: band)
+    }
+    for r in range(n) {
+      for k in range(n) {
+        let x0 = x + k * c
+        let y0 = y - r * c
+        if cross-fn(r, k) {
+          let m = c * 0.17
+          line((x0 + m, y0 - m), (x0 + c - m, y0 - c + m), stroke: 0.6pt + black)
+          line((x0 + m, y0 - c + m), (x0 + c - m, y0 - m), stroke: 0.6pt + black)
+        }
+        let s = text-fn(r, k)
+        if s != none { content((x0 + c / 2, y0 - c / 2), text(size: 6pt, s)) }
+      }
+    }
+    rect((x, y), (x + sq, y - sq), stroke: black)
+    content((x + sq / 2, y - sq - 0.45), text(size: 9pt, shape))
+    content((x + sq / 2, y - sq - 1.05), text(size: 10pt, name))
+  }
+  let plain = (r, k) => white
+  let notext = (r, k) => none
+  let nocross = (r, k) => false
+  let op(x, y, sym) = content((x, y - sq / 2), text(size: 14pt, sym))
+  let flat = (r, k) => if k <= r { luma(198) } else { white }
+  let upper = (r, k) => k > r
+  let zeros = (r, k) => if k <= r { $0$ } else { none }
+
+  // 1段目: SSD と同じく細長い2つの配列から正方行列を作る
+  let r1 = 0.0
+  colbox(0, r1, thin, $bold(Q)$, $L times d_k$)
+  op(1.45, r1, $times$)
+  rowbox(1.9, r1 - 1.1, thin, $bold(K)^top$, $d_k times L$)
+  op(5.55, r1, $=$)
+  sqbox(6.0, r1, $bold(Q) bold(K)^top$, $L times L$, plain, notext, nocross)
+
+  // 2段目: マスクは足し算。×の位置が -oo になる
+  let r2 = -5.8
+  sqbox(0, r2, $bold(Q) bold(K)^top slash sqrt(d_k)$, $L times L$, plain, notext, nocross)
+  op(3.65, r2, $+$)
+  sqbox(4.1, r2, $bold(M)_"mask"$, $L times L$, plain, zeros, upper)
+  op(7.75, r2, $=$)
+  sqbox(8.2, r2, [masked scores], $L times L$, plain, notext, upper)
+
+  // 3段目: 行ごとの softmax で×の位置が 0 になる
+  let r3 = -11.6
+  sqbox(0, r3, [masked scores], $L times L$, plain, notext, upper)
+  line((3.6, r3 - sq / 2), (5.9, r3 - sq / 2), mark: (end: "triangle", fill: black))
+  content((4.75, r3 - sq / 2 + 0.38), text(size: 9pt, [softmax]))
+  content((4.75, r3 - sq / 2 - 0.42), text(size: 8pt, [row-wise]))
+  sqbox(6.4, r3, [attention weights], $L times L$, flat, notext, nocross)
+})
+]
+```
+
+1段目はSSDとまったく同じ形をしている。細長い2つの配列を掛けて$L times L$の正方行列を作るところまでは共通である。
+
+分かれるのは2段目以降である。SSDは$bold(Gamma)$を要素ごとに**掛けて**終わる。Attentionはまずマスク$bold(M)_"mask"$を**足す**。これは未来にあたる上三角の位置に$-oo$を置いた行列で、足された成分は$-oo$になる。そのうえで行ごとにsoftmaxを通すと、$e^(-oo) = 0$より上三角がちょうど$0$になり、残った下三角の和が$1$に揃う。マスクを掛け算ではなく足し算で入れるのは、softmaxの前段だからである。指数を取った後の世界では、足し算は掛け算に化ける。
+
+出来上がる重み行列の中身も違う。SSDの$bold(M)$は対角から左下へ離れるほど薄くなる。減衰$overline(a)_j$が掛かる回数が増えるからで、遠い過去ほど自動的に効かなくなる。一方Attentionの重みは、softmaxが行ごとに和を$1$に揃えるだけなので、どの過去に濃さを置くかは完全に自由である。遠く離れたトークンに重みのほとんどを集めることもできる。
+
+この差が、そのまま両者の性格の違いになっている。SSDは「近い過去を見る」という偏りを構造として持ち込むかわりに、$bold(Gamma)$を掛けるだけで済むので線形形式でも計算できる。Attentionは偏りを持たないかわりに、$L times L$の行列を実際に作らないとsoftmaxが計算できない。
+
+以上をまとめると、SSDとAttentionの違いはsoftmaxが無いことと、マスクが$0$か$1$かではなく過去へ遡るほど小さくなる重みになっていることの2点だけである。逆に言えば、Attentionのほうも「マスクを$0$と$1$に固定し、softmaxを入れたSSD」として見ることができる。
+
+こうして、SSDにはひとつの計算に2つの顔があることがわかった。漸化式として時刻順に回せば結合回数は$cal(O)(L)$で済むが、逐次であるから並列に進められない。行列$bold(M)$を作って掛ければ$cal(O)(L^2)$の仕事量になるが、中身はすべて行列積である。前者を**線形形式**、後者を**二次形式**と呼ぶ。SSDがこの2つの形を同時に持っているという事実が、状態空間双対性である。
+
+## チャンク分割による計算
+SSDを実際にどう計算するかを決めよう。二次形式は行列積だけで書けるものの、$L$が大きいと$L times L$の行列を作る時点で破綻する。線形形式は仕事量こそ小さいが逐次である。そこでMamba-2は、系列を長さ$Q$のチャンクに区切り、チャンクの中では二次形式を、チャンクの間では線形形式を使う。SSDが2つの顔を持っていることを、そのまま計算に使うわけである。
+
+$bold(M)$をチャンクごとのブロックに分けて考える。チャンク$c$が時刻$c Q, c Q + 1, dots, (c+1)Q - 1$を担当するとし、行がチャンク$c$、列がチャンク$c'$に属する部分行列を$bold(M)^((c, c'))$と書く。$c < c'$のブロックは因果性からすべて$0$である。$c = c'$の対角ブロックは、チャンクの中で閉じた添字だけを含むので、前節の二次形式をそのままチャンクに適用したものになる。大きさは$Q times Q$であり、$Q$を手頃に取れば行列積で扱える。
+
+問題は$c > c'$のブロックである。ここで$Gamma_(k i)$の積を分解する。$k$はチャンク$c$、$i$はチャンク$c'$の時刻であるから、区間$[i+1, k]$はチャンク$c'$の残り、その間のチャンク全体、そしてチャンク$c$の先頭から$k$までの3つに分けられる。すなわち
+$$
+product_(j=i+1)^k overline(a)_j = underbracket(product_(j=c Q + 1)^k overline(a)_j, gamma_k) dot underbracket(product_(j=(c'+1) Q)^(c Q) overline(a)_j, Lambda_(c, c')) dot underbracket(product_(j=i+1)^((c'+1) Q - 1) overline(a)_j, delta_i)
+$$
+である。$gamma_k$はチャンク$c$の入口から$k$までの減衰、$delta_i$は$i$からチャンク$c'$の出口までの減衰、$Lambda_(c, c')$はその間をまたぐ減衰を表す。これを$M_(k i)$に戻すと
+$$
+M_(k i) = Lambda_(c, c') (gamma_k bold(c)_k)^top (delta_i overline(bold(b))_i)
+$$
+となる。$gamma_k bold(c)_k$を行に並べた$Q times N$行列と、$delta_i overline(bold(b))_i$を行に並べた$Q times N$行列があれば、非対角ブロックはその積のスカラー倍として書ける。ランクは$N$以下である。$Q times Q$の行列を作る必要はない。
+
+図にすると次のようになる。
+
+```typst {render=svg caption="チャンクに分けたMのブロック構造。濃い網掛けが二次形式で計算する対角ブロック、薄い網掛けがランクN以下の非対角ブロック"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let bw = 2.0      // ブロックの幅
+  let bh = 1.15     // ブロックの高さ
+  let n = 6         // チャンク数
+
+  // 1. 塗りだけを線なしで置く
+  for r in range(n) {
+    for c in range(n) {
+      let f = if c == r { luma(190) } else if c < r { luma(235) } else { white }
+      if f != white {
+        rect((c * bw, -r * bh), ((c + 1) * bw, -r * bh - bh), fill: f, stroke: none)
+      }
+    }
+  }
+  // 2. 罫線は下三角の内側と、その境界の階段だけに引く
+  for c in range(1, n) { line((c * bw, -(c - 1) * bh), (c * bw, -n * bh), stroke: gray) }
+  for r in range(1, n) { line((0, -r * bh), ((r + 1) * bw, -r * bh), stroke: gray) }
+  // 3. セルの中身と行列の外側のラベル
+  for r in range(n) {
+    content((-0.4, -r * bh - bh / 2), text(size: 9pt, $c = #r$), anchor: "east")
+    for c in range(n) {
+      if r == 0 { content((c * bw + bw / 2, 0.4), text(size: 9pt, $c' = #c$)) }
+      let cx = c * bw + bw / 2
+      let cy = -r * bh - bh / 2
+      if c == r { content((cx, cy), text(size: 8pt, [quadratic])) }
+      else if c < r { content((cx, cy), text(size: 8pt, [rank $<= N$])) }
+    }
+  }
+  // 上三角は因果性よりまとめて零
+  content((n * bw * 0.73, -n * bh * 0.26), text(size: 13pt, $bold(O)$))
+  // 4. 外枠を最後に重ねる
+  rect((0, 0), (n * bw, -n * bh), stroke: black)
+})
+]
+```
+
+非対角ブロックが低ランクであることから、チャンク$c$より前のすべての入力が$y_k$に与える寄与は、ひとまとめにできる。実際、
+$$
+sum_(c' < c) sum_(i in "chunk" c') M_(k i) x_i = gamma_k (bold(c)_k)^top underbracket(sum_(c' < c) Lambda_(c, c') sum_(i in "chunk" c') delta_i overline(bold(b))_i x_i, bold(w)_c)
+$$
+であり、下線を引いた$bold(w)_c in RR^N$だけ持ち回ればよい。これはチャンク$c$の入口における状態にほかならない。しかも$bold(w)_c$自身が、チャンクをまたぐ減衰$Lambda_c$を用いた漸化式
+$$
+bold(w)_(c+1) = Lambda_c bold(w)_c + sum_(i in "chunk" c) delta_i overline(bold(b))_i x_i
+$$
+を満たす。これは時刻についての漸化式と同じ形であり、長さは$L slash Q$しかない。
+
+以上をまとめると、計算は次の4段階になる。
+
+1. **対角ブロック** — 各チャンクについて、入口の状態を$bold(0)$と思ったときの出力を二次形式で計算する。チャンクごとに独立なので、行列積をまとめて実行できる。
+2. **各チャンクが生む状態** — $sum_(i in "chunk" c) delta_i overline(bold(b))_i x_i$を計算する。これもチャンクごとに独立な行列積である。
+3. **チャンク間の受け渡し** — 上の漸化式を回して、各チャンクの入口の状態$bold(w)_c$を求める。ここだけがscanだが、長さは$L slash Q$に縮んでいる。
+4. **入口の状態からの寄与** — $gamma_k (bold(c)_k)^top bold(w)_c$を各時刻に足す。再び行列積である。
+
+1と2と4は完全に行列積であり、行列積の演算器がそのまま使える。3のscanには前節までに述べたBlelloch scanをそのまま使えるが、対象がチャンク境界の状態だけに減っているので、全体に占める割合は小さい。仕事量も、二次形式をそのまま使ったときの$cal(O)(L^2)$から$L$について線形なところまで戻る。Mamba-2がMamba-1の2倍から8倍速いと報告されているのは、この置き換えによる。以降、この4段階の手順をまとめてSSDの計算と呼ぶ。ブロックの図で「SSD」と書かれた箱の中身がこれである。
+
+$Q$の選び方には両側から圧力がかかる。$Q$を大きくすると対角ブロックの$Q times Q$の計算が増え、小さくするとscanの回数が増える。実際には$64$から$256$程度が使われる。
+
+## アーキテクチャの変更
+双対性を使うために$overline(bold(a))_k$をスカラーに落としたので、Mamba-1のブロックもそれに合わせて作り替える必要がある。変更は3点ある。
+
+### 状態をヘッドにまとめる
+$overline(a)_k$がスカラーになったということは、Mamba-1で特徴量ごとに持っていた$N$個の減衰率が1つに減ったということである。そのままでは表現力が落ちる。そこでMamba-2は、$D$個の特徴量を$P$個ずつの組に分け、組の中では同じ$overline(a)_k$を共有することにした。この組を**ヘッド**と呼ぶ。$P$を**ヘッド次元**といい、$64$が使われる。ヘッドの数は$D slash P$である。
+
+これは12章のマルチヘッドAttentionと同じ構造である。Mamba-1は$P = 1$、すなわちすべての特徴量が独立なSSMを持っていたことになる。ヘッドにまとめると自由度は下がるが、その代わりに状態次元$N$を大きくできる。行列積が使えるようになったことで$N = 128$まで引き上げられ、差し引きでは表現力が増している。
+
+なお$bold(b)_k$と$bold(c)_k$はヘッド間で共有する。Attentionで言えば、クエリとキーを共有したまま複数のバリューを持つ形に当たる。論文はこれを多入力SSMと呼び、multi-value attentionに対応づけている。
+
+### パラメータを並列に作る
+Mamba-1では、$Delta_k, bold(b)_k, bold(c)_k$を作るのに、まずCausalConv1DとSiLUを通した後の$bold(X)_"SSM"$が必要だった。つまり入力の射影とパラメータの生成が直列に並んでいた。Mamba-2では、ブロックの入口の線形射影ひとつで$bold(Z)$、$bold(X)$、$bold(cal(B))$、$bold(cal(C))$、$Delta$をまとめて作る。これらの間に依存関係が無くなるので、複数のGPUに重みを分けて配置するテンソル並列がやりやすくなる。
+
+畳み込みの掛け方も変わる。Mamba-1は$bold(U)$だけに掛けていたが、Mamba-2は$bold(X)$と$bold(cal(B))$と$bold(cal(C))$を横に連結したものに掛ける。
+
+### 出力の直前に正規化を置く
+Mamba-1は、SSMの出力に$"SiLU"(bold(Z))$を掛けたら、そのまま出力側の射影に渡していた。Mamba-2はその間に正規化を挟む。ゲートを掛けるところまでは同じで、
+$$
+bold(Y)_"gate" = bold(Y)_"SSD" dot.o "SiLU"(bold(Z))
+$$
+としたあとに
+$$
+bold(Y)_"norm" = "RMSNorm"(bold(Y)_"gate")
+$$
+を通してから$bold(W)_"out"$に渡す。大規模なモデルで学習が不安定になる問題への対策であり、Transformerの派生であるNormFormerが同じ位置に正規化を置いたのを引き継いでいる。
+
+なお実装では、このゲートと正規化はひとつの層にまとめられている。順序を入れ替えて$"RMSNorm"(bold(Y)_"SSD") dot.o "SiLU"(bold(Z))$とすることもできるようになっているが、既定は上の順序である。
+
+以上をまとめると、Mamba-2のブロックは次のようになる。
+
+```typst {render=svg caption="Mamba-2ブロックの構成。Mamba-1と同じ形で、パラメータを入口でまとめて作る点と、ゲートの後に正規化が入る点だけが違う"}
+#align(center)[
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let bw = 3.4      // ブロックの幅
+  let bh = 0.85     // ブロックの高さ
+  let xl = 0.0      // 左の列（SSD 側）
+  let xr = 4.4      // 右の列（ゲート側）
+  let xc = (xl + xr) / 2
+
+  let blk(x, y, label, name, w: bw) = {
+    rect((x - w / 2, y + bh / 2), (x + w / 2, y - bh / 2), fill: white, stroke: black, name: name)
+    content((x, y), text(size: 11pt, label))
+  }
+  let arw(a, b) = line(a, b, mark: (end: "triangle", fill: black))
+
+  let y1 = -1.7     // 入口の線形射影
+  let y2 = -3.7     // CausalConv1D
+  let y3 = -5.6     // SiLU
+  let y4 = -7.5     // SSD とゲートの SiLU
+  let y5 = -9.6     // 要素ごとの積
+  let y6 = -11.5    // 正規化
+  let y7 = -13.4    // 出口の線形射影
+
+  content((xc, 0), text(size: 11pt, $bold(X)_"block"$), name: "in")
+  blk(xc, y1, [Linear $bold(W)_"in"$], "win", w: 8.2)
+  blk(xl, y2, [CausalConv1D], "conv")
+  blk(xl, y3, [SiLU], "act")
+  blk(xl, y4, [SSD], "ssd")
+  blk(xr, y4, [SiLU], "gate")
+  circle((xc, y5), radius: 0.42, fill: white, stroke: black, name: "had")
+  content((xc, y5), text(size: 13pt, $dot.o$))
+  blk(xc, y6, [RMSNorm], "norm", w: 8.2)
+  blk(xc, y7, [Linear $bold(W)_"out"$], "wout", w: 8.2)
+  content((xc, -14.7), text(size: 11pt, $bold(Y)_"block"$), name: "out")
+
+  arw("in.south", "win.north")
+  arw((xl, y1 - bh / 2), "conv.north")
+  arw("conv.south", "act.north")
+  arw("act.south", "ssd.north")
+  arw((xr, y1 - bh / 2), "gate.north")
+  arw("ssd.south", "had")
+  arw("gate.south", "had")
+  arw("had", "norm.north")
+  arw("norm.south", "wout.north")
+  arw("wout.south", "out.north")
+
+  content((xl - 0.45, (y1 - bh / 2 + y2 + bh / 2) / 2), text(size: 10pt, $bold(X), bold(cal(B)), bold(cal(C))$), anchor: "east")
+  content((xr + 0.45, (y1 - bh / 2 + y4 + bh / 2) / 2), text(size: 10pt, $bold(Z)$), anchor: "west")
+  content((xl - 0.45, (y4 - bh / 2 + y5 + 0.42) / 2), text(size: 10pt, $bold(Y)_"SSD"$), anchor: "east")
+})
+]
+```
+
+Mamba-1のブロック図と見比べてほしい。骨格はそのままで、違いは2つだけである。ひとつは、左の列に流れるものが$bold(U)$ひとつではなく$bold(X), bold(cal(B)), bold(cal(C))$の3つになっていること。もうひとつは、$dot.o$で合流した後に$"RMSNorm"$がひとつ挟まっていることである。
+
+$Delta$は図では省いたが、$bold(X)$たちと同じく入口の射影から作られ、SSDの中で使われる。ブロックの外側も変わらない。RMSNormを手前に置いて残差で繋ぎ、それを$L_"layer"$層積み重ね、最後に正規化と出力層を置く構成はMamba-1と同じである。
+
+## Mamba-2ブロックの計算手順
+Mamba-1と同じように、入力から出力までを並べておく。ヘッド次元を$P$、ヘッド数を$H = D slash P$とし、$bold(cal(B))$と$bold(cal(C))$は全ヘッドで共有する場合を書く。
+
+**1. 入力の射影**\
+  必要なものを1つの射影ですべて作り、切り分ける。
+  $$
+  mat(bold(Z), bold(X), bold(cal(B)), bold(cal(C)), bold(Delta)_0) = bold(X)_"block" bold(W)^top_"in"
+  $$
+  それぞれ$bold(Z), bold(X) in RR^(L times D)$、$bold(cal(B)), bold(cal(C)) in RR^(L times N)$、$bold(Delta)_0 in RR^(L times H)$である。Mamba-1と違い、$Delta$のための低ランクの射影は無く、ここで直接$H$次元ぶん作られる。
+
+**2. 畳み込みと活性化** — $bold(X), bold(cal(B)), bold(cal(C))$を横に連結したものに掛け、掛けたら元の3つに戻す。
+$$
+mat(bold(X), bold(cal(B)), bold(cal(C))) arrow.l "SiLU"("CausalConv1D"(mat(bold(X), bold(cal(B)), bold(cal(C))), bold(W)_"conv"))
+$$
+
+**3. 刻み幅と減衰** — $bold(a) = -exp(bold(A)_"log") in RR^H$として、ヘッドごとにスカラーを作る。
+$$
+Delta_k = "softplus"([bold(Delta)_0]_(k, :) + bold(b)_Delta) in RR^H, quad overline(a)^((h))_k = exp(Delta^((h))_k a^((h)))
+$$
+
+**4. ヘッドごとのSSD** — $bold(X)$の第$k$行を$P$次元ずつ$H$個に分け、ヘッド$h$の入力を$bold(x)^((h))_k in RR^P$とする。各ヘッドについて、減衰$overline(a)^((h))_k$、$bold(b)_k = [bold(cal(B))]_(k, :)$、$bold(c)_k = [bold(cal(C))]_(k, :)$を使ってSSDを計算する。中身はチャンク分割の節で述べた4段階そのままである。状態は$bold(H)^((h))_k in RR^(P times N)$、出力は$bold(y)^((h))_k in RR^P$である。
+
+**5. ヘッドの連結とスキップ結合** — $H$個の出力を縦に繋いで$D$次元に戻す。
+$$
+bold(y)_k = vec(bold(y)^((0))_k, bold(y)^((1))_k, dots.v, bold(y)^((H-1))_k) + bold(s)_"skip" dot.o bold(x)_k in RR^D
+$$
+
+**6. ゲート、正規化、出力の射影** — $bold(y)_k$を縦に束ねて$bold(Y)_"SSD" in RR^(L times D)$とし、
+$$
+bold(Y)_"block" = "RMSNorm"(bold(Y)_"SSD" dot.o "SiLU"(bold(Z))) bold(W)^top_"out" in RR^(L times d_"in")
+$$
+
+Mamba-1の手順と見比べると、1で全部まとめて作るようになったこと、2の畳み込みが$bold(cal(B)), bold(cal(C))$にも掛かること、3の$Delta$がヘッドあたり1つのスカラーに減ったこと、4が行列積で書けるSSDになったこと、6に正規化が入ったことの5点が違う。
+
+## Mamba-1との比較
+最後に、2つの違いを一覧にする。
+
+| 項目 | Mamba-1 | Mamba-2 |
+| --- | --- | --- |
+| $bold(A)$の構造 | 対角。特徴量ごとに$N$個の減衰率 | スカラーと単位行列の積。ヘッドごとに1個 |
+| ヘッド次元$P$ | $1$ | $64$ |
+| 状態次元$N$ | $16$ | $128$ |
+| $Delta$と$bold(b)_k, bold(c)_k$の生成 | 畳み込みと活性化の後に直列で | 入口の射影でまとめて並列に |
+| 畳み込みの対象 | $bold(U)$のみ | $bold(X), bold(cal(B)), bold(cal(C))$を連結したもの |
+| 出力側 | ゲートのみ | ゲートの後に正規化 |
+| 主計算 | prefix scan | チャンク分割した行列積 |
+| 行列積の演算器 | 使えない | 使える |
+
+$bold(A)$をスカラーに制限したことだけを見れば、Mamba-2はMamba-1より表現力の低いモデルである。それでも性能が上がるのは、その制限と引き換えに状態次元を8倍にでき、しかも学習が速くなるからである。制約を課すことでハードウェアに合う形へ持ち込み、浮いた分を別の次元に注ぎ込む。この構図は、Mamba-1がメモリ階層に合わせてカーネルを設計したのと同じ発想の延長にある。

@@ -62,6 +62,10 @@
       "title": "15. 生成モデルの評価指標",
       "description": "生成品質と多様性を評価するInception Score、FID、KIDなどの指標を数式から解説します。"
     },
+    "16mamba": {
+      "title": "16. Mamba",
+      "description": "連続・離散時間の状態空間モデルからSelective SSM、Mamba-1のprefix scanとハードウェア指向実装、Mamba-2の状態空間双対性まで数式で解説します。"
+    },
     "A01-mathmatics": {
       "title": "A.1 数学",
       "description": "機械学習で用いるベクトル、行列、微分、確率などの数学を定義と計算例から整理します。"
