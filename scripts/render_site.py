@@ -33,7 +33,9 @@ def render_site(root: Path, output: Path, typmark: Path) -> int:
     try:
         relative_output = raw_output.relative_to(root)
     except ValueError as error:
-        raise SystemExit(f"Output must be below the source root: {raw_output}") from error
+        raise SystemExit(
+            f"Output must be below the source root: {raw_output}"
+        ) from error
     if not relative_output.parts:
         raise SystemExit(f"Output must be below the source root: {raw_output}")
 
@@ -54,7 +56,9 @@ def render_site(root: Path, output: Path, typmark: Path) -> int:
         if output.exists():
             shutil.rmtree(output)
     except OSError as error:
-        raise SystemExit(f"Unable to clear output directory {output}: {error}") from error
+        raise SystemExit(
+            f"Unable to clear output directory {output}: {error}"
+        ) from error
 
     content_dir = output / "blogs-content"
     assets_dir = output / "blogs" / "assets"

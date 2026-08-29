@@ -4,6 +4,7 @@
 #set text(font: ("New Computer Modern", "Noto Sans JP"))
 ```
 
+# Mamba
 ::: box
 この記事はWIP（Work in Progress）です。
 :::
@@ -137,50 +138,60 @@ $$
 
 つまり、状態は今の状態と入力の線形変換で決まり、出力は状態と入力の線形変換で決まる。ここで、$bold(A)$は状態遷移行列、$bold(B)$は入力行列、$bold(C)$は出力行列、$bold(S)$は直接伝達行列と呼ばれ、ここでは何にも依存しない定数であるとする。また、ここではそれぞれのベクトル、行列の次元は適切であるとする。
 
-ここで、$t$上の分割${t_k | k in NN_(>=0)}$を考える。そして、$t_k <= t < t_(k+1)$の元で$bold(x)(t) = bold(x)_k = "const."$であると仮定する。$Delta := t_(k+1) - t_k$とおく。このとき、
+ここで、時間軸上に格子点${tau_k | k in NN_(>=0)}$を取り、第$k$区間を$(tau_(k-1), tau_k]$、その刻み幅を$Delta := tau_k - tau_(k-1)$とおく。ここでは刻み幅は一定であるとする。
 
+そして、入力は各区間で一定であり、**区間の右端の値**を取ると仮定する。すなわち
+$$
+bold(x)(t) = bold(x)_k := bold(x)(tau_k) quad (tau_(k-1) < t <= tau_k)
+$$
+である。右端に揃えるのは、この後$bold(h)_k$と$bold(y)_k$も$tau_k$での値として定義したときに、同じ添字$k$が同じ時刻$tau_k$を指すようにするためである。左端に揃える取り方もあり、その場合は後で添字をずらす必要が出る。ここでは最初から揃えておく。
+
+さて、このとき
 $$
 d/(d t) (e^(-bold(A) t) bold(q)(t)) &= e^(-bold(A) t) (d bold(q)(t))/(d t) - bold(A) e^(-bold(A) t) bold(q)(t)\
-&= e^(-bold(A) t) (bold(A) bold(q)(t) + bold(B) x(t)) - bold(A) e^(-bold(A) t) bold(q)(t)\
+&= e^(-bold(A) t) (bold(A) bold(q)(t) + bold(B) bold(x)(t)) - bold(A) e^(-bold(A) t) bold(q)(t)\
 &= e^(-bold(A) t) bold(B) bold(x)_k
 $$
-
-が成り立つ。天下り的ではあるが、$e^(-bold(A) t)$をかけた$bold(q)(t)$の微分を考えた。この両辺を$t$について$t_k$から$t_(k+1)$まで積分すると、
-
+が成り立つ。天下り的ではあるが、$e^(-bold(A) t)$をかけた$bold(q)(t)$の微分を考えた。この両辺を$t$について$tau_(k-1)$から$tau_k$まで積分すると、
 $$
-integral_(t_k)^(t_(k+1)) d/(d t) (e^(-bold(A) t) bold(q)(t)) d t &= integral_(t_k)^(t_(k+1)) e^(-bold(A) t) bold(B) bold(x)_k d t\
-e^(-bold(A) t_(k+1)) bold(q)(t_(k+1)) - e^(-bold(A) t_k) bold(q)(t_k) &= integral_(t_k)^(t_(k+1)) e^(-bold(A) t) bold(B) d t bold(x)_k
+integral_(tau_(k-1))^(tau_k) d/(d t) (e^(-bold(A) t) bold(q)(t)) d t &= integral_(tau_(k-1))^(tau_k) e^(-bold(A) t) bold(B) bold(x)_k d t\
+e^(-bold(A) tau_k) bold(q)(tau_k) - e^(-bold(A) tau_(k-1)) bold(q)(tau_(k-1)) &= integral_(tau_(k-1))^(tau_k) e^(-bold(A) t) bold(B) d t bold(x)_k
 $$
-
-となる。右辺の積分について、$tau := t - t_k$と置換すると、$t = tau + t_k$であり、$d t = d tau$である。よって、
+となる。右辺の積分について、$sigma := t - tau_(k-1)$と置換すると、$t = sigma + tau_(k-1)$であり、$d t = d sigma$である。よって、
 $$
-integral_(t_k)^(t_(k+1)) e^(-bold(A) t) bold(B) d t &= integral_(0)^(t_(k+1) - t_k) e^(-bold(A) (tau + t_k)) bold(B) d tau\
-&= e^(-bold(A) t_k) integral_(0)^Delta e^(-bold(A) tau) bold(B) d tau
+integral_(tau_(k-1))^(tau_k) e^(-bold(A) t) bold(B) d t &= integral_(0)^(tau_k - tau_(k-1)) e^(-bold(A) (sigma + tau_(k-1))) bold(B) d sigma\
+&= e^(-bold(A) tau_(k-1)) integral_(0)^Delta e^(-bold(A) sigma) bold(B) d sigma
 $$
-
 となる。これを先ほどの式に代入すると、
 $$
-e^(-bold(A) t_(k+1)) bold(q)(t_(k+1)) - e^(-bold(A) t_k) bold(q)(t_k) &= e^(-bold(A) t_k) integral_(0)^Delta e^(-bold(A) tau) bold(B) d tau bold(x)_k \
-e^(-bold(A) (t_(k+1) - t_k)) bold(q)(t_(k+1)) &= bold(q)(t_k) + integral_(0)^Delta e^(-bold(A) tau) bold(B) d tau bold(x)_k\
-bold(q)(t_(k+1)) &= underbracket(e^(Delta bold(A)), bold(A)_Delta) bold(q)(t_k) + underbracket(integral_(0)^Delta e^(bold(A) (Delta - tau)) bold(B) d tau, bold(B)_Delta) bold(x)_k
+e^(-bold(A) tau_k) bold(q)(tau_k) - e^(-bold(A) tau_(k-1)) bold(q)(tau_(k-1)) &= e^(-bold(A) tau_(k-1)) integral_(0)^Delta e^(-bold(A) sigma) bold(B) d sigma bold(x)_k \
+e^(-bold(A) (tau_k - tau_(k-1))) bold(q)(tau_k) &= bold(q)(tau_(k-1)) + integral_(0)^Delta e^(-bold(A) sigma) bold(B) d sigma bold(x)_k\
+bold(q)(tau_k) &= underbracket(e^(Delta bold(A)), bold(A)_Delta) bold(q)(tau_(k-1)) + underbracket(integral_(0)^Delta e^(bold(A) (Delta - sigma)) bold(B) d sigma, bold(B)_Delta) bold(x)_k
 $$
-となる。上のように$bold(A)_Delta$と$bold(B)_Delta$を定義した。これらは$bold(A), bold(B)$を刻み幅$Delta$で離散化した行列で、形は元と同じである。**添字は刻み幅そのもの**を表す。刻み幅が別の値になれば、添字もその値になる。文献ではこれを$overline(bold(A)), overline(bold(B))$と書くことも多いが、本章では上線付きの記号を後の節で別の対象に使うので、離散化した行列は刻み幅を添字にして表すことにする。隠れ状態を$bold(q)_k := bold(q)(t_k)$、出力を$bold(y)_k := bold(y)(t_k)$とおくと、離散時間の状態空間モデルは次のように表される。
+となる。上のように$bold(A)_Delta$と$bold(B)_Delta$を定義した。これらは$bold(A), bold(B)$を刻み幅$Delta$で離散化した行列で、形は元と同じである。**添字は刻み幅そのもの**を表す。刻み幅が別の値になれば、添字もその値になる。文献ではこれを$overline(bold(A)), overline(bold(B))$と書くことも多いが、本章では上線付きの記号を後の節で別の対象に使うので、離散化した行列は刻み幅を添字にして表すことにする。
+
+そこで、隠れ状態と出力も格子点での値として
 $$
-bold(q)_(k+1) &= bold(A)_Delta bold(q)_k + bold(B)_Delta bold(x)_k
+bold(h)_k := bold(q)(tau_k), quad bold(y)_k := bold(y)(tau_k)
 $$
+と定義する。$bold(q)(tau_(k-1)) = bold(h)_(k-1)$であるから、上の式はそのまま
+$$
+bold(h)_k = bold(A)_Delta bold(h)_(k-1) + bold(B)_Delta bold(x)_k
+$$
+と書ける。出力のほうは、連続時間の式$bold(y)(t) = bold(C) bold(q)(t) + bold(S) bold(x)(t)$を$t = tau_k$で読むだけでよい。$bold(q)(tau_k) = bold(h)_k$、$bold(x)(tau_k) = bold(x)_k$であるから
+$$
+bold(y)_k = bold(C) bold(h)_k + bold(S) bold(x)_k
+$$
+である。$bold(x)_k, bold(h)_k, bold(y)_k$がいずれも時刻$tau_k$の値なので、添字をずらす操作は要らない。
+
 この条件では$bold(B)_Delta$は閉形式で計算できる。
 
 $$
-bold(B)_Delta &= integral_(0)^Delta e^(bold(A) (Delta - tau)) bold(B) d tau = integral_(0)^Delta e^(bold(A) tau) bold(B) d tau\
-&= [bold(A)^(-1) e^(bold(A) tau) bold(B)]_(0)^Delta = bold(A)^(-1) (e^(Delta bold(A)) - bold(I)) bold(B)
+bold(B)_Delta &= integral_(0)^Delta e^(bold(A) (Delta - sigma)) bold(B) d sigma = integral_(0)^Delta e^(bold(A) sigma) bold(B) d sigma\
+&= [bold(A)^(-1) e^(bold(A) sigma) bold(B)]_(0)^Delta = bold(A)^(-1) (e^(Delta bold(A)) - bold(I)) bold(B)
 $$
 
-さて、一般に深層学習では入力$bold(x)_k$は時系列データの観測値を処理した後の隠れ状態を$bold(h)_k$とすることが多い。なので$bold(h)_k := bold(q)_(k+1)$とおくと、次のように書き換えられる。
-$$
-bold(h)_k &= bold(A)_Delta bold(h)_(k-1) + bold(B)_Delta bold(x)_k\
-bold(y)_k &= bold(C) bold(h)_(k) + bold(S) bold(x)_k
-$$
-なお、ここで出力は入力を処理した後の隠れ状態$bold(h)_(k)$から計算すると決めた。数列${bold(h)_k | k in NN_(>=0)}$を漸化式を繰り返し用いて次のように書き下してみる。なお、$bold(h)_(-1) = bold(0)$とする。
+なお、入力を区間の右端の値で一定としたことは、積分$integral_(tau_(k-1))^(tau_k) e^(bold(A)(tau_k - t)) bold(B) bold(x)(t) d t$を右端の値だけで評価したことに当たる。両端の値を混ぜて評価する取り方もあり、その場合は$bold(x)_(k-1)$にも依存する漸化式になる。Mamba-3が採るのはそちらである。ここでは右端だけを使う取り方で進める。数列${bold(h)_k | k in NN_(>=0)}$を漸化式を繰り返し用いて次のように書き下してみる。なお、$bold(h)_(-1) = bold(0)$とする。
 $$
 bold(h)_0 &= bold(B)_Delta bold(x)_0\
 bold(h)_1 &= bold(A)_Delta bold(B)_Delta bold(x)_0 + bold(B)_Delta bold(x)_1\
@@ -210,11 +221,15 @@ $$
 $$
 bold(B)(t) := bold(f)_B (bold(x) (t)), quad bold(C)(t) := bold(f)_C (bold(x)(t) ), quad Delta(t) := bold(f)_Delta (bold(x)(t ))
 $$
-である。ここで、$bold(A)$は入力に依存しない定数であるとする。$Delta(t)$は$t$上の分割${t_k | k in NN_(>=0)}$を決める。先ほどと同様に$t_k <= t < t_(k+1)$の元で$bold(x)(t) = bold(x)_k = "const."$であると仮定する。すると、これらも離散化され、次のように表される。
+である。ここで、$bold(A)$は入力に依存しない定数であるとする。先ほどと同様に、区間$(tau_(k-1), tau_k]$では$bold(x)(t) = bold(x)_k$であるとする。違うのは刻み幅が一定でなくなることで、第$k$区間の幅は$Delta_k := tau_k - tau_(k-1)$である。
+
+ここで刻み幅の決まり方に触れておく。$Delta_k$は$bold(x)_k$から決まり、その$bold(x)_k$は幅$Delta_k$の区間の右端の値である、と読むと循環しているように見える。しかし実際に手元にあるのは離散列$bold(x)_0, bold(x)_1, dots$のほうである。これが与えられたうえで$Delta_k = bold(f)_Delta (bold(x)_k)$が定まり、$tau_k = tau_(k-1) + Delta_k$と格子点が順に決まっていく。連続時間のモデルは、その離散列の背後に想定するものであって、先にあるわけではない。
+
+すると、これらも離散化され、次のように表される。
 $$
 bold(B)_k := bold(f)_B (bold(x)_k), quad bold(C)_k := bold(f)_C (bold(x)_k), quad Delta_k := bold(f)_Delta (bold(x)_k)
 $$
-これらは$t_k <= t < t_(k+1)$で一定である。よって、SSMの離散化の議論をそのまま適用できる。すなわち、次のように表される。
+これらは区間$(tau_(k-1), tau_k]$で一定である。よって、SSMの離散化の議論をそのまま適用できる。すなわち、次のように表される。
 $$
 bold(h)_k &= bold(A)_(Delta_k) bold(h)_(k-1) + bold(B)_(Delta_k) bold(x)_k\
 bold(y)_k &= bold(C)_k bold(h)_(k) + bold(S) bold(x)_k
@@ -260,7 +275,7 @@ $$
 $$
 y_(ell, d) = sum_(0 <= ell' < K\ ell' <= ell) [bold(W)_"conv"]_(ell', d) [bold(U)]_(ell - ell', d)
 $$
-こうして得た入力$bold(X)_"SSM"$が、先ほどのSelective SSMの一つの入力$bold(x)_k$と以下のように対応する。
+この畳み込みによって、SSMに入力する前にその入力に対していくつか過去の情報を混ぜることができる。こうして得た入力$bold(X)_"SSM"$が、先ほどのSelective SSMの一つの入力$bold(x)_k$と以下のように対応する。
 $$
 bold(x)_k = [bold(X)_"SSM"]_(k, :)
 $$
@@ -344,7 +359,7 @@ x^((D-1))_k, x^((D-1))_k, dots.c, x^((D-1))_k
 $$
 となる。各行に同じ値を$N$回並べただけの行列であり、$bold(H)_k$と形を揃えるためだけに置いている。出力側の$bold(H)_k bold(c)_k$は、$D times N$の行列に$N$次元ベクトルを掛けて$D$次元ベクトルを得る、通常の行列とベクトルの積である。図にすると次のようになる。
 
-```typst {render=svg caption="Mamba-1における値の並び。行が特徴量、列が状態の次元にあたる"}
+```typst {render=svg caption="Mamba-1における値の並び"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -677,7 +692,7 @@ $$
 
 この方法の良いところは、Up-sweepとDown-sweepの両方を並列に計算できるため、全体の計算時間を大幅に短縮できる点である。特に、長いシーケンスに対しても、結合回数は$cal(O)(L)$に抑えられ、並列計算を活用することで実際の計算時間は$cal(O)(log L)$まで削減可能である。これは後で数える。加えて、このアルゴリズムはほとんど長さ$L$のメモリがあれば済むところである。つまりin-placeでできる。Up-sweepではノードの結合はその右側のノードに上書きする。つまり、以前の例で図示してみると以下のようになる。
 
-```typst {render=svg caption="Up-sweepにおけるメモリの上書きの様子（L=8）。網掛けはそのステップで上書きされたセル"}
+```typst {render=svg caption="Up-sweepにおけるメモリの上書き（L=8）"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -725,7 +740,7 @@ $$
 
 以下に、$L=8$のときのDown-sweepの様子を示す。
 
-```typst {render=svg caption="Down-sweepにおけるメモリの上書きの様子（L=8）。網掛けはそのステップで上書きされたセル"}
+```typst {render=svg caption="Down-sweepにおけるメモリの上書き（L=8）"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -883,7 +898,7 @@ $$
 
 3のチャンク内scanには、前節までに述べたBlelloch scanをそのまま使う。チャンク間は逐次だが、チャンクは$L slash C$個しかない。またバッチ方向と特徴量方向$D$には完全な並列性があるので、GPUのスレッドブロックはそちらで埋まる。図にすると以下のようになる。
 
-```typst {render=svg caption="融合カーネルにおけるデータの流れ。破線で囲んだ量はHBMに書き出されない"}
+```typst {render=svg caption="融合カーネルにおけるデータの流れ"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -1083,7 +1098,7 @@ bold(X)^((ell+1))_"block" = bold(X)^((ell))_"block" + "MambaBlock"("RMSNorm"(bol
 $$
 である。図にすると次のようになる。
 
-```typst {render=svg caption="Mamba層の積み重ね。正規化はブロックの手前に置き、残差の経路には挟まない"}
+```typst {render=svg caption="Mamba層の積み重ね"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -1296,11 +1311,13 @@ overline(bold(b))^((d))_k approx Delta^((d))_k bold(b)_k
 $$
 となる。これが実装で使われている形である。
 
-この近似には別の見方もある。連続時間の式$(d h)/(d t) = a h + b x$を、区間$[t_k, t_(k+1))$で前進Euler法により離散化すると
+この近似には別の見方もある。厳密な値は積分
 $$
-h_(k+1) = h_k + Delta (a h_k + b x_k) = (1 + Delta a) h_k + Delta b x_k
+integral_0^Delta e^(a (Delta - sigma)) b thin d sigma
 $$
-となる。つまりEuler法では$overline(a) = 1 + Delta a$、$overline(b) = Delta b$である。Mamba-1が使っているのは、$overline(a)$はZOHの厳密な$e^(Delta a)$のまま、$overline(b)$だけEuler法の$Delta b$に取り替えた混ざった形である、と言える。
+であった。近似$Delta b$は、この被積分関数のうち$e^(a(Delta - sigma))$を$1$で置き換えたものにほかならない。つまり、区間の中では減衰が起きないものとみなし、高さ$b$、幅$Delta$の長方形で積分を近似したことになる。$phi(z) approx 1$という先ほどの言い換えと同じことを、積分の側から見ただけである。
+
+状態の側は指数$e^(Delta a)$を厳密に使い、入力の側だけをこの一次の近似で済ませる。この組み合わせは**指数Euler法**（exponential Euler）と呼ばれる。$bold(A)$による同次部分は指数で厳密に解き、入力の項だけを低次で近似する、という方針である。後で見るように、Mamba-3はこの入力の項の近似を台形則に取り替える。
 
 ### 近似が許される理由
 $overline(b)$を近似するなら$overline(a)$も近似してよさそうに思えるが、この2つは役割が違う。
@@ -1409,7 +1426,7 @@ Mamba-1によって長い系列を線形の計算量で扱えるようになっ�
 Mamba-2はこの壁を理論の側から崩した。Selective SSMの計算を行列ひとつの積として書き直すと、それが注意機構とほとんど同じ形になる。この対応を**状態空間双対性**、あるいは**SSD**と呼ぶ。同じ計算に、漸化式として時刻順に回す見方と、行列積として一度に片づける見方の2通りがあることになり、後者を選べば行列積の演算器が使える。この節では、まずその書き直しを導き、次にそれを実際の計算手順に落とす。
 
 ## 半分離可能行列としてのSSM
-Selective SSMの一般項を思い出す。特徴量$d$を固定し、記号から上付きの$(d)$を落として書けば、
+Selective SSMの一般項を思い出す。Mamba-1の節で漸化式を展開して得たものである。特徴量$d$を固定し、記号から上付きの$(d)$を落として書けば、
 $$
 bold(h)_k = sum_(i=0)^k (dot.o.big_(j=i+1)^k overline(bold(a))_j) dot.o overline(bold(b))_i x_i
 $$
@@ -1419,20 +1436,20 @@ y_k = sum_(i=0)^k (bold(c)_k)^top ((dot.o.big_(j=i+1)^k overline(bold(a))_j) dot
 $$
 を得る。スキップ結合の項は以降の議論に関わらないので省いた。
 
-この式は、出力$y_k$が入力$x_0, dots, x_k$の線形結合であることを言っている。そこで$x_i$の係数だけを取り出して
+この式が言っているのは、**出力$y_k$が入力$x_0, dots, x_k$の線形結合である**ということである。$x_i$に掛かっている係数に名前を付けて
 $$
-M_(k i) := cases(
-(bold(c)_k)^top ((dot.o.big_(j=i+1)^k overline(bold(a))_j) dot.o overline(bold(b))_i) & quad (k >= i),
-0 & quad (k < i)
-)
+M_(k i) := (bold(c)_k)^top ((dot.o.big_(j=i+1)^k overline(bold(a))_j) dot.o overline(bold(b))_i)
 $$
-と定義する。$k < i$のとき$0$としたのは、未来の入力が出力に影響しないためである。すると、出力を縦に並べた$bold(y) = (y_0, dots, y_(L-1))^top$と入力を縦に並べた$bold(x) = (x_0, dots, x_(L-1))^top$の間には
-$$
-bold(y) = bold(M) bold(x)
-$$
-という関係が成り立つ。$bold(M) in RR^(L times L)$は下三角行列である。漸化式が、行列をひとつ掛けるだけの計算に化けた。
+と書けば、$y_k = sum_(i=0)^k M_(k i) x_i$である。$i$は$0$から$k$までしか動かないことに注意しておく。
 
-どういう値がどこに並んでいるのかを見ておこう。$L = 4$として書き下すと
+ここまでは時刻$k$をひとつ固定した話であった。系列全体を一度に眺めるために、$L = 4$として4本の式を並べて書き下してみる。
+$$
+y_0 &= (bold(c)_0)^top overline(bold(b))_0 x_0\
+y_1 &= (bold(c)_1)^top (overline(bold(a))_1 dot.o overline(bold(b))_0) x_0 + (bold(c)_1)^top overline(bold(b))_1 x_1\
+y_2 &= (bold(c)_2)^top (overline(bold(a))_2 dot.o overline(bold(a))_1 dot.o overline(bold(b))_0) x_0 + (bold(c)_2)^top (overline(bold(a))_2 dot.o overline(bold(b))_1) x_1 + (bold(c)_2)^top overline(bold(b))_2 x_2\
+y_3 &= (bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(a))_2 dot.o overline(bold(a))_1 dot.o overline(bold(b))_0) x_0 + (bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(a))_2 dot.o overline(bold(b))_1) x_1 + (bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(b))_2) x_2 + (bold(c)_3)^top overline(bold(b))_3 x_3
+$$
+4本とも同じ$x_0, dots, x_3$の線形結合だが、式ごとに項の数が違う。$y_0$に$x_1, x_2, x_3$が現れないのは、その時点でまだ入力されていないからである。現れない項の係数を$0$として書き揃えれば、4本は
 $$
 vec(y_0, y_1, y_2, y_3) = mat(
 (bold(c)_0)^top overline(bold(b))_0, 0, 0, 0;
@@ -1441,11 +1458,17 @@ vec(y_0, y_1, y_2, y_3) = mat(
 (bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(a))_2 dot.o overline(bold(a))_1 dot.o overline(bold(b))_0), (bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(a))_2 dot.o overline(bold(b))_1), (bold(c)_3)^top (overline(bold(a))_3 dot.o overline(bold(b))_2), (bold(c)_3)^top overline(bold(b))_3
 ) vec(x_0, x_1, x_2, x_3)
 $$
-となる。第$k$行は出力$y_k$を、第$i$列は入力$x_i$を担当する。ひとつ下の行へ移るごとに$overline(bold(a))$がひとつ増え、左へ一列進むごとにも$overline(bold(a))$がひとつ増える。つまり、対角から左下へ離れるほど減衰が積み重なる。上三角が$0$なのは、未来の入力を見ないという因果性そのものである。
+とまとめられる。**これは行列とベクトルの積そのものである**。そこで係数を並べた$L times L$行列を$bold(M)$、出力と入力を縦に並べたものを$bold(y) = (y_0, dots, y_(L-1))^top$、$bold(x) = (x_0, dots, x_(L-1))^top$と書けば
+$$
+bold(y) = bold(M) bold(x)
+$$
+となる。漸化式が、行列をひとつ掛けるだけの計算に化けた。$bold(M)$が下三角になったのは、$y_k$の和が$i = k$で止まること、つまり未来の入力を見ないという因果性の帰結であって、そう定めたわけではない。
+
+中身の並び方も見ておく。第$k$行は出力$y_k$を、第$i$列は入力$x_i$を担当する。ひとつ下の行へ移るごとに$overline(bold(a))$がひとつ増え、左へ一列進むごとにも$overline(bold(a))$がひとつ増える。つまり、対角から左下へ離れるほど減衰が積み重なる。
 
 減衰が積み重なる様子は、もう少し長く取ったほうが見えやすい。$L = 6$として、各成分に何回$overline(bold(a))$が掛かるかだけを描くと次のようになる。
 
-```typst {render=svg caption="Mの各成分が何を表すか。行が出力の時刻、列が入力の時刻に対応する"}
+```typst {render=svg caption="Mの各成分が表すもの"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -1526,7 +1549,8 @@ $$
 
 ただし、この分解をそのまま計算に使うことはできない。$bold(pi)_i$は減衰を積み重ねたものであり、$i$が大きくなると急速に$0$へ近づく。それで割る$tilde(bold(b))_i$は数値として発散してしまう。分解の存在は理論として重要だが、実際の計算では後で述べるチャンク分割を使う。
 
-## 注意機構との双対性
+## 注意機構との双対性（SSD）
+
 ここでMamba-2は$overline(bold(a))_k$に制限を課す。$N$個の成分がすべて等しいとするのである。すなわちスカラー$overline(a)_k$を用いて
 $$
 overline(bold(a))_k = overline(a)_k bold(1)_N
@@ -1597,7 +1621,7 @@ $$
 
 それぞれの行列の形を並べると次のようになる。
 
-```typst {render=svg caption="Mの分解。薄い線の1本ずつがトークンで、その並ぶ向きが系列方向Lにあたる。濃さは重みの大きさを表し、対角から左下へ離れるほど減衰して薄くなる"}
+```typst {render=svg caption="Mの分解"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -1698,7 +1722,7 @@ $$
 
 Attentionのほうも同じ構図で描いてみると、違いが目で見える。
 
-```typst {render=svg caption="Attentionの重み行列。1段目はSSDと同じ形。セルを覆う×は$-oo$を表す。2段目でそれを足し、3段目のsoftmaxを通すとその位置が$0$になる"}
+```typst {render=svg caption="Attentionの重み行列"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -1820,7 +1844,7 @@ $$
 
 図にすると次のようになる。
 
-```typst {render=svg caption="チャンクに分けたMのブロック構造。濃い網掛けが二次形式で計算する対角ブロック、薄い網掛けがランクN以下の非対角ブロック"}
+```typst {render=svg caption="チャンクに分けたMのブロック構造"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -1911,7 +1935,7 @@ $$
 
 以上をまとめると、Mamba-2のブロックは次のようになる。
 
-```typst {render=svg caption="Mamba-2ブロックの構成。Mamba-1と同じ形で、パラメータを入口でまとめて作る点と、ゲートの後に正規化が入る点だけが違う"}
+```typst {render=svg caption="Mamba-2ブロックの構成"}
 #align(center)[
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
@@ -2019,3 +2043,199 @@ Mamba-1の手順と見比べると、1で全部まとめて作るようになっ
 | 行列積の演算器 | 使えない | 使える |
 
 $bold(A)$をスカラーに制限したことだけを見れば、Mamba-2はMamba-1より表現力の低いモデルである。それでも性能が上がるのは、その制限と引き換えに状態次元を8倍にでき、しかも学習が速くなるからである。制約を課すことでハードウェアに合う形へ持ち込み、浮いた分を別の次元に注ぎ込む。この構図は、Mamba-1がメモリ階層に合わせてカーネルを設計したのと同じ発想の延長にある。
+
+# Mamba-3
+Mamba-3の変更点は3つある。離散化をより精度の高いものに取り替えること、状態を複素数にすること、そして入力と出力を多次元化することである。ここでは1つ目を扱う。
+
+以下の議論は、$bold(A), bold(B)_k, bold(C)_k$がまだ行列であるSelective SSMの段階から始める。Mamba-1やMamba-2で対角やスカラーに制限する前の形である。制限を課すのは最後にまとめて行う。
+
+## 離散化の台形近似
+Selective SSMの節では、区間$(tau_(k-1), tau_k]$について
+$$
+bold(h)_k = bold(A)_(Delta_k) bold(h)_(k-1) + integral_(tau_(k-1))^(tau_k) e^(bold(A) (tau_k - tau)) bold(B)(tau) bold(x)(tau) d tau
+$$
+という形を得ていた。第1項は厳密である。問題は第2項の積分をどう評価するかであった。
+
+そこでは入力が区間内で一定であると仮定し、右端の値$bold(x)_k$で置き換えた。さらにMamba-1では、そこから得た$bold(B)_(Delta_k)$を一次近似して$Delta_k bold(B)_k bold(x)_k$とした。**Mamba-3はこの仮定を外す**。区間内で一定とは考えず、両端の値$bold(x)_(k-1)$と$bold(x)_k$だけを使って積分を評価する。
+
+被積分関数を
+$$
+bold(f)_k (tau) := e^(bold(A) (tau_k - tau)) bold(B)(tau) bold(x)(tau)
+$$
+とおく。両端での値は
+$$
+bold(f)_k (tau_k) = bold(B)_k bold(x)_k, quad bold(f)_k (tau_(k-1)) = bold(A)_(Delta_k) bold(B)_(k-1) bold(x)_(k-1)
+$$
+である。右端では$e^(bold(A)(tau_k - tau_k)) = bold(I)$となって指数が消え、左端では$e^(bold(A) Delta_k) = bold(A)_(Delta_k)$が残る。左端で入った寄与が右端まで届く間に減衰する、という物理的な意味がそのまま式に出ている。
+
+通常の台形則は両端を等しく$1 slash 2$ずつ重み付けするが、Mamba-3は入力に依存する重み$lambda_k in [0, 1]$で配分する。すなわち
+$$
+integral_(tau_(k-1))^(tau_k) bold(f)_k (tau) d tau approx Delta_k ((1 - lambda_k) bold(f)_k (tau_(k-1)) + lambda_k bold(f)_k (tau_k))
+$$
+とする。両端の値を書き下せば、漸化式は
+$$
+bold(h)_k = bold(A)_(Delta_k) bold(h)_(k-1) + (1 - lambda_k) Delta_k bold(A)_(Delta_k) bold(B)_(k-1) bold(x)_(k-1) + lambda_k Delta_k bold(B)_k bold(x)_k
+$$
+となる。出力は変わらず$bold(y)_k = bold(C)_k bold(h)_k + bold(S) bold(x)_k$である。
+
+$lambda_k = 1$とすると右端だけが残り、
+$$
+bold(h)_k = bold(A)_(Delta_k) bold(h)_(k-1) + Delta_k bold(B)_k bold(x)_k
+$$
+となってMamba-1/2の指数Euler法に一致する。$lambda_k = 1 slash 2$とすれば通常の台形則である。つまり$lambda_k$は、これまでの近似を含んだうえで、その配分を入力に決めさせるための自由度である。長方形での近似が一次であったのに対し、両端を使う近似は二次の精度を持つ。
+
+ここで添字が揃っていることを確かめておきたい。第$k$区間を$(tau_(k-1), tau_k]$と取り、$bold(x)_k, bold(h)_k, bold(y)_k$をいずれも右端$tau_k$での値と定義したので、両端の値はそのまま$bold(x)_(k-1)$と$bold(x)_k$になった。もし区間を$[tau_k, tau_(k+1))$と取って左端に添字を合わせていたら、ここで$bold(x)_k$と$bold(x)_(k+1)$が現れ、$bold(h)_k$の側と1つずれてしまう。SSMの節で右端に揃えておいたのは、このためである。
+
+## Mamba-3における漸化式
+ここまでは$bold(A), bold(B)_k, bold(C)_k$を行列のままにして進めてきた。ここからMamba-1とMamba-2で課したのと同じ制限を課し、実際に計算する形にする。出発点は先ほど得た
+$$
+bold(h)_k = bold(A)_(Delta_k) bold(h)_(k-1) + (1 - lambda_k) Delta_k bold(A)_(Delta_k) bold(B)_(k-1) bold(x)_(k-1) + lambda_k Delta_k bold(B)_k bold(x)_k
+$$
+である。なお$lambda_k$は$Delta_k$と同じく入力から決まる量とし、$Delta_k$が特徴量ごと、あるいはヘッドごとに定まるのに合わせて、$lambda_k$も同じ単位で定まるものとする。
+
+課す制限は4つあり、それぞれ出どころが違う。最初の2つはMamba-1で導入したもので、残りの2つはMamba-2で導入したものである。順に確認していく。
+
+### Mamba-1で課した制限
+**1つ目は、$bold(A)$を対角行列に制限することである**。これはMamba-1が、異なる特徴量の状態を直接混ぜないために課したものであった。$bold(A) = "diag"(bold(a)^((d)))$とすると、状態の$N$個の次元が互いに独立に更新されるようになり、$N times N$の行列を持ち回る必要がなくなる。刻み幅も特徴量ごとの$Delta^((d))_k$になり、対角行列を刻み幅$Delta^((d))_k$で離散化したものはやはり対角行列であって、その対角成分を並べたものが
+$$
+overline(bold(a))^((d))_k = exp(Delta^((d))_k bold(a)^((d))) in RR^N
+$$
+である。対角行列を掛けることは、その対角成分との要素ごとの積に等しい。したがって、一般形で$bold(A)_(Delta_k)$を掛けていた箇所はすべて$overline(bold(a))^((d))_k dot.o (dot.c)$になる。
+
+**2つ目は、$bold(B)_k$と$bold(C)_k$がベクトルになることである**。これもMamba-1から来ている。特徴量$d$を1つ固定すると、その特徴量に対する入力も出力もスカラーである。入力$x^((d))_k$を$N$次元の状態へ移す$bold(B)_k$は$N$次元ベクトル$bold(b)_k$になり、$bold(B)_k bold(x)_k$は$bold(b)_k x^((d))_k$になる。出力側の$bold(C)_k$も同じく$N$次元ベクトル$bold(c)_k$になる。なおこの2つは全特徴量で共有するので、上付きの$(d)$は付かない。
+
+以上2つを代入すると、特徴量$d$についての漸化式は
+$$
+bold(h)^((d))_k = overline(bold(a))^((d))_k dot.o bold(h)^((d))_(k-1) + (1 - lambda^((d))_k) Delta^((d))_k (overline(bold(a))^((d))_k dot.o bold(b)_(k-1)) x^((d))_(k-1) + lambda^((d))_k Delta^((d))_k bold(b)_k x^((d))_k
+$$
+となる。行列の積がすべて要素ごとの積とスカラー倍に変わった。ここまでがMamba-1と同じ形である。
+
+### Mamba-2で課した制限
+Mamba-3はMamba-2を引き継ぐので、Mamba-2で追加した制限も課す。こちらは2つとも、計算を行列積に持ち込むためのものである。
+
+**3つ目は、減衰$overline(bold(a))^((d))_k$の$N$個の成分をすべて等しくすることである**。すなわちスカラー$overline(a)^((d))_k$を用いて$overline(bold(a))^((d))_k = overline(a)^((d))_k bold(1)_N$と書けるとする。この制限は、双対性の節で$bold(M) = bold(Gamma) dot.o (bold(cal(C)) bold(cal(B))^top)$の分解を得るために必要だったものである。減衰がスカラーであれば内積の外へ出せるが、$N$個の成分が別々の値のままでは出せず、この分解が成り立たない。式の上では、これにより$dot.o$がただのスカラー倍になる。
+
+**4つ目は、$D$個の特徴量を$P$個ずつの組にまとめ、組の中で$overline(a)^((d))_k, Delta^((d))_k, lambda^((d))_k$を共有することである**。この組がヘッドであり、ヘッド数は$D slash P$である。ヘッド$h$についての量を$overline(a)^((h))_k$のように書く。この制限の理由は、$bold(M)$を使い回すことにある。$bold(M)$は$overline(a), bold(b), bold(c)$から決まる$L times L$の行列だが、Mamba-1のように特徴量ごとに減衰が違えば、チャンネルごとに別の$bold(M)$が要る。$D$個の$L times L$行列を作るのでは行列積にする意味がない。ヘッドの中で共有すれば$bold(M)$が1つで済み、そのヘッドの$P$チャンネルをまとめて1回の行列積で処理できる。
+
+以上4つの制限を課した後の漸化式を書き下す。Mamba-2の節と同じように、特徴量を1つ固定して上付きの$(d)$を落として書くと、状態は$bold(h)_k in RR^N$、入力$x_k$はスカラーで、
+$$
+bold(h)_k = alpha_k bold(h)_(k-1) + beta_k bold(b)_(k-1) x_(k-1) + gamma_k bold(b)_k x_k
+$$
+$$
+alpha_k = e^(Delta_k a), quad beta_k = (1 - lambda_k) Delta_k alpha_k, quad gamma_k = lambda_k Delta_k
+$$
+となる。出力は$y_k = (bold(c)_k)^top bold(h)_k$である。
+
+3つの係数$alpha_k, beta_k, gamma_k$がスカラーになったのは、3つ目の制限で減衰をスカラーにしたからである。Mamba-1の形ではこれらは$N$次元ベクトルであり、制限を課す前の一般形では$alpha$に当たるものは行列$bold(A)_(Delta_k)$であった。同じ3項の構造が、制限を課すにつれて行列、ベクトル、スカラーと姿を変えている。
+
+### Mamba-2との違い
+できあがった漸化式をMamba-2のものと並べると、違いは第2項があるかどうかだけである。
+$$
+"Mamba-2:" quad bold(h)_k &= alpha_k bold(h)_(k-1) + gamma_k bold(b)_k x_k\
+"Mamba-3:" quad bold(h)_k &= alpha_k bold(h)_(k-1) + beta_k bold(b)_(k-1) x_(k-1) + gamma_k bold(b)_k x_k
+$$
+Mamba-2では$gamma_k = Delta_k$であり、これは$lambda_k = 1$の場合に当たる。つまりMamba-3はMamba-2を含んでいる。
+
+状態の更新が$x_k$だけでなく$x_(k-1)$にも依存するようになった、というのが唯一の違いである。時刻方向に幅2の畳み込みが漸化式そのものに入り込んだ形になっている。Mamba-3がブロック入口のCausalConv1Dを外せるのは、この畳み込みが漸化式に含まれるようになったからである。
+
+## 行列形への書き換え
+Mamba-2では、漸化式を行列$bold(M)$を1つ掛ける形に書き直し、そこからチャンク分割の計算に持ち込んだ。Mamba-3でも同じことができる。少し前の話になったので、$bold(M)$が何であったかを確認するところから始める。
+
+系列にわたる入力と出力をそれぞれ縦に積んで
+$$
+bold(x) := (x_0, x_1, dots, x_(L-1))^top in RR^L, quad bold(y) := (y_0, y_1, dots, y_(L-1))^top in RR^L
+$$
+とおく。漸化式をそのまま展開すると大変なので、ある入力$x_j$について考える。今考えるのは$bold(h)_i (i >= j)$に対する寄与である。入力$x_j$は漸化式で2回注入される。まず、$k=j$のときに第3項で注入される。そして漸化式の$k$が進むたびにこの項には$alpha_k$が掛かるので、この項は
+$$
+(product_(k=j+1)^i alpha_k) gamma_j bold(b)_j x_j
+$$
+
+である。次に、$k = j+1$のときに第2項で注入される。第2項は$beta_k bold(b)_(k-1) x_(k-1)$であったから、$k = j+1$を代入すると$beta_(j+1) bold(b)_j x_j$になる。**掛かるベクトルは$bold(b)_(j+1)$ではなく$bold(b)_j$である**。これも$k$が進むたびに$alpha_k$が掛かるので、この項は
+$$
+(product_(k=j+2)^i alpha_k) beta_(j+1) bold(b)_j x_j
+$$
+である。2つとも$bold(b)_j$に比例しているので、まとめると$bold(h)_i$に対する$x_j$の寄与は
+$$
+(product_(k=j+2)^i alpha_k) (alpha_(j+1) gamma_j + beta_(j+1)) bold(b)_j x_j &= (product_(k=j+2)^i alpha_k) (alpha_(j+1) lambda_(j) Delta_(j) + (1 - lambda_(j+1)) Delta_(j+1) alpha_(j+1)) bold(b)_j x_j\
+&= (product_(k=j+1)^i alpha_k) (lambda_j Delta_j + (1 - lambda_(j+1)) Delta_(j+1)) bold(b)_j x_j
+$$
+となる。
+
+ただしこの式は、$i$が$j$より十分大きいことを暗に仮定している。$alpha_(j+1)$も$beta_(j+1)$も時刻$j+1$の量なので、$i$が$j$に近いとそもそも存在しない。$i$と$j$の関係で3つの場合に分けて詰めておく。
+
+**$i < j$のとき**、時刻$i$の時点で$x_j$はまだ入力されていないから、寄与は$bold(0)$である。
+
+**$i = j$のとき**が問題になる。第1の注入は$k = j$で起きるので間に合っているが、**第2の注入は$k = j+1$で起きるのでまだ起きていない**。したがって寄与は第1の項だけで、$product_(k=j+1)^j alpha_k$は空の積で$1$だから
+$$
+gamma_j bold(b)_j x_j
+$$
+である。上でまとめた式をそのまま当てはめると、まだ来ていない時刻$j+1$の量$alpha_(j+1), beta_(j+1)$が入り込んでしまう。**この場合だけは別扱いにしなければならない**。
+
+**$i > j$のとき**は2つとも起きているので、まとめた式が使える。新たに
+$$
+mu_j := gamma_j + (1 - lambda_(j+1)) Delta_(j+1) = lambda_j Delta_j + (1 - lambda_(j+1)) Delta_(j+1)
+$$
+を用意すれば、寄与は$Gamma_(i j) mu_j bold(b)_j x_j$と書ける。ただし、$bold(Gamma)$はMamba-2の節で定義した$L times L$行列で、$Gamma_(i j) = product_(k=j+1)^i alpha_k$である。
+
+以上をまとめる。
+
+| $i$と$j$の関係 | $bold(h)_i$への$x_j$の寄与 | 理由 |
+| --- | --- | --- |
+| $i < j$ | $bold(0)$ | まだ入力されていない |
+| $i = j$ | $gamma_j bold(b)_j x_j$ | 1回目の注入だけが済んでいる |
+| $i > j$ | $Gamma_(i j) mu_j bold(b)_j x_j$ | 2回の注入が済んでいる |
+
+$Gamma_(j j) = 1$なので、$i = j$の行を$Gamma_(j j) mu_j bold(b)_j x_j$と書けそうに見えるが、そうはならない。$mu_j$には時刻$j+1$からの寄与が含まれているからである。**台形近似では$x_j$が2つの時刻に分かれて効くので、その途中である$i = j$では片方しか効いていない**、と読むとわかりやすい。
+
+残る端は系列の両端である。$j = 0$では、漸化式の$k = 0$で第2項が$beta_0 bold(b)_(-1) x_(-1)$となる。添字$-1$の量は存在しないが、$x_(-1) = 0$と約束すれば項ごと消えるので、$bold(h)_(-1) = bold(0)$と合わせて$k = 0$も一般の$k$と同じ式で扱える。$j = L-1$では$i >= j$を満たすのが$i = L-1$だけなので、$i = j$の場合しか現れず$mu_(L-1)$は本来使われない。ただし後で行列に並べるときに形を揃えたいので、存在しない$lambda_L, Delta_L$を$0$と読んで$mu_(L-1) := gamma_(L-1)$と約束しておく。
+
+## 行列にまとめる
+出力は$y_k = (bold(c)_k)^top bold(h)_k$である。$bold(h)_k$は各$x_j$の寄与の和だから、表の$i$を$k$と読み替えてそのまま使えて
+$$
+y_k = gamma_k (bold(c)_k)^top bold(b)_k x_k + sum_(j=0)^(k-1) Gamma_(k j) mu_j (bold(c)_k)^top bold(b)_j x_j
+$$
+となる。第1項が$j = k$の分、第2項が$j < k$の分である。ここから$x_j$の係数を読み取れば、行列$bold(M)$は
+$$
+M_(k j) = cases(
+Gamma_(k j) mu_j (bold(c)_k)^top bold(b)_j & quad (j < k),
+gamma_k (bold(c)_k)^top bold(b)_k & quad (j = k),
+0 & quad (j > k)
+)
+$$
+と定まり、$bold(y) = bold(M) bold(x)$が成り立つ。
+
+対角より下はMamba-2で得た$M_(k j) = Gamma_(k j) (bold(c)_k)^top overline(bold(b))_j$とまったく同じ形をしている。違いは$bold(b)_j$の前に$mu_j$が付いたことだけである。そこでMamba-2と同じ2つの配列を、$bold(b)_j$を$mu_j bold(b)_j$に取り替えて作る。
+$$
+bold(cal(C)) := mat(
+  (bold(c)_0)^top;
+  (bold(c)_1)^top;
+  dots.v;
+  (bold(c)_(L-1))^top
+) in RR^(L times N),
+quad
+bold(cal(B)) := mat(
+  mu_0 (bold(b)_0)^top;
+  mu_1 (bold(b)_1)^top;
+  dots.v;
+  mu_(L-1) (bold(b)_(L-1))^top
+) in RR^(L times N)
+$$
+とおくと、$bold(cal(C)) bold(cal(B))^top$の$(k, j)$成分は$mu_j (bold(c)_k)^top bold(b)_j$になる。$Gamma_(k j)$を$j <= k$の範囲に並べ、$j > k$を$0$で埋めた$L times L$行列を$bold(Gamma)$とすれば、この2つの要素ごとの積は$j < k$で$M_(k j)$に一致する。
+
+一致しないのは対角だけである。要素ごとの積の$(k, k)$成分は$mu_k (bold(c)_k)^top bold(b)_k$だが、本当の$M_(k k)$は$gamma_k (bold(c)_k)^top bold(b)_k$だからである。差を対角行列で足し戻して
+$$
+bold(M) = bold(Gamma) dot.o (bold(cal(C)) bold(cal(B))^top) + "diag"(bold(rho))
+$$
+と書ける。$bold(rho) in RR^L$は
+$$
+rho_k = (gamma_k - mu_k) (bold(c)_k)^top bold(b)_k = -(1 - lambda_(k+1)) Delta_(k+1) (bold(c)_k)^top bold(b)_k
+$$
+で定まるベクトルである。先ほどの約束から$rho_(L-1) = 0$になる。この対角の補正は、$i = j$を別扱いにしたことがそのまま行列に現れたものである。
+
+$bold(M)$の構造がMamba-2と変わらないので、**チャンク分割の4段階もそのまま使える**。対角ブロックは二次形式、非対角ブロックはランク$N$以下、チャンク間だけscan、という手順は、$bold(b)_j$を$mu_j bold(b)_j$に置き換えるだけで動く。対角の補正は各時刻で独立に足せるので、対角ブロックの計算の中で処理できる。Mamba-3がMamba-2の実装をほぼそのまま引き継げるのは、このためである。
+
+最後に、特徴量をヘッドにまとめた効果がここで効いてくる。$bold(M)$は$alpha, bold(b), bold(c)$から決まる行列であり、ヘッドの中ではこれらが共有されている。したがって$bold(M)$もヘッドの中で1つで済む。そのヘッドに属する$P$個のチャンネルの入力を横に並べて$bold(X)^((h)) in RR^(L times P)$とすれば
+$$
+bold(Y)^((h)) = bold(M)^((h)) bold(X)^((h)) in RR^(L times P)
+$$
+と、1回の行列積で$P$チャンネルぶんの出力がまとめて得られる。4つ目の制限を課した理由がこれである。

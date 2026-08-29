@@ -865,289 +865,355 @@
 #let c-gray = rgb("a1aab6")
 #let c-gray-l = rgb("f8fafc")
 
-#let bs(stroke-c, fill-c) = (fill: fill-c, stroke: stroke-c + 1pt, radius: 5pt)
+#let bs(sc, fc) = (fill: fc, stroke: sc + 1pt, radius: 5pt)
 #let lbl(s) = text(size: 8pt, weight: "semibold", fill: black, s)
 #let arw = (mark: (end: "triangle", fill: black, scale: 0.7), stroke: black + 0.9pt)
 ```
 
-# AttentionとTransformer
+# Gated Delta Net
+## 概要
+Gated Delta Netは系列データを扱うモデルであり、Attentionをベースにしている。Attentionは過去系列の情報を現在の入力に応じて重み付けして出力を計算するため、key-valueペアを記憶する必要がある。Attentionの指数関数を分解できる形で近似したLinear Attentionでは、このkey-valueペアを行列$bold(S)_t$に圧縮できる。正規化して分母を落とせば、更新は単純な漸化式ひとつで済む。ただしこの漸化式は足すことしかできず、大きさの決まった$bold(S)_t$に情報を足し続けるので中身が飽和してしまう。Gated Delta Netでは、キーの方向だけを書き換える更新と、状態全体を薄れさせる減衰の2つを持たせることで、ピンポイントな上書きと不要な記憶の消去を両立させている。
 
-自然言語をはじめとした系列データを処理するニューラルネットワークとして、RNNやLSTMが広く使われてきた。しかし、これらのモデルでは情報を系列に沿って順番に伝える必要がある。例えば、$bold(x)_1, bold(x)_2,dots.c,bold(x)_N$という系列において、$bold(x)_1$の情報を$bold(x)_N$の処理に活かすためには、中間の隠れ状態を通して情報を伝播させなければならない。そのため、要素同士が遠く離れるほど、その関連性を学習することが難しくなる。また、系列を順番に処理する必要があるため、計算を並列化しにくいという問題もある。
+長い系列を扱うほど、過去をすべて保持するAttentionに対して有利になる。実際、言語モデリングや長文の理解ではTransformerと同等以上の性能が報告されている。一方で、過去の任意の位置をそのまま引いてくるような検索では及ばない。固定サイズの状態に圧縮する以上、そこに入り切らない情報は失われるためである。そのため実際には、層の大部分をGated Delta Netにして一部にAttentionを混ぜた、ハイブリッドの形で使われることが多い。
 
-これに対してAttentionでは、情報を隠れ状態によって順番に伝えるのではなく、系列中の各要素を直接参照し、その中から現在の処理に重要な情報を選択する。これにより、系列中で離れた要素の情報も、途中の隠れ状態を何度も経由せずに利用できる。つまり、$bold(x)_N$の処理において、$bold(x)_1, dots.c, bold(x)_(N-1)$の情報を直接参照し、重みをつけて集約することができる。これにより、長期的な依存関係を学習しやすくなる。
-
-Transformerは、このAttentionを系列処理の中心に据え、RNNのような再帰構造を取り除いたモデルである。系列全体の関係をまとめて計算することで、長期的な依存関係を扱いやすくすると同時に、学習時の並列計算を可能にした。以降では、Transformerで使われるAttentionの仕組みを具体的に説明する。
-
-
-## Attention
-まず、系列データを以下のように表す。
-$$
-bold(X) = mat(bold(x)_1^top; bold(x)_2^top; dots.v; bold(x)_N^top) in RR^(N times d_"in")
-$$
-
-$bold(x)_k in RR^(d_"in")$は系列の各要素を表すベクトルであり、$d_"in"$はモデルの隠れ状態の次元数である。ここでの目標は、$k$番目の要素$bold(x)_k$に対応する出力$bold(y)_k$を次のようにすべての系列要素から集約して計算することである。
-$$
-bold(y)_k = sum_(j=1)^N w_(k,j) bold(f) (bold(x)_j)
-$$
-
-$bold(f)$は系列の各要素を変換する関数であり、$w_(k,j)$は$bold(x)_k$が$bold(x)_j$をどれだけ参照するかを表す重みである。すなわち、$w_(k,j)$が大きいほど、$bold(x)_j$の情報が$bold(y)_k$に強く反映される。Attentionでは$bold(f) (bold(x)_j)$を**バリュー**、$w_(k,j)$を**アテンション重み**と呼び、これは**クエリ**と**キー**の適合度にもとづいて計算される。以下、以下のように定義する。
-
-- **クエリ**: $bold(q)_k = bold(W)_Q bold(x)_k in RR^(d_k)$
-- **キー**: $bold(k)_j = bold(W)_K bold(x)_j in RR^(d_k)$
-- **バリュー**: $bold(v)_j = bold(W)_V bold(x)_j in RR^(d_"out")$
-
-これを元に書き下してみると、
+## Linear Attention
+一般的なAttentionでは系列の1要素$bold(x)_t$から線形変換でクエリ・キー・バリューを作った。
 
 $$
-bold(y)_k ~ sum_(j=1)^N "sim"(bold(q)_k, bold(k)_j) bold(v)_j
+bold(q)_t = W_q bold(x)_t, quad bold(k)_t = W_k bold(x)_t, quad bold(v)_t = W_v bold(x)_t
 $$
 
-となる。ここで$"sim"(bold(q)_k, bold(k)_j)$はクエリとキーの類似度を表す関数である。さて、一般的に"sim"は内積で定義されることが多い。すなわち、$"sim"(bold(q)_k, bold(k)_j) = bold(q)_k^top bold(k)_j$である。これにより、クエリとキーの類似度が大きいほど、バリューの重みが大きくなる。また、以下に二つの工夫を追加する。
-
-- 重み$w_(k,j)$は正規化される必要がある。つまり、$sum_(j=1)^N w_(k,j) = 1$である必要がある。そこで、ソフトマックス関数を用いて正規化する。すなわち、
-$$
-w_(k,j) = frac(exp(bold(q)_k^top bold(k)_j), sum_(l=1)^N exp(bold(q)_k^top bold(k)_l))
-$$
-- クエリとキーの内積は、ベクトルの次元数が大きくなると値が大きくなりやすい。これにより、ソフトマックス関数を通した際に勾配が小さくなり、学習が遅くなることがある。そこで、内積を$sqrt(d_k)$で割ることで、値のスケールを調整する。
-
-以上より、Attentionの出力は以下のように計算される。
-$$
-bold(y)_k = sum_(j=1)^N w_(k,j) bold(v)_j = sum_(j=1)^N frac(exp((bold(q)_k^top bold(k)_j) / sqrt(d_k)), sum_(l=1)^N exp((bold(q)_k^top bold(k)_l) / sqrt(d_k))) bold(v)_j
-$$
-
-これは簡単な行列計算で表すことができる。まず、クエリ、キー、バリューをそれぞれ行列に集約する。
-$$
-bold(Q) = mat(bold(q)_1^top; bold(q)_2^top; dots.v; bold(q)_M^top) in RR^(M times d_k) quad bold(K) = mat(bold(k)_1^top; bold(k)_2^top; dots.v; bold(k)_N^top) in RR^(N times d_k) quad bold(V) = mat(bold(v)_1^top; bold(v)_2^top; dots.v; bold(v)_N^top) in RR^(N times d_v)
-$$
-すると、正規化する前の類似度行列は
+ここで形状は$bold(q)_t, bold(k)_t in RR^(d_k)$、$bold(v)_t in RR^(d_v)$とする。すると、現在時刻$t$までの情報のみをみるCausal Attentionでは、出力$bold(y)_t$は
 
 $$
-bold(Q) bold(K)^top = mat(bold(q)_1^top; bold(q)_2^top; dots.v; bold(q)_M^top) mat(bold(k)_1, bold(k)_2, dots.c, bold(k)_N) = mat(bold(q)_1^top bold(k)_1, bold(q)_1^top bold(k)_2, dots.h, bold(q)_1^top bold(k)_N; bold(q)_2^top bold(k)_1, bold(q)_2^top bold(k)_2, dots.h, bold(q)_2^top bold(k)_N; dots.v, dots.v, dots.down, dots.v; bold(q)_M^top bold(k)_1, bold(q)_M^top bold(k)_2, dots.h, bold(q)_M^top bold(k)_N) in RR^(M times N)
+bold(y)_t = sum_(i=1)^t exp(bold(q)_t^top bold(k)_i slash sqrt(d_k))  / (sum_(j=1)^t exp(bold(q)_t^top bold(k)_j slash sqrt(d_k))) bold(v)_i
 $$
 
-となる。行列に対するソフトマックス関数は、一般的に各行ごとに正規化を行うことで決められているので、Attentionの出力は以下のようにまとめられる。
+で計算できる。ここで、非線形な$exp$関数を次のような因数分解可能な関数$phi.alt: RR^(d_k) -> RR^(d_phi.alt)$で近似してみる。
+
 $$
-"Attention"(bold(Q), bold(K), bold(V)) = "softmax"(frac(bold(Q) bold(K)^top, sqrt(d_k))) bold(V)
+exp(bold(q)_t^top bold(k)_i slash sqrt(d_k)) approx phi.alt(bold(q)_t)^top phi.alt(bold(k)_i)
 $$
 
-```typst {render=svg caption="Scaled Dot-Product Attentionの計算手順（Vaswani et al., 2017 Figure 2左）"}
+すると、これを用いたAttentionの出力は次のように書き換えられる。
+
+$$
+bold(y)_t = sum_(i=1)^t (phi.alt(bold(q)_t)^top phi.alt(bold(k)_i))  / (sum_(j=1)^t phi.alt(bold(q)_t)^top phi.alt(bold(k)_j)) bold(v)_i
+$$
+
+これは一般的にLinear Attentionと呼ばれる。分子について考えると、
+
+$$
+sum_(i=1)^t (phi.alt(bold(q)_t)^top phi.alt(bold(k)_i)) bold(v)_i &= sum_(i=1)^t bold(v)_i phi.alt(bold(k)_i)^top phi.alt(bold(q)_t)\
+&= (sum_(i=1)^t bold(v)_i phi.alt(bold(k)_i)^top) phi.alt(bold(q)_t)\
+&= (sum_(i=1)^t phi.alt(bold(k)_i) bold(v)_i^top)^top phi.alt(bold(q)_t)
+$$
+
+となる。ここで、
+
+$$
+bold(S)_t &:= sum_(i=1)^t phi.alt(bold(k)_i) bold(v)_i^top in RR^(d_phi.alt times d_v)\
+bold(n)_t &:= sum_(i=1)^t phi.alt(bold(k)_i) in RR^(d_phi.alt)
+$$
+
+と定義すると
+
+$$
+bold(y)_t = (bold(S)_t^top phi.alt(bold(q)_t)) / (bold(n)_t^top phi.alt(bold(q)_t))
+$$
+と表せる。また、これらは定義より以下の漸化式で再帰的に計算できる。
+$$
+bold(S)_t &= bold(S)_(t-1) + phi.alt(bold(k)_t) bold(v)_t^top\
+bold(n)_t &= bold(n)_(t-1) + phi.alt(bold(k)_t)
+$$
+
+## Delta Rule
+Gated Delta Netでは上記の計算において分母を無視する。これは正規化のために分母を計算する必要があるが、別の部分で正規化を行うことにする。つまり以下のように$bold(q)_t, bold(k)_t$があらかじめ正規化されているとする。
+$$
+||phi.alt(bold(q)_t)||_2 = ||phi.alt(bold(k)_t)||_2 = 1
+$$
+また、その後の出力も正規化したものとすると以降は簡単のため
+$$
+phi.alt(bold(q)_t) -> bold(q)_t, quad phi.alt(bold(k)_t) -> bold(k)_t
+$$
+と書くことにする。すると、Linear Attentionは次のように書き換えられる。
+$$
+bold(S)_t &= bold(S)_(t-1) + bold(k)_t bold(v)_t^top\
+bold(y)_t &= bold(S)_t^top bold(q)_t
+$$
+
+ここで、$bold(S)_t^top$はkeyのベクトル空間をvalueのベクトル空間に写す線形変換である。なぜなら、$bold(S)^top$が一つのkey-valueペアを記憶していると仮定する。つまり、$bold(S) = bold(k) bold(v)^top$とすると、正規化されたベクトルの元では
+$$
+bold(S)^top bold(k) = (bold(k) bold(v)^top)^top bold(k) = bold(v) (bold(k)^top bold(k)) = bold(v) quad (because ||bold(k)||_2 = 1)
+$$
+
+が成立する。逆に$bold(k)^top bold(q) = 0$のとき
+$$
+bold(S)^top bold(q) = (bold(k) bold(v)^top)^top bold(q) = bold(v) (bold(k)^top bold(q)) = 0
+$$
+となる。つまり、$bold(S)^top$はkeyのベクトル空間をvalueのベクトル空間に写す線形変換である。さて、この前提において$bold(S)_t^top bold(k)_t$を計算してみると、
+$$
+bold(S)_t^top bold(k)_t = (bold(S)_(t-1) + bold(k)_t bold(v)_t^top)^top bold(k)_t = bold(S)_(t-1)^top bold(k)_t + bold(v)_t (bold(k)_t^top bold(k)_t) = bold(S)_(t-1)^top bold(k)_t + bold(v)_t
+$$
+つまり、$bold(S)_t^top bold(k)_t$は真に$bold(k)_t$を$bold(v)_t$に写すような変換にはなっていない。$bold(S)_(t-1)^top bold(k)_t$が残ってしまう。そこで、$bold(S)_t^top$を$bold(k)_t |-> bold(v)_t$となるような変換になるためにオンライン学習される（Gated Delta Netを学習する段階ではなく、推論時にある意味で学習される）ものだと捉える。損失関数は単純に以下のように定義する。
+$$
+cal(L)_t (bold(S)) = 1/2 ||bold(S)^top bold(k)_t - bold(v)_t||_2^2
+$$
+すると、その勾配は
+$$
+nabla_(bold(S)) cal(L)_t (bold(S)) = bold(k)_t (bold(S)^top bold(k)_t - bold(v)_t)^top
+$$
+とある。これを用いて、$bold(S)_(t-1)$をいわゆる勾配法で更新して$bold(S)_t$とする。つまり、学習率$beta_t > 0$を用いて
+$$
+bold(S)_t &= bold(S)_(t-1) - beta_t nabla_(bold(S)) cal(L)_t (bold(S)_(t-1))\
+&= bold(S)_(t-1) - beta_t bold(k)_t (bold(S)_(t-1)^top bold(k)_t - bold(v)_t)^top\
+&= bold(S)_(t-1) + beta_t bold(k)_t (bold(v)_t - bold(S)_(t-1)^top bold(k)_t)^top
+$$
+となる。これが Delta Rule である。このDelta Ruleがちゃんと新たな$bold(v)_t$を復元できることを確認する。$bold(S)_(t-1)^top bold(k)_t = hat(bold(v))_t$のとき、更新後の$bold(S)_t^top bold(k)_t$は
+
+$$
+bold(S)_t^top bold(k)_t &= (bold(S)_(t-1) + beta_t bold(k)_t (bold(v)_t - hat(bold(v))_t)^top)^top bold(k)_t\
+&= bold(S)_(t-1)^top bold(k)_t + beta_t (bold(v)_t - hat(bold(v))_t)(bold(k)_t^top bold(k)_t)\
+&= hat(bold(v))_t + beta_t (bold(v)_t - hat(bold(v))_t) quad (because ||bold(k)_t||_2 = 1)\
+&= (1 - beta_t) hat(bold(v))_t + beta_t bold(v)_t
+$$
+
+となる。つまり、$bold(S)_t^top bold(k)_t$は$bold(v)_t$に向かって更新されることがわかる。このままではKey$bold(k)_t$の方向に沿った更新しかできないので全体に減衰をかけるため、係数$0 < alpha_t < 1$を用いて$bold(S)_t$への更新時、$bold(S)_(t-1)$を$alpha_t bold(S)_(t-1)$とする。これを計算すると、
+$$
+bold(S)_t &= alpha_t bold(S)_(t-1) + beta_t bold(k)_t (bold(v)_t - alpha_t bold(S)_(t-1)^top bold(k)_t)^top\
+&= alpha_t bold(S)_(t-1) + beta_t bold(k)_t bold(v)_t^top - alpha_t beta_t bold(k)_t bold(k)_t^top bold(S)_(t-1)\
+&= alpha_t ( I - beta_t bold(k)_t bold(k)_t^top) bold(S)_(t-1) + beta_t bold(k)_t bold(v)_t^top
+$$
+となり、Delta Ruleは以下のようにまとめられる。
+
+$$
+bold(S)_t &= alpha_t ( I - beta_t bold(k)_t bold(k)_t^top) bold(S)_(t-1) + beta_t bold(k)_t bold(v)_t^top\
+bold(y)_t &= bold(S)_t^top bold(q)_t
+$$
+
+## マルチヘッド化とGDNのブロック構造
+シーケンスの1入力$bold(x)_t$からDelta Ruleで用いるための$bold(k)_t, bold(v)_t, bold(q)_t, alpha_t, beta_t$を作り、Delta Ruleから出力を得るまでを一つのブロックと考えることができる。それには色々な方法が考えられ、採用されるモデルによって多少のバリエーションがある。ここでは、元論文のもので説明する。
+
+```typst {render=svg caption="Gated Delta Netのブロック構造"}
 #cetz.canvas(length: 1cm, {
   import cetz.draw: *
 
-  let cx = 1.5      // 中央列の中心
-  let vx = 4.1      // V の列
-  let w  = 3.0      // ブロックの幅
-  let h  = 0.8      // ブロックの高さ
+  let hw = 0.95
+  let h  = 0.7
+  let r  = 0.2
 
-  let blk(y, label, sc, fc, right) = {
-    rounded-block((0, y), (right, y - h), none,
+  let box(cx, yt, label, sc, fc) = {
+    rounded-block((cx - hw, yt), (cx + hw, yt - h), none,
       block-style: bs(sc, fc), center-content: lbl(label))
   }
-  blk(0,    [MatMul],      c-purple, c-purple-l, 4.6)
-  blk(-1.8, [SoftMax],     c-green,  c-green-l,  w)
-  blk(-3.6, [Mask (opt.)], c-red,    c-red-l,    w)
-  blk(-5.4, [Scale],       c-orange, c-orange-l, w)
-  blk(-7.2, [MatMul],      c-purple, c-purple-l, w)
-
-  // 中央列を下から上へ
-  line((cx, -7.2), (cx, -6.2), ..arw)
-  line((cx, -5.4), (cx, -4.4), ..arw)
-  line((cx, -3.6), (cx, -2.6), ..arw)
-  line((cx, -1.8), (cx, -0.8), ..arw)
-
-  // 入力と出力
-  line((0.75, -9.1), (0.75, -8.0), ..arw)
-  line((2.25, -9.1), (2.25, -8.0), ..arw)
-  line((vx,   -9.1), (vx,   -0.8), ..arw)
-  line((2.3, 0), (2.3, 1.1), ..arw)
-
-  content((0.75, -9.5), text(size: 9pt, $bold(Q)$))
-  content((2.25, -9.5), text(size: 9pt, $bold(K)$))
-  content((vx,   -9.5), text(size: 9pt, $bold(V)$))
-})
-```
-
-ここでは、クエリ、キー、バリューは一つの同じ系列から生成される**Self-Attention**を説明してきた。この場合、これらは次のように計算される。
-$$
-bold(Q) = bold(X) bold(W)_Q quad bold(K) = bold(X) bold(W)_K quad bold(V) = bold(X) bold(W)_V
-$$
-ここではクエリとキーは対称的な関係を持っている。しかし、実際にはそうではない。クエリを別の系列データから生成するようにしてみよう。
-$$
-bold(Q) = bold(X)^((1)) bold(W)_Q in RR^(M times d_k) quad bold(K) = bold(X)^((2)) bold(W)_K in RR^(N times d_k) quad bold(V) = bold(X)^((2)) bold(W)_V in RR^(N times d_v)
-$$
-すると$bold(Q)bold(K)^top$は、クエリ側の系列$bold(x)_1^((1)), dots.c, bold(x)_M^((1))$と、キー側の系列$bold(x)_1^((2)), dots.c, bold(x)_N^((2))$の間の類似度を表す行列となる。これにより、1つの要素の出力は
-$$
-bold(y)_k = sum_(j=1)^N "sim"(bold(q)^((1))_k, bold(k)^((2))_j) bold(v)^((2))_j
-$$
-となる。ここではどちらの系列から来たのかを明示するために、クエリ側の系列には上付きの$(1)$、キー・バリュー側の系列には上付きの$(2)$を付けている。この式は出力に対応する位置のクエリをキーとの関連度を元にバリューで重み付けして集約することを意味している。いわば、クエリ系列をキー・バリュー系列に照らし合わせて処理することになる。これを**Cross-Attention**と呼ぶ。
-
-## Transformer
-**Transformer**は、RNNやCNNに頼らず、Attention機構を中心に系列を処理するエンコーダ・デコーダ型のモデルである。各ブロックは、Multi-Head Attention、位置ごとのFeed-Forward Network、Residual Connection、Layer Normalizationから構成される。 エンコーダは入力列から文脈表現を生成し、デコーダはその文脈と既に生成した出力を用いて次のトークンを予測する。
-
-```typst {render=svg caption="Transformerのエンコーダ・デコーダ構造（Vaswani et al., 2017 Figure 1）"}
-#cetz.canvas(length: 1cm, {
-  import cetz.draw: *
-
-  let ex = 1.5      // エンコーダ列の中心
-  let dx = 8.0      // デコーダ列の中心
-  let hw = 1.5      // ブロックの半幅
-  let r  = 0.2      // 加算アイコンの半径
-
-  let blk(cx, yt, yb, label, sc, fc) = {
-    rounded-block((cx - hw, yt), (cx + hw, yb), none,
-      block-style: bs(sc, fc), center-content: lbl(label))
+  // 線形変換は台形にして、写像であることを形で示す
+  let proj(cx, yt, label, shr) = {
+    trapezoid-block((cx - hw, yt), (cx + hw, yt - h), none,
+      side: "top", shrink: shr, corner-radius: 0.12,
+      block-style: (fill: c-purple-l, stroke: c-purple + 1pt),
+      center-content: lbl(label))
   }
-  // 残差の加算。この丸が Add にあたる
-  let oplus(x, y) = {
+  let odot(x, y) = {
     circle((x, y), radius: r, stroke: black + 0.9pt, fill: white)
-    line((x - 0.1, y), (x + 0.1, y), stroke: black + 0.8pt)
-    line((x, y - 0.1), (x, y + 0.1), stroke: black + 0.8pt)
+    circle((x, y), radius: 0.055, stroke: none, fill: black)
   }
-  // 本線から迂回して加算アイコンの横に入る
-  let resid(cx, ytap, xd, yadd) = {
-    let xin = if xd < cx { cx - r } else { cx + r }
-    line((cx, ytap), (xd, ytap), (xd, yadd), (xin, yadd), ..arw)
+  let tag(x, y, s) = content((x, y), text(size: 7.5pt, s))
+
+  let xq = 0.0
+  let xk = 2.2
+  let xv = 4.4
+  let xb = 6.6
+  let xa = 8.8
+  let xg = 12.4
+  let ydr = -6.8      // Delta Rule の下端
+  let ybus = -12.4
+
+  // ヘッドを表すカード。後ろに2枚重ねる
+  let card(dx, dy) = {
+    rounded-block((-1.35 + dx, -3.5 + dy), (10.15 + dx, -12.05 + dy), none,
+      block-style: (fill: c-gray-l, stroke: c-gray + 1pt, radius: 8pt))
   }
+  card(0.9, 0.44)
+  card(0.45, 0.22)
+  card(0, 0)
+  content((-2.3, -7.8), text(size: 9pt)[$times H$])
 
-  // 外枠
-  rounded-block((ex - 1.9, -5.4), (ex + 1.9, -13.9), none,
-    block-style: (fill: c-gray-l, stroke: c-gray + 1pt, radius: 8pt))
-  rounded-block((dx - 1.9, -1.2), (dx + 1.9, -13.9), none,
-    block-style: (fill: c-gray-l, stroke: c-gray + 1pt, radius: 8pt))
-  content((ex - 2.6, -9.6), text(size: 9pt)[$N times$])
-  content((dx + 2.6, -7.5), text(size: 9pt)[$N times$])
+  // 入力の母線。ここから各列へ分かれる
+  content((xv, -13.5), text(size: 9pt, $bold(x)_t$))
+  line((xv, -13.2), (xv, ybus), ..arw)
+  line((xq, ybus), (xg, ybus), stroke: black + 0.9pt)
 
-  // エンコーダ（下から上へ）
-  blk(ex, -12.2, -13.2, [Multi-Head\ Attention], c-orange, c-orange-l)
-  oplus(ex, -11.4)
-  blk(ex, -10.0, -10.6, [LayerNorm],             c-teal,   c-teal-l)
-  blk(ex,  -8.2,  -9.2, [Feed\ Forward],         c-blue,   c-blue-l)
-  oplus(ex, -7.4)
-  blk(ex,  -6.0,  -6.6, [LayerNorm],             c-teal,   c-teal-l)
+  // 各列は1本の線が貫く。ブロックは線の上に重ねる
+  for x in (xq, xk, xv, xb, xa) { line((x, ybus), (x, ydr), ..arw) }
+  line((xg, ybus), (xg, -4.0), (xv + r, -4.0), ..arw)
 
-  // デコーダ（下から上へ）
-  blk(dx, -12.0, -13.2, [Masked\ Multi-Head\ Attention], c-orange, c-orange-l)
-  oplus(dx, -11.2)
-  blk(dx,  -9.8, -10.4, [LayerNorm],                     c-teal,   c-teal-l)
-  blk(dx,  -8.0,  -9.0, [Multi-Head\ Attention],         c-orange, c-orange-l)
-  oplus(dx, -7.2)
-  blk(dx,  -5.8,  -6.4, [LayerNorm],                     c-teal,   c-teal-l)
-  blk(dx,  -4.0,  -5.0, [Feed\ Forward],                 c-blue,   c-blue-l)
-  oplus(dx, -3.2)
-  blk(dx,  -1.8,  -2.4, [LayerNorm],                     c-teal,   c-teal-l)
+  proj(xq, -11.0, [$bold(W)_q$],      30%)
+  proj(xk, -11.0, [$bold(W)_k$],      30%)
+  proj(xv, -11.0, [$bold(W)_v$],      30%)
+  proj(xb, -11.0, [$bold(w)_beta$],   60%)
+  proj(xa, -11.0, [$bold(w)_alpha$],  60%)
+  proj(xg, -11.0, [$bold(W)_"gate"$], 30%)
 
-  // 出力側
-  blk(dx,  0.0, -0.6, [Linear],  c-purple, c-purple-l)
-  blk(dx,  1.2,  0.6, [Softmax], c-green,  c-green-l)
+  box(xq, -9.8, [ShortConv], c-blue,   c-blue-l)
+  box(xk, -9.8, [ShortConv], c-blue,   c-blue-l)
+  box(xv, -9.8, [ShortConv], c-blue,   c-blue-l)
+  box(xb, -9.8, [Sigmoid],   c-orange, c-orange-l)
+  box(xa, -9.8, [Softplus],  c-orange, c-orange-l)
+  box(xg, -9.8, [SiLU],      c-orange, c-orange-l)
 
-  // 本線（エンコーダ）
-  line((ex, -14.4), (ex, -13.2), ..arw)
-  line((ex, -12.2), (ex, -11.6), ..arw)
-  line((ex, -11.2), (ex, -10.6), ..arw)
-  line((ex, -10.0), (ex,  -9.2), ..arw)
-  line((ex,  -8.2), (ex,  -7.6), ..arw)
-  line((ex,  -7.2), (ex,  -6.6), ..arw)
-  resid(ex, -13.55, ex - 1.65, -11.4)
-  resid(ex,  -9.6,  ex - 1.65,  -7.4)
+  box(xq, -8.6, [SiLU], c-orange, c-orange-l)
+  box(xk, -8.6, [SiLU], c-orange, c-orange-l)
+  box(xv, -8.6, [SiLU], c-orange, c-orange-l)
+  box(xa, -8.6, [$exp(-e^a dot)$], c-orange, c-orange-l)
 
-  // 本線（デコーダ）
-  line((dx, -14.4), (dx, -13.2), ..arw)
-  line((dx, -12.0), (dx, -11.4), ..arw)
-  line((dx, -11.0), (dx, -10.4), ..arw)
-  line((dx,  -9.8), (dx,  -9.0), ..arw)
-  line((dx,  -8.0), (dx,  -7.4), ..arw)
-  line((dx,  -7.0), (dx,  -6.4), ..arw)
-  line((dx,  -5.8), (dx,  -5.0), ..arw)
-  line((dx,  -4.0), (dx,  -3.4), ..arw)
-  line((dx,  -3.0), (dx,  -2.4), ..arw)
-  line((dx,  -1.8), (dx,  -0.6), ..arw)
-  line((dx,   0.0), (dx,   0.6), ..arw)
-  line((dx,   1.2), (dx,   2.0), ..arw)
-  resid(dx, -13.55, dx + 1.65, -11.2)
-  resid(dx,  -9.4,  dx + 1.65,  -7.2)
-  resid(dx,  -5.4,  dx + 1.65,  -3.2)
+  box(xq, -7.4, [L2Norm], c-teal, c-teal-l)
+  box(xk, -7.4, [L2Norm], c-teal, c-teal-l)
 
-  // エンコーダ出力をデコーダのCross-Attentionへ。枠の外を回って下から入れる
-  line((ex, -6.0), (ex, -4.6), (dx - 2.15, -4.6), (dx - 2.15, -9.45),
-    (dx - 0.75, -9.45), (dx - 0.75, -9.0), ..arw)
+  tag(xq + 0.45, -7.05, $bold(q)_t$)
+  tag(xk + 0.45, -7.05, $bold(k)_t$)
+  tag(xv + 0.45, -7.05, $bold(v)_t$)
+  tag(xb + 0.45, -7.05, $beta_t$)
+  tag(xa + 0.45, -7.05, $alpha_t$)
 
-  // 埋め込みと位置エンコーディング
-  let foot(cx, emb, tag, pe-left) = {
-    blk(cx, -15.4, -16.4, emb, c-red, c-red-l)
-    line((cx, -15.4), (cx, -14.8), ..arw)
-    oplus(cx, -14.6)
-    line((cx, -17.6), (cx, -16.4), ..arw)
-    content((cx, -17.95), text(size: 9pt, tag))
-    let px = if pe-left { cx - 2.6 } else { cx + 2.6 }
-    circle((px, -14.6), radius: 0.3, stroke: black + 0.9pt, fill: white)
-    line((px - 0.16, -14.6), (px - 0.08, -14.45), (px + 0.08, -14.75), (px + 0.16, -14.6),
-      stroke: black + 0.7pt)
-    if pe-left { line((px + 0.3, -14.6), (cx - r, -14.6), stroke: black + 0.9pt) }
-    else       { line((px - 0.3, -14.6), (cx + r, -14.6), stroke: black + 0.9pt) }
-    content((px, -15.35), text(size: 7pt)[Positional\ Encoding])
-  }
-  foot(ex, [Input\ Embedding],  [Inputs], true)
-  foot(dx, [Output\ Embedding], [Outputs\ (shifted right)], false)
+  rounded-block((-1.1, -5.8), (9.9, ydr), none,
+    block-style: bs(c-green, c-green-l), center-content: lbl([Delta Rule]))
 
-  content((dx, 2.35), text(size: 8pt)[Output Probabilities])
+  // Delta Rule から乗算まで、こちらも1本の線が貫く
+  line((xv, -5.8), (xv, -4.2), ..arw)
+  tag(xv + 0.62, -5.55, $bold(y)_t^((h))$)
+  box(xv, -4.6, [RMSNorm], c-teal, c-teal-l)
+  odot(xv, -4.0)
+
+  // 各カードから Concat へ集まる
+  line((xv, -3.8), (xv, -2.3), ..arw)
+  line((xv + 0.45, -3.28), (xv + 0.45, -2.3), ..arw)
+  line((xv + 0.9, -3.06), (xv + 0.9, -2.3), ..arw)
+  tag(xv - 0.85, -2.72, $hat(bold(y))_t^((h))$)
+
+  rounded-block((3.0, -1.6), (6.7, -2.3), none,
+    block-style: bs(c-gray, c-gray-l), center-content: lbl([Concat]))
+  line((4.85, -1.6), (4.85, -1.0), ..arw)
+  proj(4.85, -0.3, [$bold(W)_"out"$], 30%)
+  line((4.85, -0.3), (4.85, 0.35), ..arw)
+  content((4.85, 0.68), text(size: 9pt, $bold(y)_t$))
 })
 ```
 
-### Self-AttentionとCross-Attention
-Transformerのエンコーダとデコーダのブロックには、Self-AttentionとCross-Attentionの二種類のAttentionが存在する。Self-AttentionはAttentionの入力であったクエリ、キー、バリューが全て同じ入力$bold(X)$から生成される。
+
+まず、基本的にはマルチヘッドを採用する。Delta Ruleの計算を同じ入力に対して複数回行う。ヘッド$h = 1, 2, ..., H$に対して、$bold(k)_t^((h)), bold(v)_t^((h)), bold(q)_t^((h)), alpha_t^((h)), beta_t^((h))$を作って
 
 $$
- bold(Q) = bold(X) bold(W)_Q quad bold(K) = bold(X) bold(W)_K quad bold(V) = bold(X) bold(W)_V
+bold(S)_t^((h)) &= alpha_t^((h)) ( I - beta_t^((h)) bold(k)_t^((h)) (bold(k)_t^((h)))^top) bold(S)_(t-1)^((h)) + beta_t^((h)) bold(k)_t^((h)) (bold(v)_t^((h)))^top\
+bold(y)_t^((h)) &= (bold(S)_t^((h)))^top bold(q)_t^((h))
 $$
 
-Self-Attentionは、入力$bold(X)$の各トークン位置どうしの関係を見ながら表現を更新するためのもので、エンコーダとデコーダの両方で用いられる。 一方で、Cross-Attentionはクエリが入力$bold(X)$とは異なる入力$bold(Y)$から生成される。
+を計算する。さて、各パラメータの計算方法を説明する。Attentionと同様に、クエリ・キー・バリューは線形変換で得られる。
 
 $$
- bold(Q) = bold(Y) bold(W)_Q quad bold(K) = bold(X) bold(W)_K quad bold(V) = bold(X) bold(W)_V
+hat(bold(q))^((h))_t = W^((h))_q bold(x)_t, quad hat(bold(k))^((h))_t = W^((h))_k bold(x)_t, quad hat(bold(v))^((h))_t = W^((h))_v bold(x)_t
 $$
 
-Cross-Attentionは、クエリを生成した入力$bold(Y)$を用いて、$bold(X)$の情報を集約するためのもので、デコーダがエンコーダ出力を参照しながら次のトークンを生成するために使われる。
-
-### マルチヘッドAttention
-TransformerのAttentionは、単一のAttentionではなく、複数のAttentionを並列に配置した**マルチヘッドAttention**（`Multi-Head Attention`）である。これはクエリ、キー、バリューのベクトルを複数の小さなベクトルに線形射影して、それぞれに独立したAttentionを適用し、最後にそれらの出力を結合するものである。マルチヘッドAttentionは、Transformerのエンコーダとデコーダの両方で使われる。
-
-### マスク付きAttention
-学習時のデコーダは正解系列をまとめて受け取れるが、そのままでは未来のトークンを見てしまい、推論時との条件がずれてしまう。そのため、未来位置に対応するスコアに$-infinity$を加え、Softmax後の重みが$0$になるようにする。具体的には、以下のような行列を用いて
+つまり、入力行列$bold(X) = (bold(x)_1, bold(x)_2, ..., bold(x)_T)^top$から
 
 $$
- bold(M) = mat(0, -infinity, dots.h, -infinity; 0, 0, dots.h, -infinity; dots.v, dots.v, dots.down, dots.v; 0, 0, dots.h, 0) quad quad M_(i j) = cases(
- -infinity quad & "if" j > i, 0 quad &"otherwise"
- )
+hat(bold(Q))^((h)) = bold(X) (W^((h))_q)^top, quad hat(bold(K))^((h)) = bold(X) (W^((h))_k)^top, quad hat(bold(V))^((h)) = bold(X) (W^((h))_v)^top
 $$
 
-出力を以下のように計算する。
-
+しかし、これらは正規化されていないので、正規化を行う。また、同時に時間方向に畳み込みを行う。この畳み込みは`ShortConv`と呼ばれるものだが、Mambaのものと同様で過去のいくつかの時刻の情報をDepthwiseで畳み込むものである。
+重み$bold(W)_"conv"$を用いて以下のように計算される。
 $$
- "MaskedAttention"(bold(Q), bold(K), bold(V)) = "softmax"(frac(bold(Q) bold(K)^top, sqrt(d_k)) + bold(M) ) bold(V)
+["ShortConv"(dot)]_(ell, d) = sum_(0 <= ell' < K\ ell' <= ell) [bold(W)_"conv"]_(ell', d) [dot]_(ell - ell', d)
+$$
+なお、$K$は畳み込みのカーネルサイズである。また、正規化はL2正規化を行う。つまり、$bold(z) in RR^d$に対して
+$$
+"L2Norm"(bold(z)) = bold(z) / (||bold(z)||_2)
+$$
+と計算する。ただ、行列に対しては
+$$
+"L2Norm"(mat(bold(z)_1^top; dots.v; bold(z)_T^top)) = mat("L2Norm"(bold(z)_1)^top; dots.v; "L2Norm"(bold(z)_T)^top)
+$$
+のように、各行ベクトルごとに正規化を行う。これらを用いて、$bold(k)_t, bold(q)_t, bold(v)_t$は以下のように計算される。
+$$
+bold(k)_t^((h)) = "L2Norm"("SiLU"("ShortConv"(hat(bold(K))^((h)))_t))\
+bold(q)_t^((h)) = "L2Norm"("SiLU"("ShortConv"(hat(bold(Q))^((h)))_t))\
+bold(v)_t^((h)) = "SiLU"("ShortConv"(hat(bold(V))^((h)))_t)
+$$
+$bold(v)_t^((h))$は今までの議論から正規化を行う必要はないが、出力で正規化を行うことになる。$beta_t^((h))$は入力$bold(x)_t$とパラメータとの内積をシグモイド関数で正規化することで得られる。概念的には1ニューロンへのバイアスなしの全結合である。
+$$
+beta_t^((h)) = "Sigmoid"((bold(w)^((h))_beta)^top bold(x)_t)
+$$
+対して、$alpha_t^((h))$は以下のように計算する。
+$$
+alpha_t^((h)) = exp[-exp(a^((h))_alpha) "softplus"((bold(w)^((h))_alpha)^top bold(x)_t + b^((h))_alpha)]
+$$
+$a^((h))_alpha, b^((h))_alpha$はスカラー、$bold(w)^((h))_alpha in RR^(d_x)$はベクトルであり、これらは学習されるパラメータである。`softplus`関数は以下のように定義される。
+$$
+"softplus"(z) = log(1 + exp(z))
 $$
 
-すると、重み行列のうち未来位置に対応する部分は$e^(-oo) = 0$となり、未来のトークンを参照できなくなる。Masked Attentionは、Transformerのデコーダ内のSelf-Attentionで使用される。
+これは$beta$は単純にkey方向に沿った更新の大きさを決めるため単純に係数を作るだけでいいが、$alpha$は減衰の大きさを決めるため指数減衰の形にする必要があるためである。指数減衰には様々な**都合の良い**性質があることが知られている。
 
-### 位置エンコーディング
-Attentionは、RNNやLSTMのように順序を逐次的には処理しないため、そのままではトークンの並び順を区別できない。そこでTransformerは、各トークン表現にその位置を表すベクトルを加える。原論文では次のような正弦波型の位置エンコーディングが使われた。
-
+さて、Delta Ruleによって得られた各ヘッドの出力を$bold(y)_t^((h))$とすると、`RMSNorm`正規化を行う。`RMSNorm`正規化とは以下のようなものである。
 $$
- "PE"_("pos", 2i) = sin(frac("pos", 10000^(2i slash d))) quad "PE"_("pos", 2i+1) = cos(frac("pos", 10000^(2i slash d)))
+"RMSNorm"(bold(z)) = bold(gamma) dot.o bold(z) / sqrt(1/d_z sum_(i=1)^(d_z) bold(z)_i^2 + epsilon)
 $$
-
-ここで、$"pos"$は系列内の位置を表す整数であり、$2i$や$2i+1$はベクトルのインデックスである。$d$はトークン表現の次元数である。位置エンコーディングは入力埋め込み$bold(X)$に加えて使用される。
-
-Position Encodingは以下の点で優れている。
-
-- $bold("PE")$はトークン内容$bold(X)$に依存せず、位置だけから定まる。
-- 正弦・余弦の加法定理により、固定オフセット$k$に対する$"PE"_("pos" + k)$を$"PE"_("pos")$の線形関数として表せる。
-- Vaswaniらは、この設計が学習時より長い系列への外挿を助ける可能性を期待して、学習型ではなく正弦波型の位置エンコーディングを採用した。
-
-### FFN（Feed-Forward Network）
-Attentionは位置間の情報を混合するが、各位置に対する非線形変換は別途必要である。そのためTransformerは、各位置に同じ2層の全結合ネットワークを独立に適用するフィードフォワードネットワーク（`Feed-Forward Network`; `FFN`）を配置している。原論文ではReLUを用いた次の形で定義される。
-
+`RMS`とはRoot Mean Squareの略であり、ベクトルの各要素の二乗平均平方根で正規化することを意味する。それだけでなく、正規化後に学習されるパラメータ$bold(gamma) in RR^(d_z)$を要素ごとに掛けることで、正規化後のスケールを調整することができる。`RMSNorm`は`LayerNorm`と同様の効果があるが、平均を引く操作がないため計算コストが低いという利点がある。これらはヘッドごとに独立に計算される。さらに、それぞれに対して入力との `gating` を行う。
 $$
- "FFN"(bold(x)) = "max"(0, bold(x) bold(W)_1 + bold(b)_1) bold(W)_2 + bold(b)_2
+hat(bold(y))_t^((h)) = "RMSNorm"(bold(y)_t^((h))) dot.o phi.alt(bold(W)_"gate" bold(x)_t)
 $$
 
-FFNは他の位置の情報を参照せず、各トークン位置の表現を個別に変換する。Transformerではこの層もエンコーダとデコーダの両方に含まれる。
+入力ブランチ側は線形変換と非線形関数$phi.alt$を用いた変形を行う。
+
+これらを結合して線形変換を行い、最終的な出力$bold(y)_t$を得る。結合の方法は単純に連結するだけである。
+$$
+bold(y)_t = bold(W)_"out" "concat"(hat(bold(y))_t^((1)), hat(bold(y))_t^((2)), ..., hat(bold(y))_t^((H)))
+$$
+
+```typst {render=svg caption="各ヘッドの出力から最終出力までの経路"}
+#cetz.canvas(length: 1cm, {
+  import cetz.draw: *
+
+  let hw = 0.95
+  let h  = 0.7
+  let r  = 0.2
+  let ys = -4.3     // 乗算の高さ
+
+  let blk(cx, yt, label, sc, fc, half) = {
+    rounded-block((cx - half, yt), (cx + half, yt - h), none,
+      block-style: bs(sc, fc), center-content: lbl(label))
+  }
+  let heads = (0.0, 3.0, 6.0)
+  let names = ($bold(y)_t^((1))$, $bold(y)_t^((2))$, $bold(y)_t^((H))$)
+
+  // 各ヘッドの出力から RMSNorm まで
+  for i in range(3) {
+    let x = heads.at(i)
+    content((x, -6.6), text(size: 9pt, names.at(i)))
+    line((x, -6.3), (x, ys - r), ..arw)
+    blk(x, -4.9, [RMSNorm], c-teal, c-teal-l, hw)
+  }
+  content((4.5, -5.25), text(size: 11pt, $dots.c$))
+
+  // ゲートの供給。母線を引いてから乗算アイコンを白抜きで重ねる
+  blk(9.8, -4.0, [$phi.alt(bold(W)_"gate" bold(x)_t)$], c-orange, c-orange-l, 1.5)
+  line((8.3, ys), (0.0, ys), stroke: black + 0.9pt)
+  for x in heads {
+    circle((x, ys), radius: r, stroke: black + 0.9pt, fill: white)
+    circle((x, ys), radius: 0.055, stroke: none, fill: black)
+  }
+  for x in heads { line((x + 0.5, ys), (x + r, ys), ..arw) }
+
+  // 連結して線形変換
+  for x in heads { line((x, ys + r), (x, -3.6), ..arw) }
+  content((7.0, -3.95), text(size: 7.5pt, $hat(bold(y))_t^((h))$))
+  rounded-block((-1.2, -2.9), (7.2, -3.6), none,
+    block-style: bs(c-gray, c-gray-l), center-content: lbl([Concat]))
+  line((3.0, -2.9), (3.0, -2.3), ..arw)
+  trapezoid-block((3.0 - hw, -1.6), (3.0 + hw, -1.6 - h), none,
+    side: "top", shrink: 30%, corner-radius: 0.12,
+    block-style: (fill: c-purple-l, stroke: c-purple + 1pt),
+    center-content: lbl([$bold(W)_"out"$]))
+  line((3.0, -1.6), (3.0, -0.9), ..arw)
+  content((3.0, -0.6), text(size: 9pt, $bold(y)_t$))
+})
+```

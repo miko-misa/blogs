@@ -66,6 +66,10 @@
       "title": "16. Mamba",
       "description": "連続・離散時間の状態空間モデルからSelective SSM、Mamba-1のprefix scanとハードウェア指向実装、Mamba-2の状態空間双対性まで数式で解説します。"
     },
+    "17gated-delta-net": {
+      "title": "17. Gated Delta Net",
+      "description": "線形AttentionとDelta Ruleから出発し、ゲートを加えたGated Delta Netの漸化式とブロック構造を数式と図で解説します。"
+    },
     "A01-mathmatics": {
       "title": "A.1 数学",
       "description": "機械学習で用いるベクトル、行列、微分、確率などの数学を定義と計算例から整理します。"

@@ -54,20 +54,14 @@ class RenderSiteTest(unittest.TestCase):
             index = json.loads((root / "site" / "blogs-index.json").read_text())
 
             self.assertEqual(count, 1)
-            self.assertEqual(
-                index["folders"][""]["description"], "Root description"
-            )
+            self.assertEqual(index["folders"][""]["description"], "Root description")
             self.assertEqual(
                 index["folders"][""]["pages"][0]["description"],
                 "Article description",
             )
-            self.assertIsNone(
-                index["folders"][""]["folders"][0].get("description")
-            )
+            self.assertIsNone(index["folders"][""]["folders"][0].get("description"))
             self.assertEqual(
-                (root / "site" / "blogs-content" / "hello.html")
-                .read_text()
-                .strip(),
+                (root / "site" / "blogs-content" / "hello.html").read_text().strip(),
                 "<article>hello</article>",
             )
             self.assertTrue(
