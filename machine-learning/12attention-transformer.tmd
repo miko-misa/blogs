@@ -2,7 +2,7 @@
 #set page(fill: white, margin: 4pt)
 #set text(font: ("New Computer Modern", "Noto Sans JP"))
 
-#import "@preview/cetz:0.5.1"
+#import "@preview/cetz:0.3.4"
 
 // ============================================================
 // CeTZ reusable block macros
@@ -600,7 +600,7 @@
   }
 }
 
-#import "@preview/cetz:0.5.2" as cetz
+#import "@preview/cetz:0.3.4" as cetz
 
 #let tile-id(name, row, col) = {
   name + "-" + str(row) + "-" + str(col)

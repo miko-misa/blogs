@@ -2,7 +2,7 @@
 #set page(fill: white, margin: 4pt)
 #set text(font: ("New Computer Modern", "Noto Sans JP"))
 
-#import "@preview/cetz:0.5.1"
+#import "@preview/cetz:0.3.4"
 
 // ============================================================
 // CeTZ reusable block macros
@@ -600,7 +600,7 @@
   }
 }
 
-#import "@preview/cetz:0.5.2" as cetz
+#import "@preview/cetz:0.3.4" as cetz
 
 #let tile-id(name, row, col) = {
   name + "-" + str(row) + "-" + str(col)
@@ -1006,12 +1006,15 @@ $$
     rounded-block((cx - hw, yt), (cx + hw, yt - h), none,
       block-style: bs(sc, fc), center-content: lbl(label))
   }
-  // 線形変換は台形にして、写像であることを形で示す
+  // 線形変換は台形にして、写像であることを形で示す。
+  // cetz 0.3.4 には角丸のパスが無いので、線の結合を丸めて代用する
   let proj(cx, yt, label, shr) = {
-    trapezoid-block((cx - hw, yt), (cx + hw, yt - h), none,
-      side: "top", shrink: shr, corner-radius: 0.12,
-      block-style: (fill: c-purple-l, stroke: c-purple + 1pt),
-      center-content: lbl(label))
+    let yb = yt - h
+    let d = hw * shr
+    line((cx - hw, yb), (cx + hw, yb), (cx + hw - d, yt), (cx - hw + d, yt),
+      close: true, fill: c-purple-l,
+      stroke: (paint: c-purple, thickness: 1pt, join: "round"))
+    content((cx, yt - h / 2), lbl(label))
   }
   let odot(x, y) = {
     circle((x, y), radius: r, stroke: black + 0.9pt, fill: white)
@@ -1053,12 +1056,12 @@ $$
   line((xg, ybus), (xg, -3.56), stroke: black + 0.9pt)
   line((xg, -4.0), (xv + r, -4.0), ..arw)
 
-  proj(xq, -11.0, [$bold(W)_q$],      30%)
-  proj(xk, -11.0, [$bold(W)_k$],      30%)
-  proj(xv, -11.0, [$bold(W)_v$],      30%)
-  proj(xb, -11.0, [$bold(w)_beta$],   60%)
-  proj(xa, -11.0, [$bold(w)_alpha$],  60%)
-  proj(xg, -11.0, [$bold(W)_"gate"$], 30%)
+  proj(xq, -11.0, [$bold(W)_q$],      0.3)
+  proj(xk, -11.0, [$bold(W)_k$],      0.3)
+  proj(xv, -11.0, [$bold(W)_v$],      0.3)
+  proj(xb, -11.0, [$bold(w)_beta$],   0.6)
+  proj(xa, -11.0, [$bold(w)_alpha$],  0.6)
+  proj(xg, -11.0, [$bold(W)_"gate"$], 0.3)
 
   box(xq, -9.8, [ShortConv], c-blue,   c-blue-l)
   box(xk, -9.8, [ShortConv], c-blue,   c-blue-l)
@@ -1099,7 +1102,7 @@ $$
   rounded-block((3.0, -1.6), (6.7, -2.3), none,
     block-style: bs(c-gray, c-gray-l), center-content: lbl([Concat]))
   line((4.85, -1.6), (4.85, -1.0), ..arw)
-  proj(4.85, -0.3, [$bold(W)_"out"$], 30%)
+  proj(4.85, -0.3, [$bold(W)_"out"$], 0.3)
   line((4.85, -0.3), (4.85, 0.35), ..arw)
   content((4.85, 0.68), text(size: 9pt, $bold(y)_t$))
 })
@@ -1215,10 +1218,11 @@ $$
   rounded-block((-1.2, -2.9), (7.2, -3.6), none,
     block-style: bs(c-gray, c-gray-l), center-content: lbl([Concat]))
   line((3.0, -2.9), (3.0, -2.3), ..arw)
-  trapezoid-block((3.0 - hw, -1.6), (3.0 + hw, -1.6 - h), none,
-    side: "top", shrink: 30%, corner-radius: 0.12,
-    block-style: (fill: c-purple-l, stroke: c-purple + 1pt),
-    center-content: lbl([$bold(W)_"out"$]))
+  line((3.0 - hw, -1.6 - h), (3.0 + hw, -1.6 - h),
+    (3.0 + hw * 0.7, -1.6), (3.0 - hw * 0.7, -1.6),
+    close: true, fill: c-purple-l,
+    stroke: (paint: c-purple, thickness: 1pt, join: "round"))
+  content((3.0, -1.6 - h / 2), lbl([$bold(W)_"out"$]))
   line((3.0, -1.6), (3.0, -0.9), ..arw)
   content((3.0, -0.6), text(size: 9pt, $bold(y)_t$))
 })
