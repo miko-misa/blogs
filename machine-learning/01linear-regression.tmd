@@ -1,3 +1,4 @@
+# 線形回帰分析
 # 単回帰分析
 ## 導入
 あるスカラー値$x$を用いて、別のスカラー値$y$を予測することを考える。この手法を**単回帰分析**（simple regression analysis）と呼ぶ。このとき、$x$を**説明変数**（explanatory variable）、$y$を**目的変数**（objective variable）と呼ぶ。いくつかの$x$と$y$の値の組（順序対）を**データ**（data）と呼び,1つの組を**事例**（instance）と呼ぶ。

@@ -871,12 +871,12 @@
 ```
 
 # Gated Delta Net
-## 概要
+# 概要
 Gated Delta Netは系列データを扱うモデルであり、Attentionをベースにしている。Attentionは過去系列の情報を現在の入力に応じて重み付けして出力を計算するため、key-valueペアを記憶する必要がある。Attentionの指数関数を分解できる形で近似したLinear Attentionでは、このkey-valueペアを行列$bold(S)_t$に圧縮できる。正規化して分母を落とせば、更新は単純な漸化式ひとつで済む。ただしこの漸化式は足すことしかできず、大きさの決まった$bold(S)_t$に情報を足し続けるので中身が飽和してしまう。Gated Delta Netでは、キーの方向だけを書き換える更新と、状態全体を薄れさせる減衰の2つを持たせることで、ピンポイントな上書きと不要な記憶の消去を両立させている。
 
 長い系列を扱うほど、過去をすべて保持するAttentionに対して有利になる。実際、言語モデリングや長文の理解ではTransformerと同等以上の性能が報告されている。一方で、過去の任意の位置をそのまま引いてくるような検索では及ばない。固定サイズの状態に圧縮する以上、そこに入り切らない情報は失われるためである。そのため実際には、層の大部分をGated Delta Netにして一部にAttentionを混ぜた、ハイブリッドの形で使われることが多い。
 
-## Linear Attention
+# Linear Attention
 一般的なAttentionでは系列の1要素$bold(x)_t$から線形変換でクエリ・キー・バリューを作った。
 
 $$
@@ -927,7 +927,7 @@ bold(S)_t &= bold(S)_(t-1) + phi.alt(bold(k)_t) bold(v)_t^top\
 bold(n)_t &= bold(n)_(t-1) + phi.alt(bold(k)_t)
 $$
 
-## Delta Rule
+# Delta Rule
 Gated Delta Netでは上記の計算において分母を無視する。これは正規化のために分母を計算する必要があるが、別の部分で正規化を行うことにする。つまり以下のように$bold(q)_t, bold(k)_t$があらかじめ正規化されているとする。
 $$
 ||phi.alt(bold(q)_t)||_2 = ||phi.alt(bold(k)_t)||_2 = 1
@@ -991,7 +991,7 @@ bold(S)_t &= alpha_t ( I - beta_t bold(k)_t bold(k)_t^top) bold(S)_(t-1) + beta_
 bold(y)_t &= bold(S)_t^top bold(q)_t
 $$
 
-## マルチヘッド化とGDNのブロック構造
+# マルチヘッド化とGDNのブロック構造
 シーケンスの1入力$bold(x)_t$からDelta Ruleで用いるための$bold(k)_t, bold(v)_t, bold(q)_t, alpha_t, beta_t$を作り、Delta Ruleから出力を得るまでを一つのブロックと考えることができる。それには色々な方法が考えられ、採用されるモデルによって多少のバリエーションがある。ここでは、元論文のもので説明する。
 
 ```typst {render=svg caption="Gated Delta Netのブロック構造"}

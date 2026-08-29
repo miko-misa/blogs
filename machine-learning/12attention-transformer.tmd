@@ -879,7 +879,7 @@
 Transformerは、このAttentionを系列処理の中心に据え、RNNのような再帰構造を取り除いたモデルである。系列全体の関係をまとめて計算することで、長期的な依存関係を扱いやすくすると同時に、学習時の並列計算を可能にした。以降では、Transformerで使われるAttentionの仕組みを具体的に説明する。
 
 
-## Attention
+# Attention
 まず、系列データを以下のように表す。
 $$
 bold(X) = mat(bold(x)_1^top; bold(x)_2^top; dots.v; bold(x)_N^top) in RR^(N times d_"in")
@@ -981,7 +981,7 @@ bold(y)_k = sum_(j=1)^N "sim"(bold(q)^((1))_k, bold(k)^((2))_j) bold(v)^((2))_j
 $$
 となる。ここではどちらの系列から来たのかを明示するために、クエリ側の系列には上付きの$(1)$、キー・バリュー側の系列には上付きの$(2)$を付けている。この式は出力に対応する位置のクエリをキーとの関連度を元にバリューで重み付けして集約することを意味している。いわば、クエリ系列をキー・バリュー系列に照らし合わせて処理することになる。これを**Cross-Attention**と呼ぶ。
 
-## Transformer
+# Transformer
 **Transformer**は、RNNやCNNに頼らず、Attention機構を中心に系列を処理するエンコーダ・デコーダ型のモデルである。各ブロックは、Multi-Head Attention、位置ごとのFeed-Forward Network、Residual Connection、Layer Normalizationから構成される。 エンコーダは入力列から文脈表現を生成し、デコーダはその文脈と既に生成した出力を用いて次のトークンを予測する。
 
 ```typst {render=svg caption="Transformerのエンコーダ・デコーダ構造（Vaswani et al., 2017 Figure 1）"}
@@ -1093,7 +1093,7 @@ $$
 })
 ```
 
-### Self-AttentionとCross-Attention
+## Self-AttentionとCross-Attention
 Transformerのエンコーダとデコーダのブロックには、Self-AttentionとCross-Attentionの二種類のAttentionが存在する。Self-AttentionはAttentionの入力であったクエリ、キー、バリューが全て同じ入力$bold(X)$から生成される。
 
 $$
@@ -1108,10 +1108,10 @@ $$
 
 Cross-Attentionは、クエリを生成した入力$bold(Y)$を用いて、$bold(X)$の情報を集約するためのもので、デコーダがエンコーダ出力を参照しながら次のトークンを生成するために使われる。
 
-### マルチヘッドAttention
+## マルチヘッドAttention
 TransformerのAttentionは、単一のAttentionではなく、複数のAttentionを並列に配置した**マルチヘッドAttention**（`Multi-Head Attention`）である。これはクエリ、キー、バリューのベクトルを複数の小さなベクトルに線形射影して、それぞれに独立したAttentionを適用し、最後にそれらの出力を結合するものである。マルチヘッドAttentionは、Transformerのエンコーダとデコーダの両方で使われる。
 
-### マスク付きAttention
+## マスク付きAttention
 学習時のデコーダは正解系列をまとめて受け取れるが、そのままでは未来のトークンを見てしまい、推論時との条件がずれてしまう。そのため、未来位置に対応するスコアに$-infinity$を加え、Softmax後の重みが$0$になるようにする。具体的には、以下のような行列を用いて
 
 $$
@@ -1128,7 +1128,7 @@ $$
 
 すると、重み行列のうち未来位置に対応する部分は$e^(-oo) = 0$となり、未来のトークンを参照できなくなる。Masked Attentionは、Transformerのデコーダ内のSelf-Attentionで使用される。
 
-### 位置エンコーディング
+## 位置エンコーディング
 Attentionは、RNNやLSTMのように順序を逐次的には処理しないため、そのままではトークンの並び順を区別できない。そこでTransformerは、各トークン表現にその位置を表すベクトルを加える。原論文では次のような正弦波型の位置エンコーディングが使われた。
 
 $$
@@ -1143,7 +1143,7 @@ Position Encodingは以下の点で優れている。
 - 正弦・余弦の加法定理により、固定オフセット$k$に対する$"PE"_("pos" + k)$を$"PE"_("pos")$の線形関数として表せる。
 - Vaswaniらは、この設計が学習時より長い系列への外挿を助ける可能性を期待して、学習型ではなく正弦波型の位置エンコーディングを採用した。
 
-### FFN（Feed-Forward Network）
+## FFN（Feed-Forward Network）
 Attentionは位置間の情報を混合するが、各位置に対する非線形変換は別途必要である。そのためTransformerは、各位置に同じ2層の全結合ネットワークを独立に適用するフィードフォワードネットワーク（`Feed-Forward Network`; `FFN`）を配置している。原論文ではReLUを用いた次の形で定義される。
 
 $$
