@@ -1024,7 +1024,7 @@ $$
   let xv = 4.4
   let xb = 6.6
   let xa = 8.8
-  let xg = 12.4
+  let xg = 13.3
   let ydr = -6.8      // Delta Rule の下端
   let ybus = -12.4
 
@@ -1033,8 +1033,12 @@ $$
     rounded-block((-1.35 + dx, -3.5 + dy), (10.15 + dx, -12.05 + dy), none,
       block-style: (fill: c-gray-l, stroke: c-gray + 1pt, radius: 8pt))
   }
+  // ゲートの線はカードの間に差し込む。奥から順に、線を引いてから手前のカードを重ねる
+  let gate-in(dy) = { line((xg, -4.0 + dy), (6.5, -4.0 + dy), stroke: black + 0.9pt) }
   card(0.9, 0.44)
+  gate-in(0.44)
   card(0.45, 0.22)
+  gate-in(0.22)
   card(0, 0)
   content((-2.3, -7.8), text(size: 9pt)[$times H$])
 
@@ -1045,7 +1049,9 @@ $$
 
   // 各列は1本の線が貫く。ブロックは線の上に重ねる
   for x in (xq, xk, xv, xb, xa) { line((x, ybus), (x, ydr), ..arw) }
-  line((xg, ybus), (xg, -4.0), (xv + r, -4.0), ..arw)
+  // ゲートの縦線と、手前のカードへ入る分
+  line((xg, ybus), (xg, -3.56), stroke: black + 0.9pt)
+  line((xg, -4.0), (xv + r, -4.0), ..arw)
 
   proj(xq, -11.0, [$bold(W)_q$],      30%)
   proj(xk, -11.0, [$bold(W)_k$],      30%)
